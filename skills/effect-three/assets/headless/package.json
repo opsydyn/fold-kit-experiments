@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@opsydyn/effect-three": "0.6.4",
-    "effect": "4.1.0",
+    "effect": "4.1.6",
     "three": "0.186.1"
   },
   "devDependencies": {

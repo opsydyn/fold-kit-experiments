@@ -1,12 +1,12 @@
-import { Combobox, Popover, Tooltip } from '@foldkit/ui';
 import { perspectiveCamera, SceneSchema, type Vec3 } from '@opsydyn/effect-three';
 import { Match, Option, Schema } from 'effect';
 
+import { CategoryFilter, IconControl, PointerInput } from './controls-schema';
 import {
   Category,
   categoryIds,
-  type RadarData,
-  type RadarDataset,
+  Dataset,
+  RadarData,
   type RadarRelationship,
   Ring,
   ringIds,
@@ -22,35 +22,14 @@ import { SheetStop } from './sheet';
 import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
 import { filterQuery } from './summon';
 import { ColorScheme, ContrastSetting, resolveTheme, type Theme, ThemeChoice } from './themes';
-import type { Tour } from './tour';
+import { Tour } from './tour-schema';
 import { defaultTypeface, Typeface } from './typefaces';
 
-export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
-export type CategoryFilter = typeof CategoryFilter.Type;
+export { CategoryFilter, IconControl, PointerInput } from './controls-schema';
 
 /** The Monolith Easter egg: one slab, or shattered into microservices. */
 export const MonolithState = Schema.Literals(['whole', 'shattered']);
 export type MonolithState = typeof MonolithState.Type;
-
-/**
- * How the reader points: with a mouse or pen that can hover, or a finger that cannot. A
- * finger's "hover" is its press, under the finger and gone as it lifts, so on touch a tap
- * is how you read.
- */
-export const PointerInput = Schema.Literals(['hover', 'touch']);
-export type PointerInput = typeof PointerInput.Type;
-
-/** The sidebar's icon-only buttons: a tooltip names each on hover or keyboard focus. */
-export const IconControl = Schema.Literals(['turn-left', 'turn-right', 'zoom-out', 'zoom-in']);
-export type IconControl = typeof IconControl.Type;
-
-/** Each icon button's tooltip, closed. */
-const closedTooltips = {
-  'turn-left': Tooltip.init({ id: 'radar-turn-left' }),
-  'turn-right': Tooltip.init({ id: 'radar-turn-right' }),
-  'zoom-out': Tooltip.init({ id: 'radar-zoom-out' }),
-  'zoom-in': Tooltip.init({ id: 'radar-zoom-in' }),
-} as const satisfies Readonly<Record<IconControl, Tooltip.Model>>;
 
 /** A way out of the standalone radar, to a page of the host site. */
 export const Link = Schema.Struct({ label: Schema.String, href: Schema.String });
@@ -71,8 +50,8 @@ export const Model = Schema.Struct({
   links: Schema.Array(Link),
   /** Where each entry's full page is, when the host site has them. */
   pages: Schema.Option(Pages),
-  /** The decoded dataset, `Ready` or `Failure` (see the type below). */
-  data: Schema.Unknown,
+  /** The decoded dataset, ready or failed. */
+  data: RadarData,
   query: Schema.String,
   category: CategoryFilter,
   enabledRings: Schema.Array(Ring),
@@ -95,7 +74,7 @@ export const Model = Schema.Struct({
   /** What became of the last Copy link, for the readout until the view next changes. */
   linkNotice: Schema.Option(Schema.Literals(['copied', 'refused'])),
   /** The flight recorder (see `Tour` in tour.ts). */
-  tour: Schema.Unknown,
+  tour: Tour,
   /** What the recorder last has to say: a tour that would not load, say. */
   tourNotice: Schema.Option(Schema.String),
   /** The Konami code's invasion under way: milliseconds since it began. */
@@ -156,17 +135,11 @@ export const Model = Schema.Struct({
       changes: Schema.Array(Schema.Struct({ id: Schema.String, text: Schema.String })),
     }),
   ),
-  /** The search box: a Combobox whose input follows `query`. */
-  search: Combobox.Model,
-  /** The help button's popover: how to read and move round the radar, in the reader's gestures. */
-  help: Popover.Model,
-  /** The icon buttons' tooltips. */
-  tooltips: Schema.Struct({
-    'turn-left': Tooltip.Model,
-    'turn-right': Tooltip.Model,
-    'zoom-out': Tooltip.Model,
-    'zoom-in': Tooltip.Model,
-  }),
+  /** The search list opens independently of the query; selection stays on the radar. */
+  searchOpen: Schema.Boolean,
+  activeSearchEntry: Schema.Option(Schema.String),
+  helpOpen: Schema.Boolean,
+  dismissedTooltip: Schema.Option(IconControl),
   /** The stage's width over its height, from the last gesture; square until then. */
   stageAspect: Schema.Number,
   /** Whether the screen packs 2.5 or more device pixels to a CSS pixel (most phones). */
@@ -175,8 +148,7 @@ export const Model = Schema.Struct({
   stageWidth: Schema.Number,
   camera: SceneSchema.Camera,
 });
-export type Model = Omit<typeof Model.Type, 'data' | 'tour'> &
-  Readonly<{ data: RadarData; tour: Tour }>;
+export type Model = typeof Model.Type;
 
 /** The camera's vertical field of view, in degrees. */
 export const cameraFov = 40;
@@ -306,9 +278,10 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   immersive: false,
   minimapShown: false,
   sinceVisit: Option.none(),
-  search: Combobox.init({ id: 'radar-search' }),
-  help: Popover.init({ id: 'radar-help' }),
-  tooltips: closedTooltips,
+  searchOpen: false,
+  activeSearchEntry: Option.none(),
+  helpOpen: false,
+  dismissedTooltip: Option.none(),
   stageAspect: 1,
   stageWidth: 640,
   denseScreen: false,
@@ -328,18 +301,19 @@ export const hostOf = (model: Model): Host => ({
 });
 
 /** What the host page hands the radar: its data, where its assets live and its links out. */
-export type RadarProps = Readonly<{
-  dataset: RadarDataset;
-  title?: string;
-  assetBase?: string;
-  links?: ReadonlyArray<Link>;
+export const RadarProps = Schema.Struct({
+  dataset: Dataset,
+  title: Schema.optionalKey(Schema.String),
+  assetBase: Schema.optionalKey(Schema.String),
+  links: Schema.optionalKey(Schema.Array(Link)),
   /** Where each entry's full page is; without them, the card has no full-page link. */
-  pages?: Pages;
+  pages: Schema.optionalKey(Pages),
   /** The page's query parameters: a deep link to open on. */
-  link?: Readonly<Record<string, string>>;
+  link: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
   /** A .woff of each typeface's display face, by typeface, for the 3D labels. */
-  labelFonts?: Readonly<Record<string, string>>;
-}>;
+  labelFonts: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
+});
+export type RadarProps = typeof RadarProps.Type;
 
 /** The filters in force. A magic word summons an Easter egg and filters nothing. */
 

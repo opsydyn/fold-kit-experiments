@@ -1,14 +1,33 @@
 import { writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
 const url = process.env.ZLOZ_PROMO_REVIEW_URL ?? 'http://127.0.0.1:4329/';
-const output = (name) => fileURLToPath(new URL(name, import.meta.url));
+const evidenceDirectory = process.env.ZLOZ_PROMO_EVIDENCE_DIR;
+const output = (name) =>
+  evidenceDirectory ? join(evidenceDirectory, name) : fileURLToPath(new URL(name, import.meta.url));
 const browser = await chromium.launch();
+async function newPage(options) {
+  const page = await browser.newPage(options);
+  const buildDirectory = process.env.ZLOZ_PROMO_BUILT_DIR;
+  if (buildDirectory) {
+    const base = new URL(url);
+    await page.route(`${base.origin}/**`, (route) => {
+      const pathname = new URL(route.request().url()).pathname;
+      if (!pathname.startsWith(base.pathname)) return route.abort();
+      const relative = pathname.slice(base.pathname.length);
+      const artifact = pathname.endsWith('/') ? join(relative, 'index.html') : relative;
+      return route.fulfill({ path: join(buildDirectory, artifact) });
+    });
+  }
+  return page;
+}
+
 await (async () => {
-  const page = await browser.newPage({
+  const page = await newPage({
     viewport: { width: 1440, height: 1100 },
     colorScheme: 'light',
   });
@@ -18,7 +37,9 @@ await (async () => {
   page.on('response', (response) => {
     if (response.status() >= 400) failed.push(response.url());
   });
-  await page.goto(url);
+  const response = await page.goto(url);
+  expect(await response?.text()).toContain('data-flow-surface="promo-compose"');
+  expect(await response?.text()).toContain('data-effect-ui-state');
   const example = page.locator('.compose-example');
   const surface = example.locator('[data-flow-surface="promo-compose"]');
   const nodes = surface.locator('[data-flow-node]');
@@ -113,6 +134,12 @@ await (async () => {
   await expect(edges).toHaveCount(2);
   await button('Undo').click();
   await expect(edges).toHaveCount(1);
+  const review = surface.locator('[data-flow-node="review"]');
+  const originalPosition = await review.evaluate((node) => node.style.top);
+  await button('Select Review').press('ArrowDown');
+  await expect(review).not.toHaveCSS('top', originalPosition);
+  await button('Undo').click();
+  await expect(review).toHaveCSS('top', originalPosition);
   await expect(page).toHaveTitle('ZLOZ — Compose systems. Connect ideas.');
   await page.locator('.compose-source summary').click();
   await expect(page.locator('.compose-source .pl-k').first()).toHaveCSS(
@@ -120,7 +147,7 @@ await (async () => {
     'rgb(255, 123, 114)',
   );
   await page.locator('.compose-source summary').click();
-  const mobile = await browser.newPage({
+  const mobile = await newPage({
     viewport: { width: 390, height: 844 },
     colorScheme: 'dark',
   });
@@ -166,6 +193,7 @@ await (async () => {
         nativeChooser: true,
         keyboardPorts: true,
         pointerConnection: true,
+        keyboardNodeMovement: true,
         cancelAndDuplicateRejection: true,
         undoRedoStableIdentity: true,
         themeRetainsMountedEditor: true,

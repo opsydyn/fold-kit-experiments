@@ -1,0 +1,17 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import { Counter, StaticSummary } from '../Counter';
+---
+<html lang="en">
+  <head><title>Astro renderer fixture</title><ClientRouter /></head>
+  <body>
+    <main>
+      <div id="static"><StaticSummary /></div>
+      <Counter label="kept" start={10} client:load transition:persist="kept" transition:persist-props />
+      <div style="margin-top: 160vh">
+        <Counter label="removed" start={20} client:visible />
+      </div>
+      <a href="/away/">Away</a>
+    </main>
+  </body>
+</html>

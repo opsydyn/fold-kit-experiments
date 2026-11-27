@@ -1,4 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-foldkit/component';
 
-// Rendered on the server, then hydrated in the browser.
-export default lazyApp<{ start?: number }>(() => import('./main'));
+import { Counter } from './main';
+
+export default astroComponent(Counter);

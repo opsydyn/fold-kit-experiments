@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 
-import { Option } from 'effect';
-
-import { chartKeyDown, chartKeyDownFocus } from '../src/foldkit/keyboard';
+import { chartKeyDown, chartKeyDownFocus } from '../src/effect-ui/keyboard';
 import { chartCommandOf, targetAfter } from '../src/interaction/keyboard';
 import type { ChartCommand } from '../src/interaction/keyboard';
 
-const plain = { shiftKey: false, ctrlKey: false, altKey: false, metaKey: false };
+const plain = { ctrl: false, alt: false, meta: false, composing: false, editable: false };
 
 describe('chart keyboard commands', () => {
   const keys: ReadonlyArray<readonly [string, ChartCommand]> = [
@@ -73,27 +71,26 @@ describe('targets after a command', () => {
   });
 });
 
-describe('FoldKit keyboard handlers', () => {
-  it('produces a message for chart keys and none for others', () => {
+describe('Effect UI keyboard handlers', () => {
+  it('produces a message for chart keys and none for other input', () => {
     const handler = chartKeyDown((command) => command._tag);
-    expect(handler('Home', plain)).toEqual(Option.some('Jump'));
-    expect(handler('Tab', plain)).toEqual(Option.none());
+    expect(handler({ ...plain, key: 'Home' })).toBe('Jump');
+    expect(handler({ ...plain, key: 'Tab' })).toBeUndefined();
+    expect(handler({ ...plain, key: 'Home', editable: true })).toBeUndefined();
+    expect(handler({ ...plain, key: 'Home', composing: true })).toBeUndefined();
   });
 
-  it('moves roving focus to the target a key leads to', () => {
+  it('reports the target to focus and the corresponding selection message', () => {
     const handler = chartKeyDownFocus({
       count: 3,
       current: 1,
       focusSelector: (target) => `#bar-${target}`,
       toMessage: (target) => ({ hovered: target }),
     });
-    expect(handler('ArrowRight', plain)).toEqual(
-      Option.some({ focusSelector: '#bar-2', message: { hovered: 2 } }),
-    );
-    expect(handler('End', plain)).toEqual(
-      Option.some({ focusSelector: '#bar-2', message: { hovered: 2 } }),
-    );
-    expect(handler('Escape', plain)).toEqual(Option.none());
-    expect(handler('ArrowRight', { ...plain, ctrlKey: true })).toEqual(Option.none());
+    const result = { focusSelector: '#bar-2', message: { hovered: 2 } };
+    expect(handler({ ...plain, key: 'ArrowRight' })).toEqual(result);
+    expect(handler({ ...plain, key: 'End' })).toEqual(result);
+    expect(handler({ ...plain, key: 'Escape' })).toBeUndefined();
+    expect(handler({ ...plain, key: 'ArrowRight', ctrl: true })).toBeUndefined();
   });
 });

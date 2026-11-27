@@ -5,7 +5,7 @@ import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -32,7 +32,12 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const capturePath = (file) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${file}`)
+    : fileURLToPath(new URL(file, import.meta.url));
 
 async function run() {
   const page = await browser.newPage({
@@ -68,12 +73,18 @@ async function run() {
   await page.locator('[data-flow-node="review"]').waitFor();
   const original = await model();
   await section('Domain review');
+  await expect(page.locator('[data-architecture-effect-ui="domain-review"]')).toBeVisible();
   await panel.getByRole('button', { name: 'Review bank example', exact: true }).focus();
   await panel.getByRole('button', { name: 'Review bank example', exact: true }).press('Enter');
   await expect(panel.getByRole('status')).toContainText('Read-only descriptor review opened');
-  await expect(page.locator('.alchemy-canvas [data-flow-node]')).toHaveCount(7);
+  await expect(page.locator('[data-architecture-effect-ui="domain-review-banner"]')).toContainText(
+    'Working model preserved',
+  );
+  await expect(page.locator('.alchemy-canvas [data-flow-node]:not([data-flow-group])')).toHaveCount(
+    7,
+  );
   await expect(page.locator('.alchemy-canvas [data-flow-group]')).toHaveCount(1);
-  await expect(page.locator('.alchemy-canvas [data-flow-ddd-node="read-model"]')).toHaveCount(1);
+  await expect(page.locator('.alchemy-canvas [data-flow-ddd-type="read-model"]')).toHaveCount(1);
   await expect(panel).toContainText('example/bank');
   await expect(panel).toContainText('fixture-v1');
   await expect(panel).toContainText('23 source facts');
@@ -94,7 +105,9 @@ async function run() {
   const surface = page.locator('.alchemy-canvas [data-flow-surface]');
   await surface.focus();
   await surface.press('Delete');
-  await expect(page.locator('.alchemy-canvas [data-flow-node]')).toHaveCount(7);
+  await expect(page.locator('.alchemy-canvas [data-flow-node]:not([data-flow-group])')).toHaveCount(
+    7,
+  );
   await page.getByRole('button', { name: 'Hide controls', exact: true }).click();
   await page.locator('.workbench-rail-fit').click();
   await page.getByRole('button', { name: 'Show controls', exact: true }).click();
@@ -104,7 +117,7 @@ async function run() {
     .getByRole('heading', { name: 'Source provenance', exact: true })
     .scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: fileURLToPath(new URL('alchemy-review-light.png', import.meta.url)),
+    path: capturePath('alchemy-review-light.png'),
   });
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('dark');
   await section('Diagnostics');
@@ -115,7 +128,7 @@ async function run() {
     .getByRole('heading', { name: 'Losses and unverified meaning', exact: true })
     .scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: fileURLToPath(new URL('alchemy-review-dark.png', import.meta.url)),
+    path: capturePath('alchemy-review-dark.png'),
   });
   const sample = await readFile(
     new URL('../src/editor/alchemy-example.json', import.meta.url),
@@ -123,13 +136,26 @@ async function run() {
   );
   const upload = () => panel.getByRole('textbox', { name: 'Descriptor JSON', exact: true });
   const previousDraft = await upload().inputValue();
+  await upload().evaluate((draft) => {
+    draft.focus();
+    draft.setSelectionRange(draft.value.length, draft.value.length);
+  });
+  await page.keyboard.insertText('   ');
+  await expect(upload()).toHaveValue(previousDraft + '   ');
+  await panel.getByRole('button', { name: 'Review bank example', exact: true }).click();
+  await expect(upload()).toHaveValue(previousDraft);
   await upload().fill(' '.repeat(1_048_577));
   await expect(panel.getByRole('status')).toContainText('Rejected');
   await expect(upload()).toHaveValue(previousDraft);
-  await upload().fill(sample.replace('"version": 1', '"version": 1, "\\u0076ersion": 1'));
+  const duplicate = sample.replace('"version": 1', '"version": 1, "\\u0076ersion": 1');
+  await upload().fill(duplicate);
+  await expect(panel.getByRole('status')).toContainText('Draft changed');
+  await expect(upload()).toHaveValue(duplicate);
   await panel.getByRole('button', { name: 'Review descriptor', exact: true }).click();
   await expect(panel.getByRole('status')).toContainText('Duplicate decoded JSON property');
-  await expect(page.locator('.alchemy-canvas [data-flow-node]')).toHaveCount(7);
+  await expect(page.locator('.alchemy-canvas [data-flow-node]:not([data-flow-group])')).toHaveCount(
+    7,
+  );
   await panel.getByRole('button', { name: 'Review bank example', exact: true }).click();
   await expect(panel.getByRole('status')).toContainText('opened');
   await panel.getByLabel('Open descriptor file', { exact: true }).setInputFiles({
@@ -138,7 +164,9 @@ async function run() {
     buffer: Buffer.from([0xff]),
   });
   await expect(panel.getByRole('status')).toContainText('Rejected');
-  await expect(page.locator('.alchemy-canvas [data-flow-node]')).toHaveCount(7);
+  await expect(page.locator('.alchemy-canvas [data-flow-node]:not([data-flow-group])')).toHaveCount(
+    7,
+  );
   await panel.getByLabel('Open descriptor file', { exact: true }).setInputFiles({
     name: 'next.json',
     mimeType: 'application/json',

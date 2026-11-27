@@ -11,6 +11,7 @@ on:
         'Zloz history mutation advisory',
         'Viz axis mutation advisory',
         'Astro client mutation advisory',
+        'Astro Effect UI client mutation advisory',
       ]
     types: [completed]
 
@@ -43,6 +44,7 @@ jobs:
               zloz-history-advisory.yml) export SOURCE_WORKSPACE=apps/zloz-demo; artifact=zloz-history-outcomes ;;
               viz-axis-advisory.yml) export SOURCE_WORKSPACE=packages/foldkit-viz; artifact=viz-axis-outcomes ;;
               astro-client-advisory.yml) export SOURCE_WORKSPACE=packages/astro-foldkit; artifact=astro-client-outcomes ;;
+              astro-effect-ui-advisory.yml) export SOURCE_WORKSPACE=packages/astro-effect-ui; artifact=astro-effect-ui-client-outcomes ;;
               *) return 1 ;;
             esac
             if [[ "$SOURCE_ATTEMPT" != 1 ]]; then artifact="$artifact-$SOURCE_ATTEMPT"; fi
@@ -56,6 +58,7 @@ jobs:
               'Zloz history mutation advisory') publish zloz-history-advisory.yml ;;
               'Viz axis mutation advisory') publish viz-axis-advisory.yml ;;
               'Astro client mutation advisory') publish astro-client-advisory.yml ;;
+              'Astro Effect UI client mutation advisory') publish astro-effect-ui-advisory.yml ;;
               *) exit 1 ;;
             esac
             exit 0
@@ -64,7 +67,7 @@ jobs:
           merged_head=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
             --jq 'map(select(.merged_at != null and .base.ref == "main")) | first | .head.sha // empty')
           [[ -n "$merged_head" ]] || exit 0
-          for workflow in web-mutation-advisory.yml zloz-history-advisory.yml viz-axis-advisory.yml astro-client-advisory.yml; do
+          for workflow in web-mutation-advisory.yml zloz-history-advisory.yml viz-axis-advisory.yml astro-effect-ui-advisory.yml; do
             observation=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs" \
               -f head_sha="$merged_head" -f event=pull_request -f status=success -f per_page=1 \
               --jq '.workflow_runs[] | [.id,.run_attempt,.run_started_at,.head_sha] | @tsv')

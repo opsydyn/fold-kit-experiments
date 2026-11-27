@@ -54,6 +54,14 @@ async function run() {
       .getByRole('button', { name, exact: true })
       .click();
   const button = (name) => page.getByRole('button', { name, exact: true }).first();
+  const acceptLosses = async (format) => {
+    const acceptance = page.getByRole('checkbox', {
+      name: `Accept the reported ${format} losses`,
+      exact: true,
+    });
+    await acceptance.click();
+    await expect(acceptance).toBeChecked();
+  };
   const model = async () => {
     await section('History');
     const [d] = await Promise.all([
@@ -76,9 +84,7 @@ async function run() {
     await section('SVG export');
     await expect(button('Download SVG')).toBeDisabled();
     await expect(page.locator('[data-zloz-svg-review]')).toContainText('Custom badges');
-    await page
-      .getByRole('checkbox', { name: 'Accept the reported SVG losses', exact: true })
-      .check();
+    await acceptLosses('SVG');
     const svg = await download(button('Download SVG'), `workshop-export-${scheme}.svg`);
     expect(svg.toString()).toContain('Open question');
     expect(svg.toString()).toContain('Resolved');
@@ -89,9 +95,7 @@ async function run() {
     await expect(
       page.getByRole('checkbox', { name: 'Accept the reported PNG losses', exact: true }),
     ).not.toBeChecked();
-    await page
-      .getByRole('checkbox', { name: 'Accept the reported PNG losses', exact: true })
-      .check();
+    await acceptLosses('PNG');
     await page.locator('[data-zloz-png-action="render"]').click();
     const preview = page.getByRole('img', { name: 'PNG export preview' });
     await expect(preview).toBeVisible();
@@ -140,7 +144,7 @@ async function run() {
   ).not.toBeChecked();
   await section('SVG export');
   await expect(button('Download SVG')).toBeDisabled();
-  await page.getByRole('checkbox', { name: 'Accept the reported SVG losses', exact: true }).check();
+  await acceptLosses('SVG');
   const changed = await download(button('Download SVG'), 'workshop-export-resolved.svg');
   expect(changed.toString()).not.toContain('Open question');
   await section('Diagram');

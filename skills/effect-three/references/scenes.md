@@ -5,7 +5,7 @@
 `assets/headless/` is a complete TypeScript project: a Model, `sceneFor(model)` built
 from `@opsydyn/effect-three/kernel`, and Node tests that reconcile it with
 `createSceneGraph()`. It pins `@opsydyn/effect-three@0.1.0`, `three@0.186.1`,
-`effect@4.0.0` and TypeScript 6.0.3 and runs without a browser, renderer or FoldKit.
+`effect@4.0.0` and TypeScript 6.0.3 and runs without a browser, renderer or UI runtime.
 `reconcile(description)` returns `Applied { ops }` or `Invalid { error }`; an invalid
 description (a duplicate key, an unknown shared resource or behaviour) changes
 nothing. `object(key)` returns the three.js object for assertions and `store.stats()`
@@ -36,7 +36,7 @@ vertexColors, segments })`, drawn by the render kit (empty without one); curves 
   `quadraticBezierPoints`. `mesh({ edges: edges({ color, width, threshold }) })`
   outlines hard edges (never picked); `trail({ width, length, taper, fade })` on a group
   or mesh leaves a ribbon behind it, recorded in scene time.
-- **Transform gizmo:** keep `TransformGizmo.Model` (from the Foldkit adapter) and the
+- **Transform gizmo:** keep `TransformGizmo.Model` (from the Effect UI adapter) and the
   object placements in your Model; add `TransformGizmo.nodes(model.gizmo, placement,
 camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` names,
   send `Pressed` with the ray, the placement and the camera; send `Dragged` for drag
@@ -57,7 +57,7 @@ camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` nam
   returns with a pure `applyEdit` (keys made from the document, not the tab). Keep
   selection and camera local. Any transport that hands every packet to every peer
   will do: the editor sample's `session.ts` uses a `BroadcastChannel` between tabs, or
-  a relay socket (a Foldkit managed resource) between machines. See ADR-013.
+  a relay socket (a scoped subscription) between machines. See ADR-013.
 - **For assistants:** `formatSummary(describeScene(scene))` is a scene in a few lines;
   offer intents rather than raw numbers (`shotCamera(camera, bounds, angle)` for a shot,
   `moodStaging(mood)` for lighting) as Messages an agent can dispatch through
@@ -112,7 +112,7 @@ says where it got to: keep it with `autoRotated(model.camera, detail)` before or
 Create one environment per page and pass engines once:
 
 ```ts
-const environment = EffectThreeFoldkit.makeEnvironment(window, {
+const environment = EffectThreeUi.makeEnvironment(window, {
   physics: loadRapier(), // scenes wait for its WebAssembly
   labels: troikaLabels(),
 });
@@ -153,15 +153,11 @@ draws with either renderer; the root entry's draws only with WebGL. Pass the fac
 
 ## Agents
 
-Export `devTools = { Message }` beside `init`, `update` and `view` (an astro-foldkit
-island passes the module to `makeApplication`) and, in development, the Foldkit DevTools
-MCP server (`@foldkit/devtools-mcp`) can read the Model and dispatch Messages, each
-decoded against the schema first. Give agents intent-level Messages with closed choices
-(`PlacedPlant { at, kind }`, `kind` a `Schema.Literals`) rather than raw pointer events,
-clamp what they place in `update`, and keep high-frequency Messages out of history with
-`excludeFromHistory`. The XR room sample does this. With several pages or dev servers
-open, pass `runtime_id` from `foldkit_list_runtimes` on each tool call, and set
-`FOLDKIT_PROJECT_ROOT` to the app's directory so the server joins that app's relay.
+Give agents intent-level messages with closed choices such as
+`PlacedPlant { at, kind }`, with `kind` defined by `Schema.Literals`. Decode
+external input against the component's message schema before dispatch, and
+apply the same placement constraints in `update` as you do for browser input.
+The Effect Three scene tools can describe, check, preview and diff scene files.
 
 ## Immersive sessions
 

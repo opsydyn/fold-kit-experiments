@@ -1,15 +1,10 @@
+import type { Html } from '@effect/ui/html';
 import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import type { ChartFrame } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { darkTheme, resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
 import type { ChartTheme } from '@opsydyn/foldkit-viz/chart/theme';
-import {
-  axis,
-  chartFrame,
-  grid,
-  lineSeries,
-  pointSeries,
-} from '@opsydyn/foldkit-viz/foldkit/cartesian';
-import type { HtmlBuilder } from 'foldkit/html';
+import { axis, chartFrame, grid } from '@opsydyn/foldkit-viz/effect-ui/cartesian';
+import { symbolPath } from '@opsydyn/foldkit-viz/shape/symbol';
 
 import { datasets } from './data';
 import type { Snapshot } from './data';
@@ -28,7 +23,7 @@ export const hourLabel = (hour: number): string =>
 
 export const snapshotChart = <M>(
   snapshot: Snapshot,
-  h: HtmlBuilder<M>,
+  h: Html.H<M>,
   options: Readonly<{
     frame?: ChartFrame;
     theme?: ChartTheme;
@@ -54,39 +49,61 @@ export const snapshotChart = <M>(
     {},
     {},
   );
-  return chartFrame(
-    h,
-    {
-      layout: geometry.layout,
-      title: 'Wind observations',
-      description: `${datasets[snapshot.dataset].label}. Snapshot ${snapshot.revision}. Illustrative wind speed in metres per second.`,
+  const { layout, xTicks, yTicks } = geometry;
+  const description = `${datasets[snapshot.dataset].label}. Snapshot ${snapshot.revision}. Illustrative wind speed in metres per second.`;
+  return chartFrame(h, { layout, title: 'Wind observations', description, theme }, [
+    grid(h, { layout, xTicks, yTicks, theme }),
+    axis(h, {
+      layout,
+      orientation: 'bottom',
+      ticks: xTicks,
+      label: 'Hour',
+      format: hourLabel,
       theme,
-    },
-    [
-      grid(h, { layout: geometry.layout, xTicks: geometry.xTicks, yTicks: geometry.yTicks, theme }),
-      axis(h, {
-        layout: geometry.layout,
-        orientation: 'bottom',
-        ticks: geometry.xTicks,
-        label: 'Hour',
-        format: hourLabel,
-        theme,
-      }),
-      axis(h, {
-        layout: geometry.layout,
-        orientation: 'left',
-        ticks: geometry.yTicks,
-        label: 'Wind speed (m/s)',
-        format: String,
-        theme,
-      }),
-      ...geometry.series.map((series) => lineSeries(h, { path: series.path, style })),
-      pointSeries(h, {
-        points: geometry.points,
-        styleFor: () => style,
-        activeKey: null,
-        labelFor: (point) => `${hourLabel(point.hour)}: ${point.value} m/s`,
-      }),
-    ],
-  );
+    }),
+    axis(h, {
+      layout,
+      orientation: 'left',
+      ticks: yTicks,
+      label: 'Wind speed (m/s)',
+      format: String,
+      theme,
+    }),
+    ...geometry.series.map(({ path }) =>
+      h
+        .el('path')
+        .attrs({
+          class: 'chart-line-series',
+          d: path,
+          fill: 'none',
+          stroke: style.stroke,
+          'stroke-width': String(style.strokeWidth),
+          'stroke-dasharray': style.dashPattern,
+          opacity: String(style.opacity),
+          style: 'stroke-linejoin:round;stroke-linecap:round',
+        })
+        .children(),
+    ),
+    h
+      .el('g')
+      .attr('class', 'chart-point-series')
+      .children(
+        ...geometry.points.map(({ key, x, y, datum }) =>
+          h
+            .el('path')
+            .key(key)
+            .attrs({
+              'data-symbol': style.symbol,
+              transform: `translate(${x},${y})`,
+              d: symbolPath(style.symbol, Math.PI * style.pointRadius ** 2),
+              fill: style.fill,
+              stroke: style.stroke,
+              'stroke-width': String(style.strokeWidth),
+              opacity: String(style.opacity),
+              'aria-label': `${hourLabel(datum.hour)}: ${datum.value} m/s`,
+            })
+            .children(),
+        ),
+      ),
+  ]);
 };

@@ -22,7 +22,7 @@ import { createElkLayout } from '@opsydyn/foldkit-zloz-elk';
 const editor = createEditor({ nodes: [], edges: [] });
 const active = layoutRequest(editor, 'arrange-1');
 const layout = createElkLayout({ direction: 'RIGHT', spacing: 64 });
-const result = await layout(active); // Run this work in a FoldKit Command.
+const result = await layout(active); // Run this work in the host command.
 const arranged = applyLayout(editor, active, result);
 ```
 
@@ -49,7 +49,7 @@ See [ELK's worker documentation](https://github.com/kieler/elkjs#web-worker).
 
 ELK is an external dependency, not bundled into this package. The core package
 installs and works without it. Node 22+, ESM only. Compatibility uses the matching ZLOZ version and the pinned elkjs 0.12.1. Both ZLOZ packages release at the same version.
-The adapter has no FoldKit or Effect peer.
+The adapter has no Effect UI or Effect peer.
 
 The server baseline is **Node 22+**; the default adapter is qualified in Node and
 Chromium. In the observed Bun 1.4.4 / macOS 26.6.2 arm64 consumer, layout completes
@@ -67,7 +67,7 @@ diagrams before upgrading ELK, since layout may vary by version.
 
 Run `bun run --filter @opsydyn/foldkit-zloz-elk test`, `typecheck` and `pack:check`.
 The core's packed consumer test installs both tarballs through npm and exercises
-real layout plus the optional FoldKit renderer.
+real layout plus the optional Effect UI renderer.
 
 See [publication standards](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md) and
 [dependency notices](THIRD-PARTY-NOTICES.md).
@@ -105,7 +105,7 @@ bounds and group headers are outside this space-reservation guarantee.
 
 For intrinsic custom badges, core's `startLabelMeasurement`,
 `updateLabelMeasurements` and `resolveLabelMeasurements` can supply the explicit
-`edgeLabels` hints. The optional Foldkit view measures HTML border boxes only on
+`edgeLabels` hints. The optional Effect UI view measures HTML border boxes only on
 request. Recheck freshness before both starting ELK and applying its result; ELK
 does not load fonts, inspect DOM or start measurement itself. See the
 [core measured-label guide](../foldkit-zloz/README.md#opt-in-measured-label-bounds-unreleased).
@@ -154,7 +154,7 @@ A stale source, lifecycle veto or protected move/resize blocks the entire result
 A changed layout appends one Undo frame; identical geometry appends none.
 
 `applyGroupWorkbenchLayoutV3` integrates accepted routes into the native controller.
-Its optional Foldkit view renders them only while the complete document matches,
+Its optional Effect UI view renders them only while the complete document matches,
 no move/connection gesture is active and no collapsed projection is present.
 Undo/editing invalidates routes; camera/selection do not author layout geometry.
 Routes are transient, not serialized into authored edges. Authored waypoints keep

@@ -1,11 +1,10 @@
 {
   "name": "@opsydyn/foldkit-zloz",
   "version": "0.11.0",
-  "description": "Model-owned graph editing and optional native FoldKit views.",
+  "description": "Model-owned graph editing and optional Effect UI views.",
   "keywords": [
     "diagram",
     "flow",
-    "foldkit",
     "graph",
     "typescript"
   ],
@@ -29,7 +28,9 @@
     "!dist/pack"
   ],
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/effect-ui.css"
+  ],
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
@@ -37,9 +38,13 @@
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
-    "./foldkit": {
-      "types": "./dist/foldkit.d.mts",
-      "import": "./dist/foldkit.mjs"
+    "./effect-ui": {
+      "types": "./dist/effect-ui.d.mts",
+      "import": "./dist/effect-ui.mjs"
+    },
+    "./effect-ui.css": {
+      "types": "./dist/effect-ui.css.d.mts",
+      "default": "./dist/effect-ui.css"
     },
     "./package.json": "./package.json",
     "./browser": {
@@ -66,11 +71,11 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
+    "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
     "@types/node": "^22.0.0",
     "bun-types": "^1.3.14",
-    "effect": "4.1.0",
+    "effect": "4.1.6",
     "fast-check": "^4.8.0",
-    "foldkit": "0.171.0",
     "happy-dom": "^21.0.4",
     "publint": "0.3.25",
     "tsdown": "^0.21.8",
@@ -78,14 +83,14 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "effect": ">=4.1.0 <5.0.0",
-    "foldkit": ">=0.170.0 <0.172.0"
+    "@effect/ui": "0.0.0",
+    "effect": ">=4.1.0 <5.0.0"
   },
   "peerDependenciesMeta": {
-    "effect": {
+    "@effect/ui": {
       "optional": true
     },
-    "foldkit": {
+    "effect": {
       "optional": true
     }
   },

@@ -83,7 +83,8 @@ async function run() {
     return await readFile(await file.path(), 'utf8');
   };
   const render = async () => {
-    await accept().check();
+    await accept().click();
+    await expect(accept()).toBeChecked();
     await action('render').click();
     await expect(preview()).toBeVisible();
     await expect(action('download')).toBeEnabled();

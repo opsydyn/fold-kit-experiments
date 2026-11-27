@@ -1,13 +1,14 @@
 import { expect, test } from 'bun:test';
 
-import { serializeGraph, type EditorEvent } from '@opsydyn/foldkit-zloz';
+import { serializeGraph } from '@opsydyn/foldkit-zloz';
+import { Schema } from 'effect';
 
-import { init, update, observe, type Model } from '../src/examples/compose/state';
+import { init, update, observe, type ComposeEvent, Model } from '../src/examples/compose/state';
 
-const send = (model: Model, event: EditorEvent): Model => update(model, observe(event)).model;
+const send = (model: Model, event: ComposeEvent): Model => update(model, observe(event));
 
 test('selection is transient; connection creation commits once and Undo/Redo preserve endpoint identity', () => {
-  const original = init().model;
+  const original = init();
   const before = serializeGraph(original.editor.graph);
   const selected = send(original, { type: 'NodeSelected', id: 'review', additive: false });
   expect(selected.editor.selectedNodes).toEqual(['review']);
@@ -40,7 +41,7 @@ test('selection is transient; connection creation commits once and Undo/Redo pre
 });
 
 test('duplicate connections and cancellation do not add a history entry', () => {
-  const original = init().model;
+  const original = init();
   const pending = send(original, {
     type: 'PortActivated',
     endpoint: { node: 'draft', port: 'out' },
@@ -60,7 +61,7 @@ test('duplicate connections and cancellation do not add a history entry', () => 
 });
 
 test('initial measurement fits through the package without committing graph history or refitting later', () => {
-  const original = init().model;
+  const original = init();
   const measured = send(original, { type: 'SurfaceMeasured', size: { width: 340, height: 360 } });
   expect(measured.editor.viewport.zoom).toBeLessThan(1);
   expect(measured.editor.graph).toBe(original.editor.graph);
@@ -69,4 +70,26 @@ test('initial measurement fits through the package without committing graph hist
   const resized = send(panned, { type: 'SurfaceMeasured', size: { width: 700, height: 360 } });
   expect(resized.editor.viewport).toEqual(panned.editor.viewport);
   expect(resized.editor.past).toHaveLength(0);
+});
+
+test('the Effect UI snapshot encodes initial and edited graphs with usable history', () => {
+  const initial = init();
+  const originalGraph = serializeGraph(initial.editor.graph);
+  const staged = send(initial, {
+    type: 'PortActivated',
+    endpoint: { node: 'review', port: 'out' },
+  });
+  const edited = send(staged, {
+    type: 'PortActivated',
+    endpoint: { node: 'publish', port: 'in' },
+  });
+  const codec = Schema.toCodecJson(Model);
+  const encode = Schema.encodeSync(codec);
+  const decode = Schema.decodeSync(codec);
+  const hydrated = decode(encode(edited));
+  expect(hydrated).toEqual(edited);
+  expect(Model.make(initial)).toEqual(decode(encode(initial)));
+  // SAFETY: the tested codec just decoded a snapshot emitted by Compose.
+  const restored = hydrated as Model;
+  expect(serializeGraph(send(restored, { type: 'UndoPressed' }).editor.graph)).toBe(originalGraph);
 });

@@ -12,7 +12,10 @@ def import_run(archive, raw, run_id, attempt, commit, started_at, workspace="app
     if report.get("schemaVersion") != 2 or not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise ValueError("Invalid advisory version or source commit")
     datetime.strptime(started_at, "%Y-%m-%dT%H:%M:%SZ")
-    if workspace not in ("apps/web", "apps/zloz-demo", "packages/foldkit-viz", "packages/astro-foldkit"):
+    if workspace not in (
+        "apps/web", "apps/zloz-demo", "packages/foldkit-viz",
+        "packages/astro-foldkit", "packages/astro-effect-ui",
+    ):
         raise ValueError("Unknown advisory workspace")
     if run_id < 1 or attempt < 1:
         raise ValueError("Invalid workflow run identity")

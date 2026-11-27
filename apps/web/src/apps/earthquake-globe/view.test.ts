@@ -1,15 +1,17 @@
-import { Scene } from 'foldkit';
+import { Html, HtmlServer } from '@effect/ui/html';
+import { HtmlLocator, HtmlScene } from '@effect/ui/html/testing';
+import { Locator } from '@effect/ui/testing';
+import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { renderChart } from '../../ui/shared/render-chart.test-helper';
 import type { SnapshotResult } from './data';
 import { Message } from './message';
-import { initModel } from './model';
+import { initModel, State } from './model';
 import { GlobePointerMount } from './mount';
 import { update } from './update';
 import { view } from './view';
 
-const data: SnapshotResult = {
+const data = {
   _tag: 'Ready',
   snapshot: {
     provenance: {
@@ -55,11 +57,23 @@ const data: SnapshotResult = {
       },
     ],
   },
-};
+} satisfies SnapshotResult;
 const initial = () => initModel(data);
+const fixture = (model = initial()) => {
+  const { data, ...state } = model;
+  return Html.component({ name: 'GlobeFixture', model: State, message: Message }).make({
+    init: () => state,
+    update: ($, message) => {
+      const { data: _data, ...next } = update({ ...$.model, data }, message).model;
+      return next;
+    },
+    view: (h, current) => view({ ...current, data }, h),
+  });
+};
+
 const rendered = async (model = initial()) => {
   const container = document.createElement('div');
-  container.innerHTML = await renderChart<Message>((h) => view(model, h).body);
+  container.innerHTML = (await Effect.runPromise(HtmlServer.renderToHtml(fixture(model), {}))).html;
   return container;
 };
 
@@ -88,22 +102,27 @@ describe('earthquake globe view', () => {
       '-1.5 km',
     );
   });
-  it('wires table inspection and toolbar commands through the actual FoldKit view', () => {
-    Scene.scene(
-      { view, update },
-      Scene.given(initial()),
-      Scene.Mount.resolveAll([GlobePointerMount, Message.CompletedGlobePointerMount()]),
-      Scene.click(Scene.role('button', { name: 'Inspect back' })),
-      Scene.expect(Scene.text('Back event')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Zoom in' })),
-      Scene.expect(Scene.text('1.25x')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Reset globe' })),
-      Scene.expect(Scene.text('1.00x')).toExist(),
-      Scene.expect(Scene.text('No earthquake selected')).toExist(),
-    );
+  it('wires table inspection and toolbar commands through Effect UI', () => {
+    const exercise = Effect.gen(function* () {
+      const scene = yield* HtmlScene.make(fixture(), {});
+      scene.expectMount(GlobePointerMount());
+      const button = (name: string) => HtmlLocator.role('button', { name });
+      scene
+        .click(button('Inspect back'))
+        .expect(Locator.text('Back event'))
+        .toExist()
+        .click(button('Zoom in'))
+        .expect(Locator.text('1.25x'))
+        .toExist()
+        .click(button('Reset globe'))
+        .expect(Locator.text('1.00x'))
+        .toExist()
+        .expect(Locator.text('No earthquake selected'))
+        .toExist();
+    });
+    exercise.pipe(Effect.scoped, Effect.runSync);
   });
   it('keeps empty and failure states truthful without fake markers', async () => {
-    if (data._tag !== 'Ready') throw new Error('Invalid test fixture');
     const empty = await rendered(
       initModel({
         _tag: 'Ready',

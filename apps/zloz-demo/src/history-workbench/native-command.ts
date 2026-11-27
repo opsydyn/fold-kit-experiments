@@ -1,22 +1,23 @@
+import { Command } from '@effect/ui';
 import { Effect, Schema } from 'effect';
-import { Command } from 'foldkit';
 
 import { Message } from './message';
 export const nativeByteLimit = 1024 * 1024;
-export const CreateNativeSession = Command.define('CreateNativeSession', {
-  messages: [Message.SucceededNativeSession, Message.FailedNativeSession],
-  execute: Effect.try(() => crypto.randomUUID()).pipe(
+export const CreateNativeSession = Command.make('CreateNativeSession', { args: {} }, () =>
+  Effect.try(() => crypto.randomUUID()).pipe(
     Effect.match({
       onSuccess: (id) => Message.SucceededNativeSession({ id }),
       onFailure: () => Message.FailedNativeSession(),
     }),
   ),
-});
-export const ReadNativeFile = Command.define('ReadNativeFile', {
-  args: { token: Schema.Number, file: Schema.instanceOf(File) },
-  interrupt: { keyFields: ['token'], toKey: ({ token }) => String(token) },
-  messages: [Message.SucceededNativeRead, Message.FailedNativeRead],
-  execute: ({ token, file }) =>
+);
+export const ReadNativeFile = Command.make(
+  'ReadNativeFile',
+  {
+    args: { token: Schema.Number, file: Schema.instanceOf(File) },
+    group: ['token'],
+  },
+  ({ token, file }) =>
     Effect.gen(function* () {
       if (file.size > nativeByteLimit)
         return Message.FailedNativeRead({ token, reason: 'Artifact exceeds 1 MiB.' });
@@ -37,11 +38,13 @@ export const ReadNativeFile = Command.define('ReadNativeFile', {
           }),
       }),
     ),
-});
-export const DownloadNative = Command.define('DownloadNative', {
-  args: { text: Schema.String, kind: Schema.Literals(['proposal', 'receipt', 'packet']) },
-  messages: [Message.CompletedNativeDownload, Message.FailedNativeDownload],
-  execute: ({ text, kind }) =>
+);
+export const DownloadNative = Command.make(
+  'DownloadNative',
+  {
+    args: { text: Schema.String, kind: Schema.Literals(['proposal', 'receipt', 'packet']) },
+  },
+  ({ text, kind }) =>
     Effect.gen(function* () {
       const acquire = Effect.try(() =>
         URL.createObjectURL(new Blob([text], { type: 'application/json' })),
@@ -63,4 +66,4 @@ export const DownloadNative = Command.define('DownloadNative', {
         onFailure: () => Message.FailedNativeDownload(),
       }),
     ),
-});
+);

@@ -1,5 +1,5 @@
+import { Command } from '@effect/ui';
 import { Data, Effect, Option, Schema } from 'effect';
-import { Command } from 'foldkit';
 
 import { fontFamily, Settings, Word } from './domain';
 import { Message } from './message';
@@ -31,15 +31,16 @@ function measureWord(
     yOffset: (metric.actualBoundingBoxAscent - metric.actualBoundingBoxDescent) / 2,
   };
 }
-export const MeasureWords = Command.define('MeasureWords', {
-  args: { revision: Schema.Number, words: Schema.Array(Word), settings: Settings },
-  messages: [Message.SucceededMeasurement, Message.FailedMeasurement],
-  execute: ({ revision, words, settings }) =>
+export const MeasureWords = Command.make(
+  'MeasureWords',
+  { args: { revision: Schema.Number, words: Schema.Array(Word), settings: Settings } },
+  ({ revision, words, settings }) =>
     Effect.tryPromise({
-      try: async () => {
+      try: async (signal) => {
         const family = fontFamily(settings.font);
         await document.fonts.load(`600 ${settings.size}px ${family}`);
         await document.fonts.ready;
+        signal.throwIfAborted();
         const context = Option.getOrThrowWith(
           Option.fromNullishOr(document.createElement('canvas').getContext('2d')),
           () => new TextMeasurementError(),
@@ -62,4 +63,4 @@ export const MeasureWords = Command.define('MeasureWords', {
         onFailure: (error) => Message.FailedMeasurement({ revision, error }),
       }),
     ),
-});
+);

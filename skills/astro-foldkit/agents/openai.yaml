@@ -1,4 +1,4 @@
 interface:
-  display_name: 'Astro FoldKit'
-  short_description: 'FoldKit islands and server pages in Astro'
-  default_prompt: 'Use $astro-foldkit to integrate a typed FoldKit application into my Astro project.'
+  display_name: 'Astro Effect UI'
+  short_description: 'Effect UI components and island activation in Astro'
+  default_prompt: 'Use $astro-foldkit to integrate a typed Effect UI component into my Astro project.'

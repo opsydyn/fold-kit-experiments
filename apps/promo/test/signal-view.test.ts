@@ -1,21 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-
 import { signalData } from '../src/examples/signals/data';
-import { Inspection, type Model } from '../src/examples/signals/model';
-import { view } from '../src/examples/signals/view';
+import { Inspection } from '../src/examples/signals/model';
+import { render } from './signal-render';
 import { init } from './signal-test-fixtures';
-const render = async (model: Model) =>
-  (
-    await Effect.runPromise(
-      renderToString(
-        { Flags: Schema.Struct({ test: Schema.Boolean }), init: () => ({ model }), view },
-        { flags: { test: true }, isHydratable: false },
-      ),
-    )
-  ).html;
+
 test('native view exposes three labelled charts raw records exact units and controlled source', async () => {
   const markup = await render(init({ data: signalData }).model);
   expect(markup.match(/<svg /g)).toHaveLength(3);

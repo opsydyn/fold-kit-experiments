@@ -1,24 +1,28 @@
-import { updateEditor, type EditorEvent, type EditorState } from '@opsydyn/foldkit-zloz';
+import { UiSchema } from '@effect/ui';
+import { Html } from '@effect/ui/html';
+import { updateEditor, type EditorState } from '@opsydyn/foldkit-zloz';
+import { BrowserInput } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
-import { Runtime } from 'foldkit';
-import type { Document, HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
 
-import { boardView, fit, boardEditor } from './board';
+import { boardView } from './board';
+import { boardEditor, fit } from './board-state';
+import { baseArt } from './client-paths';
 import { initialScene } from './contracts';
 
-const Message = defineMessageUnion({
-  ObservedBoardInput: { input: Schema.Unknown },
+const Props = Schema.Struct({ backdrop: Schema.String, pip: Schema.String });
+const Message = UiSchema.TaggedEnum({
+  ObservedBoardInput: { input: BrowserInput },
   ClickedFitScene: {},
   ClickedZoomIn: {},
   ClickedZoomOut: {},
 });
 type Message = typeof Message.Type;
-// SAFETY: The runtime stores editor state created locally by boardEditor.
-const Model = Schema.Unknown as Schema.Codec<EditorState>;
+// SAFETY: The hydration snapshot contains only JSON editor state from boardEditor.
+const Editor = Schema.fromJsonString(Schema.Unknown) as Schema.Codec<EditorState, string>;
+const Model = Schema.Struct({ editor: Editor, art: Props });
 const title = 'The Moonwell Observatory';
 const instructions = 'Drag the scene to pan. Scroll or use the zoom buttons to zoom.';
-const init = () => ({ model: boardEditor(initialScene, true) });
+const instructionsId = 'moonwell-preview-instructions';
 
 function zoom(editor: EditorState, factor: number): EditorState {
   if (!editor.surface) return editor;
@@ -33,58 +37,58 @@ function zoom(editor: EditorState, factor: number): EditorState {
   });
 }
 
-function update(model: EditorState, message: Message) {
+function update(model: EditorState, message: Message): EditorState {
   return Message.match(message, {
     ObservedBoardInput: ({ input }) => {
-      // SAFETY: boardView sends EditorEvent values directly through onEvent.
-      const event = input as EditorEvent;
-      const editor = updateEditor(model, event);
-      return { model: event.type === 'SurfaceMeasured' ? fit(editor, event.size) : editor };
+      const editor = updateEditor(model, input);
+      return input.type === 'SurfaceMeasured' ? fit(editor, input.size) : editor;
     },
-    ClickedFitScene: () => ({ model: fit(model, model.surface) }),
-    ClickedZoomIn: () => ({ model: zoom(model, 1.25) }),
-    ClickedZoomOut: () => ({ model: zoom(model, 0.8) }),
+    ClickedFitScene: () => fit(model, model.surface),
+    ClickedZoomIn: () => zoom(model, 1.25),
+    ClickedZoomOut: () => zoom(model, 0.8),
   });
 }
 
-function view(backdrop: string, pip: string) {
-  return (editor: EditorState, h: HtmlBuilder<Message>): Document => ({
-    title: title + ' · Questmancer preview',
-    body: h.main(
-      [h.Class('tabletop')],
-      [
-        h.header(
-          [h.Class('scene-header')],
-          [
-            h.div([], [h.p([h.Class('brand')], ['Read-only preview']), h.h1([], [title])]),
-            h.div(
-              [h.Class('scene-actions')],
-              [
-                h.button([h.Type('button'), h.OnClick(Message.ClickedZoomOut())], ['Zoom out']),
-                h.button([h.Type('button'), h.OnClick(Message.ClickedZoomIn())], ['Zoom in']),
-                h.button([h.Type('button'), h.OnClick(Message.ClickedFitScene())], ['Fit scene']),
-              ],
+export const QuestmancerPreview = Html.component({
+  name: 'QuestmancerPreview',
+  props: Props,
+  model: Model,
+  message: Message,
+}).make({
+  init: ({ props }) => ({ editor: boardEditor(initialScene, true), art: props }),
+  update: ($, message) =>
+    $.set({ editor: update($.model.editor, message), art: $.model.art }).run(),
+  view: (h, { editor, art: { backdrop, pip } }) =>
+    h.main.class('tabletop').children(
+      h.header
+        .class('scene-header')
+        .children(
+          h.div.children(h.p.class('brand').children('Read-only preview'), h.h1.children(title)),
+          h.div
+            .class('scene-actions')
+            .children(
+              h.button
+                .attr('type', 'button')
+                .on('click', Message.ClickedZoomOut())
+                .children('Zoom out'),
+              h.button
+                .attr('type', 'button')
+                .on('click', Message.ClickedZoomIn())
+                .children('Zoom in'),
+              h.button
+                .attr('type', 'button')
+                .on('click', Message.ClickedFitScene())
+                .children('Fit scene'),
             ),
-          ],
         ),
-        boardView(h, editor, {
-          id: 'moonwell-preview-board',
-          title,
-          backdrop,
-          instructions,
-          onEvent: (input) => Message.ObservedBoardInput({ input }),
-          artFor: (id) => (id === 'pip' ? pip : '/questmancer-art/' + id + '.png'),
-        }),
-        h.footer([h.Class('scene-footer')], [h.p([], [instructions])]),
-      ],
+      boardView(h, editor, {
+        id: 'moonwell-preview-board',
+        title,
+        backdrop,
+        descriptionId: instructionsId,
+        onInput: (input) => Message.ObservedBoardInput({ input }),
+        artFor: (id) => (id === 'pip' ? pip : baseArt + id + '.png'),
+      }),
+      h.footer.class('scene-footer').children(h.p.id(instructionsId).children(instructions)),
     ),
-  });
-}
-
-const container = document.getElementById('questmancer-preview');
-const backdrop = container?.dataset.backdrop;
-const pip = container?.dataset.pip;
-if (container && backdrop && pip)
-  Runtime.run(
-    Runtime.makeApplication({ container, Model, init, update, view: view(backdrop, pip) }),
-  );
+});

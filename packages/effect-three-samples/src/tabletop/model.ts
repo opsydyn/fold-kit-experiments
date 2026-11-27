@@ -2,7 +2,6 @@ import { perspectiveCamera, SceneSchema, Timeline } from '@opsydyn/effect-three'
 import { Option, Schema } from 'effect';
 
 import { Paint } from '../palette';
-import { NameTab } from './session';
 import { Ball, Play, Relay, Session, Start } from './wire';
 
 export { Ball } from './wire';
@@ -103,9 +102,3 @@ export const fresh: Model = {
   replay: Option.none(),
   relay: Option.none(),
 };
-
-export const init = () => ({
-  model: fresh,
-  // A name for this tab, then a session with any other tabletop tabs (or through a relay).
-  commands: [NameTab()],
-});

@@ -1,4 +1,4 @@
-import foldkit from '@opsydyn/astro-foldkit';
+import effectUi from '@opsydyn/astro-effect-ui';
 import { defineConfig, fontProviders } from 'astro/config';
 
 const fontsource = fontProviders.fontsource();
@@ -9,7 +9,7 @@ export default defineConfig({
   // Where the radar is published: link previews, the feed and the sitemap give full
   // addresses on it. Preview stages link back to production, which is what a share wants.
   site: 'https://techradar.opsydyn.xyz',
-  integrations: [foldkit()],
+  integrations: [effectUi()],
   // Fetch a page when a link to it is hovered or focused, so moving between pages is quick.
   prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
   trailingSlash: 'always',

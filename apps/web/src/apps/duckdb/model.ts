@@ -27,6 +27,7 @@ export const Model = Schema.Struct({
   kind: Kind,
   /** Whether a query for the current bins and kind is in flight. */
   querying: Schema.Boolean,
+  revision: Schema.Int,
   ran: Schema.NullOr(Ran),
 });
 export type Model = typeof Model.Type;
@@ -37,6 +38,7 @@ const initialModel: Model = {
   bins: 40,
   kind: 'all',
   querying: false,
+  revision: 0,
   ran: null,
 };
 

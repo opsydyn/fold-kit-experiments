@@ -245,7 +245,10 @@ async function run() {
     name: 'Accept the reported SVG losses',
     exact: true,
   });
-  if (await acceptance.count()) await acceptance.check();
+  if (await acceptance.count()) {
+    if (!(await acceptance.isChecked())) await acceptance.click();
+    await expect(acceptance).toBeChecked();
+  }
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.locator('[data-zloz-svg-download]').click(),

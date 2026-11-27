@@ -19,7 +19,7 @@ async function maintainedAppsRoot(): Promise<string> {
         (file) => file.isFile(),
         () => false,
       )) &&
-      (await stat(join(directory, 'web/src/apps/comparison/main.ts')).then(
+      (await stat(join(directory, 'web/src/apps/comparison/workbench-state.ts')).then(
         (file) => file.isFile(),
         () => false,
       ))
@@ -92,7 +92,7 @@ export async function collectComparisonSources(
         assertVizSubpath(specifier.slice('@opsydyn/foldkit-viz/'.length));
       } else if (
         isAbsolute(specifier) ||
-        !/^(?:effect|foldkit)(?:\/|$)|^(?:fflate|@stackblitz\/sdk|@opsydyn\/dataset-explorer\/(?:highlighting(?:\.css)?|source-lines))$/.test(
+        !/^(?:effect|@effect\/ui)(?:\/|$)|^(?:fflate|@stackblitz\/sdk|@opsydyn\/dataset-explorer\/(?:highlighting-core|highlighting\.css|source-line-core|source-ui))$/.test(
           specifier,
         )
       ) {

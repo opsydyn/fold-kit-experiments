@@ -1,75 +1,58 @@
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { Option, Schema } from 'effect';
-import type { Html, HtmlBuilder } from 'foldkit/html';
 
-import { highlightedCode } from './highlighting';
 import { Message } from './message';
 import type { Model } from './model';
 import { sourceContent, SourceName } from './source';
+import { highlightedCode } from './source-ui';
 
-export const sourcePanel = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
-  model.sources.length === 0
-    ? []
-    : [
-        h.section(
-          [h.Class('query-panel query-source'), h.AriaLabel('Running source')],
-          [
-            h.div(
-              [h.Class('query-readout')],
-              [
-                h.div(
-                  [],
-                  [
-                    h.h2([h.Class('query-section-title')], ['Running source']),
-                    h.p(
-                      [h.Class('query-hint')],
-                      [
-                        'These files power this example. Select snapshot.json to follow the chart’s current data.',
-                      ],
-                    ),
-                  ],
-                ),
-                h.label(
-                  [h.Class('query-source-label')],
-                  [
-                    'Source file',
-                    h.select(
-                      [
-                        h.AriaLabel('Source file'),
-                        h.Value(model.activeFile),
-                        h.OnChange((value) =>
-                          Option.match(Schema.decodeUnknownOption(SourceName)(value), {
-                            onNone: () => Message.SelectedSource({ name: model.activeFile }),
-                            onSome: (name) => Message.SelectedSource({ name }),
-                          }),
-                        ),
-                      ],
-                      [...model.sources.map((source) => source.name), 'snapshot.json'].map((name) =>
-                        h.option([h.Value(name), h.Selected(name === model.activeFile)], [name]),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+export const sourcePanel = (h: Html.H<Message>, model: Model): View.Input<Message> => {
+  if (model.sources.length === 0) return undefined;
+  return h.section
+    .class('query-panel query-source')
+    .attr('aria-label', 'Running source')
+    .children(
+      h.div.class('query-readout').children(
+        h.div(
+          h.h2.class('query-section-title').children('Running source'),
+          h.p
+            .class('query-hint')
+            .children(
+              'These files power this example. Select snapshot.json to follow the chart’s current data.',
             ),
-            h.pre(
-              [
-                h.Class('query-source-code syntax-highlight'),
-                h.Tabindex(0),
-                h.AriaLabel(model.activeFile),
-              ],
-              [
-                h.code(
-                  [],
-                  highlightedCode(
-                    h,
-                    sourceContent(model),
-                    model.activeFile,
-                    model.highlightedSource,
-                    model.activeFile,
-                  ),
-                ),
-              ],
-            ),
-          ],
         ),
-      ];
+        h.label.class('query-source-label').children(
+          'Source file',
+          h.select
+            .attr('aria-label', 'Source file')
+            .value(model.activeFile)
+            .on('change', ({ value }) =>
+              Option.match(Schema.decodeUnknownOption(SourceName)(value), {
+                onNone: () => Message.SelectedSource({ name: model.activeFile }),
+                onSome: (name) => Message.SelectedSource({ name }),
+              }),
+            )
+            .children(
+              ...[...model.sources.map((source) => source.name), 'snapshot.json'].map((name) =>
+                h.option.attr('value', name).children(name),
+              ),
+            ),
+        ),
+      ),
+      h.pre
+        .class('query-source-code syntax-highlight')
+        .attrs({ tabindex: '0', 'aria-label': model.activeFile })
+        .children(
+          h.code(
+            ...highlightedCode(
+              h,
+              sourceContent(model),
+              model.activeFile,
+              model.highlightedSource,
+              model.activeFile,
+            ),
+          ),
+        ),
+    );
+};

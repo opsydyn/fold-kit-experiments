@@ -7,17 +7,18 @@
     "#example/frame": "./src/examples/shared/frame.ts"
   },
   "scripts": {
-    "dev": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && astro dev",
-    "build": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && astro build",
+    "dev": "bun run --filter @opsydyn/foldkit-viz build && astro dev",
+    "build": "bun run --filter @opsydyn/foldkit-viz build && astro build",
     "preview": "astro preview",
-    "typecheck": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && astro check",
+    "typecheck": "bun run --filter @opsydyn/foldkit-viz build && astro check",
     "test": "bun test test",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check ."
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "catalog:",
+    "@effect/ui": "catalog:",
     "@fontsource-variable/inter": "catalog:",
-    "@opsydyn/astro-foldkit": "workspace:*",
+    "@opsydyn/astro-effect-ui": "workspace:*",
     "@opsydyn/dataset-explorer": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",
     "@stackblitz/sdk": "1.11.0",
@@ -25,7 +26,6 @@
     "astro": "catalog:",
     "effect": "catalog:",
     "fflate": "0.8.3",
-    "foldkit": "catalog:",
     "hast-util-to-html": "catalog:",
     "topojson-client": "catalog:",
     "vscode-oniguruma": "catalog:",
@@ -38,6 +38,7 @@
     "@vanilla-extract/vite-plugin": "catalog:",
     "bun-types": "catalog:",
     "happy-dom": "catalog:",
+    "playwright": "catalog:",
     "typescript": "catalog:"
   }
 }

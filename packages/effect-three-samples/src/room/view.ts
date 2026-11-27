@@ -1,27 +1,25 @@
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 
-import { sceneMount } from '../labelledEnvironment';
+import { EffectThreeStage } from '../effect-ui-scene';
+import { sceneMount } from './command';
 import { Message, type Mode } from './message';
 import { type Model, PlantKind } from './model';
 import { sceneFor } from './scene';
 
-const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
-  h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
+const button = (h: Html.H<Message>, label: string, message: Message) =>
+  h.button.class('e3-button').attr('type', 'button').on('click', message).children(label);
 
-const kindButton = (model: Model, h: HtmlBuilder<Message>, kind: PlantKind): Html =>
-  h.button(
-    [
-      h.Class('e3-button'),
-      h.Type('button'),
-      h.AriaPressed(String(model.kind === kind)),
-      h.OnClick(Message.ChoseKind({ kind })),
-    ],
-    [kind],
-  );
+const kindButton = (model: Model, h: Html.H<Message>, kind: PlantKind) =>
+  h.button
+    .class('e3-button')
+    .attr('type', 'button')
+    .attr('aria-pressed', String(model.kind === kind))
+    .on('click', Message.ChoseKind({ kind }))
+    .children(kind);
 
 /** The way in, for each mode the browser can present, or the way out. */
-const sessionButtons = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+const sessionButtons = (model: Model, h: Html.H<Message>) => {
   if (model.session === 'entering') return [button(h, 'Entering…', Message.ClickedExit())];
   if (model.session !== 'none') return [button(h, 'Exit', Message.ClickedExit())];
   const offers: ReadonlyArray<readonly [Mode, string, Model['vr']]> = [
@@ -60,50 +58,46 @@ const readout = (model: Model): string => {
   return `${plants}. Click the floor to plant, a plant to take it away; drag to look around.${others}${found}${xr}`;
 };
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'XR room — effect-three',
-  body: h.div(
-    [h.Class('e3-sample')],
-    [
-      EffectThreeFoldkit.view(
-        {
-          scene: sceneFor(model),
-          mount: sceneMount,
-          className: 'e3-stage e3-stage-tall',
-          onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-          onClick: ({ key, point }) => clicked(key, point),
-          onGesture: (gesture) => Message.MadeGesture({ gesture }),
-          onXRSession: ({ mode }) => Message.ChangedSession({ mode }),
-          onXRSurface: (surface) => Message.SelectedSurface({ surface }),
-          onXRPlanes: (detected) => Message.DetectedPlanes({ detected }),
-          onXRMeshes: (detected) => Message.DetectedMeshes({ detected }),
-          onXRMoved: (moved) => Message.Glided({ moved }),
-          onXRTeleported: (arrived) => Message.Teleported({ teleported: arrived }),
-          onXRPoses: (poses) => Message.ReportedPoses({ poses }),
-        },
-        h,
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.div.class('e3-sample').children(
+    EffectThreeStage(h)
+      .class('e3-stage', 'e3-stage-tall')
+      .on('scene-click', ({ key, point }) => clicked(key, point))
+      .on('scene-gesture', ({ gesture }) => Message.MadeGesture({ gesture }))
+      .on('scene-xr', ({ mode }) => Message.ChangedSession({ mode }))
+      .on('scene-xr-surface', (surface) => Message.SelectedSurface({ surface }))
+      .on('scene-xr-planes', (detected) => Message.DetectedPlanes({ detected }))
+      .on('scene-xr-meshes', (detected) => Message.DetectedMeshes({ detected }))
+      .on('scene-xr-moved', (moved) => Message.Glided({ moved }))
+      .on('scene-xr-teleported', (teleported) => Message.Teleported({ teleported }))
+      .on('scene-xr-poses', (poses) => Message.ReportedPoses({ poses }))
+      .onMount(
+        Mount.map(sceneMount({ scene: sceneFor(model) }), (lifecycle) =>
+          Message.ReceivedSceneLifecycle({ lifecycle }),
+        ),
+      )
+      .children(),
+    h.p
+      .class('e3-readout')
+      .attr('aria-live', 'polite')
+      .children(
+        model.sceneFailure === null
+          ? readout(model)
+          : `Could not start the room (${model.sceneFailure}).`,
       ),
-      h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
-      h.div(
-        [h.Class('e3-controls')],
-        [
-          ...PlantKind.literals.map((kind) => kindButton(model, h, kind)),
-          ...sessionButtons(model, h),
-          button(h, 'Clear plants', Message.ClickedClear()),
-        ],
+    h.div
+      .class('e3-controls')
+      .children(
+        ...PlantKind.literals.map((kind) => kindButton(model, h, kind)),
+        ...sessionButtons(model, h),
+        button(h, 'Clear plants', Message.ClickedClear()),
       ),
-      h.p(
-        [h.Class('e3-note')],
-        [
-          'In VR the sticks glide you round the room and a tips label rides your left hand. In AR ',
-          'the furniture goes and your room shows through: each plant you place is a WebXR anchor, ',
-          'and the planes and meshes the device detects are drawn from Messages, each by a group ',
-          'following its tracked space. On the page, click the floor to plant. In development an ',
-          'agent can arrange the room too: the Foldkit DevTools MCP server sends it PlacedPlant. ',
-          'Other pages presenting the room, in this browser or through a relay (?relay=ws://…), ',
-          'show as avatars where their players stand.',
-        ],
+    h.p
+      .class('e3-note')
+      .children(
+        'In VR the sticks glide you around the room and a tips label rides your left hand. In AR ',
+        'the furniture goes and your room shows through. Each plant you place is a WebXR anchor. ',
+        'On the page, click the floor to plant. Other pages presenting the room in this browser ',
+        'or through a relay (?relay=ws://…) show as avatars where their players stand.',
       ),
-    ],
-  ),
-});
+  );

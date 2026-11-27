@@ -732,6 +732,12 @@ pre {
 .compose-canvas {
   min-width: 0;
 }
+.compose-help {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 8px;
+}
 .compose-chooser {
   min-width: 0;
 }
@@ -765,11 +771,6 @@ pre {
   font: inherit;
   font-size: 12px;
 }
-.compose-node-note {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 8px 0 0;
-}
 .compose-notice {
   font-size: 12px;
   color: var(--muted);
@@ -791,7 +792,7 @@ pre {
 .compose-links button[aria-pressed='true'] {
   border-color: var(--blue);
 }
-.compose-links [role='group'] {
+.compose-links [role='group']:not([hidden]) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

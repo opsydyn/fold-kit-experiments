@@ -1,9 +1,8 @@
+import { Mount } from '@effect/ui';
 import { paintCanvas } from '@opsydyn/foldkit-viz/canvas/plot';
 import type { PlotGeometry } from '@opsydyn/foldkit-viz/plot';
 import { pointsLayer } from '@opsydyn/foldkit-viz/webgl/points';
-import type { PointsLayer } from '@opsydyn/foldkit-viz/webgl/points';
-import { Effect, Result, Schema } from 'effect';
-import { define as defineMount } from 'foldkit/mount';
+import { Effect, Schema, Stream } from 'effect';
 
 import { scatter, scatterByKey } from './charts';
 import { Message } from './message';
@@ -44,28 +43,25 @@ const colorsOf = (element: Element) => {
  * keyed so a change that needs repainting mounts a new one; hovering only
  * redraws the SVG overlay.
  */
-export const PaintScatter = defineMount('PaintScatter', {
-  args: { key: Schema.String, points: Schema.Boolean },
-  messages: [Message.PaintedScatter],
-  execute: ({ element, key, points }) =>
-    Effect.sync(() => {
-      const compiled = scatterByKey(key);
-      if (compiled !== undefined && element instanceof HTMLCanvasElement)
-        paintCanvas(element, compiled.geometry, {
-          pixelRatio: window.devicePixelRatio || 1,
-          colors: colorsOf(element),
-          points,
-        });
-      return Message.PaintedScatter({ key });
-    }),
-});
+export function paintScatter(element: HTMLCanvasElement, key: string, points: boolean) {
+  const compiled = scatterByKey(key);
+  if (compiled !== undefined)
+    paintCanvas(element, compiled.geometry, {
+      pixelRatio: element.ownerDocument.defaultView?.devicePixelRatio || 1,
+      colors: colorsOf(element),
+      points,
+    });
+  return Message.PaintedScatter({ key });
+}
+
+export const PaintScatter = Mount.make(
+  'PaintScatter',
+  { args: { key: Schema.String, points: Schema.Boolean } },
+  (element: HTMLCanvasElement, { key, points }) =>
+    Effect.sync(() => paintScatter(element, key, points)),
+);
 
 type Span = readonly [number, number];
-
-/** Each mounted points canvas's layer, and the zoom it was built for. */
-const layers = new WeakMap<Element, Readonly<{ layer: PointsLayer; domain: string }>>();
-
-export const pointsLayerOf = (element: Element) => layers.get(element);
 
 /** The points canvas sized for the scatter at the device pixel ratio, with its WebGL context. */
 type Prepared =
@@ -77,11 +73,9 @@ type Prepared =
     }>
   | Readonly<{ _tag: 'Unavailable'; reason: string }>;
 
-function prepareCanvas(element: Element, domain: Span | null): Prepared {
-  if (!(element instanceof HTMLCanvasElement))
-    return { _tag: 'Unavailable', reason: 'the points layer needs a canvas' };
+function prepareCanvas(element: HTMLCanvasElement, domain: Span | null): Prepared {
   const { geometry } = scatter(domain, null);
-  const ratio = window.devicePixelRatio || 1;
+  const ratio = element.ownerDocument.defaultView?.devicePixelRatio || 1;
   element.width = Math.round(geometry.width * ratio);
   element.height = Math.round(geometry.height * ratio);
   const gl = element.getContext('webgl', { antialias: false, premultipliedAlpha: true });
@@ -90,45 +84,39 @@ function prepareCanvas(element: Element, domain: Span | null): Prepared {
     : { _tag: 'Ready', gl, geometry, ratio };
 }
 
-/** The layer, highlighted with the brush current at mount, and drawn. pointsLayer throws a RangeError for a shader or colour it cannot use. */
-function drawnLayer(
-  { gl, geometry, ratio }: Extract<Prepared, { _tag: 'Ready' }>,
-  domain: Span | null,
-  initialBrushed: Span | null,
-): PointsLayer {
-  const layer = pointsLayer(gl, geometry, { pixelRatio: ratio });
-  if (initialBrushed !== null) layer.highlight(scatter(domain, initialBrushed).geometry);
-  layer.draw();
-  return layer;
-}
+const sameBrush = (a: Span | null, b: Span | null): boolean =>
+  a === b || (a !== null && b !== null && a[0] === b[0] && a[1] === b[1]);
 
-/**
- * Makes the GPU points layer when its canvas mounts and releases it when the
- * canvas goes. Brushes after that arrive as HighlightScatter Commands. If no
- * layer can be made, the app falls back to painting points on the canvas.
- */
-export const MountPointsLayer = defineMount('MountPointsLayer', {
-  args: { domain: Schema.NullOr(Range), initialBrushed: Schema.NullOr(Range) },
-  messages: [Message.MountedPointsLayer, Message.FailedPointsLayer],
-  execute: ({ element, domain, initialBrushed }) =>
-    Effect.gen(function* () {
-      const prepared = prepareCanvas(element, domain);
-      if (prepared._tag === 'Unavailable')
-        return Message.FailedPointsLayer({ reason: prepared.reason });
-      const made = yield* Effect.try({
-        try: () => drawnLayer(prepared, domain, initialBrushed),
-        catch: (error) => String(error),
-      }).pipe(Effect.result);
-      if (Result.isFailure(made)) return Message.FailedPointsLayer({ reason: made.failure });
-      const layer = made.success;
-      layers.set(element, { layer, domain: JSON.stringify(domain) });
-      // The Mount's scope closes when the canvas unmounts.
-      yield* Effect.addFinalizer(() =>
-        Effect.sync(() => {
-          layer.dispose();
-          layers.delete(element);
-        }),
-      );
-      return Message.MountedPointsLayer();
-    }),
-});
+/** The canvas owns one GPU layer. Brush changes redraw it without remounting. */
+export const MountPointsLayer = Mount.makeStream(
+  'MountPointsLayer',
+  { args: { domain: Schema.NullOr(Range), brushed: Schema.NullOr(Range) } },
+  (element: HTMLCanvasElement, { domain }, changes) =>
+    Stream.unwrap(
+      Effect.gen(function* () {
+        const prepared = prepareCanvas(element, domain);
+        if (prepared._tag === 'Unavailable') return yield* Effect.fail(prepared.reason);
+        const create = Effect.try({
+          try: () => pointsLayer(prepared.gl, prepared.geometry, { pixelRatio: prepared.ratio }),
+          catch: (error) => String(error),
+        });
+        const layer = yield* Effect.acquireRelease(create, (layer) =>
+          Effect.sync(() => layer.dispose()),
+        );
+        return changes.pipe(
+          Stream.map((args) => args.brushed),
+          Stream.changesWith(sameBrush),
+          Stream.mapEffect((brush) =>
+            Effect.try({
+              try: () => {
+                layer.highlight(scatter(domain, brush).geometry);
+                layer.draw();
+              },
+              catch: (error) => String(error),
+            }),
+          ),
+          Stream.drain,
+        );
+      }),
+    ).pipe(Stream.catch((reason) => Stream.make(Message.FailedPointsLayer({ reason })))),
+);

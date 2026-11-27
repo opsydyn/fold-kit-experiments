@@ -17,19 +17,15 @@ import {
   shaderGrid,
   sphere,
 } from '@opsydyn/effect-three';
-import { Effect, Option, Queue, Stream } from 'effect';
-import type { ViewState } from 'foldkit/mount';
+import { makeEnvironment } from '@opsydyn/effect-three/browser';
+import { Option } from 'effect';
 
-import * as EffectThreeFoldkit from '../../src/index.ts';
 import { rendererFromAddress } from './rendererChoice.ts';
+import { showScenes } from './sceneHost.ts';
 
 // `?renderer=webgpu` draws with three's WebGPURenderer (its WebGL 2 backend, or real
 // WebGPU with `&backend=webgpu`): the same scenes through the TSL render kit.
-const environment = EffectThreeFoldkit.makeEnvironment(
-  window,
-  rendererFromAddress(location.search),
-);
-const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
+const environment = makeEnvironment(window, rendererFromAddress(location.search));
 
 /**
  * One unit is 40 pixels, +x to the right and +z down the screen. The cube's flat bottom
@@ -150,13 +146,9 @@ const pointsScene = () =>
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
 const bare = stagingScene(Option.none());
-Reflect.set(element, 'scene', bare);
 document.body.append(element);
 
-const viewStates = Effect.runSync(Queue.sliding<ViewState>(4));
-Queue.offerUnsafe(viewStates, 'Live');
-const lifecycle = sceneMount().f(element, Stream.fromQueue(viewStates));
-Effect.runFork(Stream.runDrain(lifecycle));
+const show = showScenes(environment, element, bare);
 
 type ShadowOptions = Parameters<typeof contactShadows>[0];
 
@@ -164,9 +156,9 @@ Reflect.set(globalThis, '__staging', {
   ready: () => element.querySelector('canvas') !== null,
   show: (options: ShadowOptions | null) => {
     const shadows = Option.map(Option.fromNullishOr(options), contactShadows);
-    Reflect.set(element, 'scene', stagingScene(shadows));
+    show(stagingScene(shadows));
   },
-  showGrid: () => Reflect.set(element, 'scene', gridScene()),
-  showLines: () => Reflect.set(element, 'scene', lineScene()),
-  showPoints: () => Reflect.set(element, 'scene', pointsScene()),
+  showGrid: () => show(gridScene()),
+  showLines: () => show(lineScene()),
+  showPoints: () => show(pointsScene()),
 });

@@ -1,7 +1,15 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
+import { attachSceneDevTools } from '@opsydyn/effect-three-samples/devtools';
+import Sample from '@opsydyn/effect-three-samples/editor';
 
 import '@opsydyn/effect-three-samples/styles.css';
 
-export default lazyApp<{ readonly noMeta?: boolean; readonly assetBase?: string }>(
-  () => import('@opsydyn/effect-three-samples/editor'),
-);
+if (
+  import.meta.env.DEV &&
+  !import.meta.env.SSR &&
+  import.meta.env.PUBLIC_EFFECT_UI_DEVTOOLS === '1'
+) {
+  attachSceneDevTools();
+}
+
+export default astroComponent(Sample);

@@ -1,19 +1,17 @@
 import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozSvgReview, zlozSvgDownloadButton } from '../src/foldkit';
+import { svgReview } from '../src/effect-ui';
 import {
   createSvgReview,
   resolveSvgReview,
   updateSvgReview,
   createArchitecturePattern,
   type ZlozSvgReviewContext,
-  type ZlozSvgReviewRequest,
 } from '../src/index';
 const graph = createArchitecturePattern('c4-context');
 const first = graph.nodes[0];
@@ -47,31 +45,21 @@ async function render(minimal = false, custom = false, accepted = false) {
     }).state;
   }
   const controls = resolveSvgReview(state, context);
-  const output = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: controls }),
-        view: (model, h: HtmlBuilder<ZlozSvgReviewRequest>) => ({
-          title: 'SVG review',
-          body: zlozSvgReview(h, model, (request) => request, {
-            diagnostics: { instructions: !minimal, measurements: !minimal },
-            renderDownload: custom
-              ? (ctx, builder, onRequest) =>
-                  zlozSvgDownloadButton(
-                    builder,
-                    ctx,
-                    onRequest,
-                    [builder.Class('custom-svg-download')],
-                    ['Save vector'],
-                  )
-              : undefined,
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const Review = Html.component({
+    name: 'SvgReview',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) =>
+      svgReview(h, controls, (request) => request.type, {
+        idPrefix: 'zloz-svg-review',
+        diagnostics: { instructions: !minimal, measurements: !minimal },
+        download: custom ? { className: 'custom-svg-download', label: 'Save vector' } : undefined,
+      }),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(Review, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = output.html;
   return window.document;

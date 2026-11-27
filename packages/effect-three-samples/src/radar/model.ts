@@ -3,9 +3,11 @@ import { Match, Option, Schema } from 'effect';
 
 import {
   Category,
+  CategoryFilter,
   categoryIds,
   loadDemoRadar,
-  type RadarData,
+  PointerInput,
+  RadarData,
   type RadarRelationship,
   Ring,
   ringIds,
@@ -20,22 +22,13 @@ import {
 import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
 import { summoned } from './summon';
 import { ColorScheme, ContrastSetting, resolveTheme, type Theme, ThemeChoice } from './themes';
-import type { Tour } from './tour';
+import { Tour } from './tour-schema';
 
-export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
-export type CategoryFilter = typeof CategoryFilter.Type;
+export { CategoryFilter, PointerInput } from './data';
 
 /** The Monolith Easter egg: one slab, or shattered into microservices. */
 export const MonolithState = Schema.Literals(['whole', 'shattered']);
 export type MonolithState = typeof MonolithState.Type;
-
-/**
- * How the reader points: with a mouse or pen that can hover, or a finger that cannot. A
- * finger's "hover" is its press, under the finger and gone as it lifts, so on touch a tap
- * is how you read.
- */
-export const PointerInput = Schema.Literals(['hover', 'touch']);
-export type PointerInput = typeof PointerInput.Type;
 
 /** A way out of the standalone radar, to a page of the host site. */
 export const Link = Schema.Struct({ label: Schema.String, href: Schema.String });
@@ -45,8 +38,8 @@ export const Model = Schema.Struct({
   assetBase: Schema.String,
   /** The host page's links, shown in the sidebar's header. */
   links: Schema.Array(Link),
-  /** The decoded dataset, `Ready` or `Failure` (see the type below). */
-  data: Schema.Unknown,
+  /** The decoded dataset, ready or failed. */
+  data: RadarData,
   query: Schema.String,
   category: CategoryFilter,
   enabledRings: Schema.Array(Ring),
@@ -65,7 +58,7 @@ export const Model = Schema.Struct({
   /** What became of the last Copy link, for the readout until the view next changes. */
   linkNotice: Schema.Option(Schema.Literals(['copied', 'refused'])),
   /** The flight recorder (see `Tour` in tour.ts). */
-  tour: Schema.Unknown,
+  tour: Tour,
   /** What the recorder last has to say: a tour that would not load, say. */
   tourNotice: Schema.Option(Schema.String),
   /** The Konami code's invasion under way: milliseconds since it began. */
@@ -97,8 +90,7 @@ export const Model = Schema.Struct({
   stageAspect: Schema.Number,
   camera: SceneSchema.Camera,
 });
-export type Model = Omit<typeof Model.Type, 'data' | 'tour'> &
-  Readonly<{ data: RadarData; tour: Tour }>;
+export type Model = typeof Model.Type;
 
 /** The camera's vertical field of view, in degrees. */
 export const cameraFov = 40;

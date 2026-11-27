@@ -246,12 +246,30 @@ it('does not install FoldKit or Effect when npm consumers only need the pure pac
       { cwd: consumerDir, maxBuffer },
     );
     expect(schemaTitle.trim()).toBe('foldkit-viz plot spec');
+
+    const { stdout: keyboardResult } = await execFileAsync(
+      'node',
+      [
+        '--input-type=module',
+        '-e',
+        `import assert from 'node:assert/strict';
+import { chartKeyDown } from '@opsydyn/foldkit-viz/effect-ui/keyboard';
+const handler = chartKeyDown(({ _tag }) => _tag);
+const home = { key: 'Home', ctrl: false, alt: false, meta: false, composing: false, editable: false };
+assert.equal(handler(home), 'Jump');
+assert.equal(handler({ ...home, ctrl: true }), undefined);
+await assert.rejects(import('@opsydyn/foldkit-viz/foldkit/keyboard'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+console.log('Keyboard exports OK');`,
+      ],
+      { cwd: consumerDir, maxBuffer },
+    );
+    expect(keyboardResult.trim()).toBe('Keyboard exports OK');
   } finally {
     await fixture.cleanup();
   }
 }, 120_000);
 
-it('renders through the packed optional adapter with the installed FoldKit host', async () => {
+it('renders with the packed Effect UI adapters and excludes the legacy exports', async () => {
   const fixture = await createFixture();
   const consumerDir = path.join(fixture.tempDir, 'adapter-consumer');
   try {
@@ -261,6 +279,14 @@ it('renders through the packed optional adapter with the installed FoldKit host'
       JSON.stringify({ private: true, type: 'module' }),
     );
     const tarball = await npmPack(fixture.tempDir);
+    const effectUi = path.dirname(fileURLToPath(import.meta.resolve('@effect/ui/package.json')));
+    const { stdout } = await execFileAsync(
+      'npm',
+      ['pack', '--ignore-scripts', '--json', '--pack-destination', fixture.tempDir, effectUi],
+      { cwd: packageDir, maxBuffer },
+    );
+    // SAFETY: npm pack emits one tarball record for the directory passed above.
+    const [{ filename }] = JSON.parse(stdout) as [{ filename: string }];
     await execFileAsync(
       'npm',
       [
@@ -269,12 +295,13 @@ it('renders through the packed optional adapter with the installed FoldKit host'
         '--no-audit',
         '--no-fund',
         tarball,
-        'foldkit@0.171.0',
-        'effect@4.1.0',
-        '@effect/platform-browser@4.1.0',
+        path.join(fixture.tempDir, filename),
+        'effect@4.1.6',
       ],
       { cwd: consumerDir, maxBuffer },
     );
+    const lockfile = await readFile(path.join(consumerDir, 'package-lock.json'), 'utf8');
+    expect(lockfile).not.toContain('"node_modules/foldkit"');
     const readme = await readFile(path.join(packageDir, 'README.md'), 'utf8');
     const snippet = readme
       .split('## Composable Cartesian charts')[1]
@@ -289,16 +316,15 @@ it('renders through the packed optional adapter with the installed FoldKit host'
     const documentationConsumer = path.join(consumerDir, 'readme-consumer.ts');
     await writeFile(
       documentationConsumer,
-      "import type { HtmlBuilder } from 'foldkit/html';\ndeclare const h: HtmlBuilder<never>;\n" +
+      "import type { Html } from '@effect/ui/html';\ndeclare const h: Html.H<never>;\n" +
         snippet +
         `
-import { dotPattern, hatchPattern, linearGradient, radialGradient } from '@opsydyn/foldkit-viz/foldkit/paint';
-import { define as defineMount } from 'foldkit/mount';
-import { defineMessageUnion } from 'foldkit/message';
+import { dotPattern, hatchPattern, linearGradient, radialGradient } from '@opsydyn/foldkit-viz/effect-ui/paint';
+import { Mount, UiSchema } from '@effect/ui';
 import { Effect, Schema } from 'effect';
-import type { ChartFrameOptions } from '@opsydyn/foldkit-viz/foldkit/cartesian';
-const ConsumerMessage = defineMessageUnion({ Recorded: { width: Schema.Number } });
-const ConsumerMount = defineMount('ConsumerFrame', { messages: [ConsumerMessage.Recorded], execute: () => Effect.succeed(ConsumerMessage.Recorded({ width: 200 })) });
+import type { ChartFrameOptions } from '@opsydyn/foldkit-viz/effect-ui/cartesian';
+const ConsumerMessage = UiSchema.TaggedEnum({ Recorded: { width: Schema.Number } });
+const ConsumerMount = Mount.make('ConsumerFrame', { args: {} }, () => Effect.succeed(ConsumerMessage.Recorded({ width: 200 })));
 const mountedFrame: ChartFrameOptions<typeof ConsumerMessage.Type> = { layout: geometry.layout, title: 'Mounted', description: 'Caller-owned input', theme: lightTheme, onMount: ConsumerMount() };
 const paints = [dotPattern(h, { id: 'd', colour: 'currentColor', spacing: 8 }), hatchPattern(h, { id: 'h', colour: 'currentColor', spacing: 8 }), linearGradient(h, { id: 'l', stops: [{ offset: 0, colour: 'red' }] }), radialGradient(h, { id: 'r', stops: [{ offset: 0, colour: 'red' }] })];
 void [mountedFrame, paints];
@@ -324,25 +350,43 @@ void [mountedFrame, paints];
       ],
       { cwd: consumerDir, maxBuffer },
     );
-    const script = `import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
+    const script = `import assert from 'node:assert/strict';
+import { Effect, Schema } from 'effect';
+import { Html, HtmlServer } from '@effect/ui/html';
 import { scatterGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { darkTheme } from '@opsydyn/foldkit-viz/chart/theme';
-import { chartFrame, pointSeries } from '@opsydyn/foldkit-viz/foldkit/cartesian';
-import { dotPattern } from '@opsydyn/foldkit-viz/foldkit/paint';
+import { chartFrame, pointSeries } from '@opsydyn/foldkit-viz/effect-ui/cartesian';
+import { dotPattern } from '@opsydyn/foldkit-viz/effect-ui/paint';
+import { plotChart } from '@opsydyn/foldkit-viz/effect-ui/plot';
+import { orbitChart } from '@opsydyn/foldkit-viz/effect-ui/orbit';
+import { orbitGeometry } from '@opsydyn/foldkit-viz/chart/orbit';
+import { orbitGeometry as rootOrbit } from '@opsydyn/foldkit-viz';
+import { decodePlot, compileChecked } from '@opsydyn/foldkit-viz/effect/plot';
+const render = async (view) => {
+  const component = Html.component({ name: 'ExternalChart', model: Schema.Null, message: Schema.Never }).make({
+    init: () => null, update: () => null, view,
+  });
+  return (await Effect.runPromise(HtmlServer.renderToHtml(component, {}, { static: true }))).html;
+};
 const geometry = scatterGeometry([5], { x: d => d, y: d => d, datumKey: () => 'only', seriesKey: () => 'all' }, { frame: { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } } });
-const result = await Effect.runPromise(renderToString({ Flags: Schema.Struct({ test: Schema.Boolean }), init: () => ({ model: 0 }), view: (_model, h) => ({ title: 'External host', body: chartFrame(h, { layout: geometry.layout, title: 'External chart', description: 'Singleton point', theme: darkTheme }, [h.defs([], [dotPattern(h, { id: 'consumer-dots', colour: 'currentColor', spacing: 8 })]), pointSeries(h, { points: geometry.points, styleFor: () => darkTheme.series, labelFor: String, activeKey: null })]) }) }, { flags: { test: true }, isHydratable: false }));
-console.log(result.html.includes('translate(100,50)') && result.html.includes('<title>External chart</title>') && result.html.includes('id="consumer-dots"'));
-const { orbitGeometry } = await import('@opsydyn/foldkit-viz/chart/orbit');
-const { orbitGeometry: rootOrbit } = await import('@opsydyn/foldkit-viz');
-const { orbitChart } = await import('@opsydyn/foldkit-viz/foldkit/orbit');
+const cartesian = await render((h) => chartFrame(h, { layout: geometry.layout, title: 'External chart', description: 'Singleton point', theme: darkTheme }, [
+  h.el('defs').children(dotPattern(h, { id: 'consumer-dots', colour: 'currentColor', spacing: 8 })),
+  pointSeries(h, { points: geometry.points, styleFor: () => darkTheme.series, labelFor: String, activeKey: null }),
+]));
+console.log(cartesian.includes('translate(100,50)') && cartesian.includes('<title>External chart</title>') && cartesian.includes('id="consumer-dots"'));
 const orbit = orbitGeometry([{ id: 'a', risk: 2, kind: 'core' }, { id: 'b', risk: 8, kind: 'edge' }], { key: d => d.id, value: d => d.risk, halo: d => d.kind }, { size: 120 });
-const orbitHtml = (await Effect.runPromise(renderToString({ Flags: Schema.Struct({ test: Schema.Boolean }), init: () => ({ model: 0 }), view: (_model, h) => ({ title: 'Orbit host', body: orbitChart(h, { geometry: orbit, title: 'Orbit', description: 'Two modules', coreFill: 'currentColor', haloColour: () => 'gray', nodeStyle: () => ({ fill: 'red', stroke: 'red' }), labelFor: d => d.id }) }) }, { flags: { test: true }, isHydratable: false }))).html;
+const orbitHtml = await render((h) => orbitChart(h, { geometry: orbit, title: 'Orbit', description: 'Two modules', coreFill: 'currentColor', haloColour: () => 'gray', nodeStyle: () => ({ fill: 'red', stroke: 'red' }), labelFor: d => d.id }));
 console.log(rootOrbit === orbitGeometry && orbitHtml.split('class="chart-orbit-node"').length === 3);
-const { decodePlot, compileChecked } = await import('@opsydyn/foldkit-viz/effect/plot');
-const spec = decodePlot({ width: 400, height: 240, marks: [{ mark: 'rule', y: { value: 5 } }] });
+const spec = decodePlot({ width: 400, height: 240, title: 'Qualified plot', marks: [{ mark: 'rule', y: { value: 5 } }] });
 const checked = spec._tag === 'Success' && compileChecked(spec.success);
-console.log(checked._tag === 'Success' && checked.success.facets[0].marks[0].graphics.length === 1);`;
+assert.equal(checked._tag, 'Success');
+const plot = await render((h) => plotChart(h, checked.success));
+console.log(plot.includes('<title>Qualified plot</title>') && checked.success.facets[0].marks[0].graphics.length === 1);
+for (const subpath of ['cartesian', 'paint', 'orbit', 'plot', 'keyboard']) {
+  await assert.rejects(import('@opsydyn/foldkit-viz/foldkit/' + subpath), (error) =>
+    ['ERR_PACKAGE_PATH_NOT_EXPORTED', 'ERR_MODULE_NOT_FOUND'].includes(error.code));
+
+}`;
     for (const runtime of ['bun', 'node']) {
       const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', script], {
         cwd: consumerDir,

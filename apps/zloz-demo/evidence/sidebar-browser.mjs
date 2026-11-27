@@ -57,6 +57,9 @@ const run = async () => {
   };
   const surface = page.locator('[data-flow-surface]');
   const scroll = page.locator('.workbench-sidebar-scroll');
+  const shell = page.locator('[data-architecture-effect-ui="chrome"]');
+  const navigation = page.locator('[data-architecture-effect-ui="navigation"]');
+
   const bounds = async () => surface.boundingBox();
   const assertVisibleCanvas = async (minWidth) => {
     const box = await bounds();
@@ -73,6 +76,8 @@ const run = async () => {
     return box;
   };
   await page.goto(`http://127.0.0.1:${server.address().port}`);
+  await expect(shell.getByRole('heading', { name: 'Workflow patterns' })).toBeVisible();
+  await expect(navigation.getByRole('navigation', { name: 'Workbench sections' })).toBeVisible();
   await button('Open nested C4 container view').click();
   await expect(surface.locator('[data-flow-c4-node]')).toHaveCount(4);
   const nativeSurface = await surface.elementHandle();
@@ -101,7 +106,10 @@ const run = async () => {
   expect(await surface.locator('[data-flow-minimap]').count()).toBe(0);
   const plane = overview.locator('svg');
   const planeBox = await plane.boundingBox();
+  const viewport = plane.locator('[data-flow-minimap-viewport]');
+  const priorX = await viewport.getAttribute('x');
   await plane.click({ position: { x: planeBox.width * 0.2, y: planeBox.height * 0.7 } });
+  await expect(viewport).not.toHaveAttribute('x', priorX);
   const clicked = await snapshot();
   expect(clicked.viewport).not.toEqual(before.viewport);
   expect(clicked.graph).toEqual(before.graph);
@@ -112,6 +120,18 @@ const run = async () => {
   expect(nudged.viewport.x).toBeCloseTo(clicked.viewport.x - 20, 4);
   expect(nudged.graph).toEqual(before.graph);
   await section('Navigation');
+  const design = page.getByRole('combobox', { name: 'Navigation design', exact: true });
+  await design.selectOption('compact');
+  await expect(overview).toHaveCSS('border-top-width', '3px');
+  await expect(overview.locator('[data-flow-minimap-viewport]')).toHaveAttribute(
+    'stroke',
+    '#ea580c',
+  );
+  await design.selectOption('standard');
+  await expect(overview.locator('[data-flow-minimap-viewport]')).toHaveAttribute(
+    'stroke',
+    'var(--flow-selection, #2563eb)',
+  );
   await button('Fit view').click();
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('dark');
   await page.screenshot({ path: fileURLToPath(new URL('./sidebar-dark.png', import.meta.url)) });
@@ -170,7 +190,7 @@ const run = async () => {
   const [bundleDownload] = await Promise.all([page.waitForEvent('download'), download.click()]);
   const bundle = JSON.parse(await readFile(await bundleDownload.path(), 'utf8'));
   expect(bundle.identity.nodes.filter((node) => node.kind === 'group')).toHaveLength(2);
-  expect(bundle.identity.nodes.find((node) => node.zlozId === 'orders-db').parentId).toBe(
+  expect(bundle.identity.nodes.find((node) => node.flowId === 'orders-db').parentId).toBe(
     'storage-boundary',
   );
   expect((await snapshot()).graph).toEqual(beforeEdit.graph);
@@ -182,13 +202,24 @@ const run = async () => {
 
   await page.setViewportSize({ width: 390, height: 844 });
   const narrowExpanded = await assertVisibleCanvas(150);
-  await button('Hide controls').click();
-  await expect(button('Show controls')).toBeVisible();
+  await button('Hide controls').press('Enter');
+  await expect(button('Show controls')).toBeFocused();
   await expect.poll(async () => (await bounds()).width).toBeGreaterThan(narrowExpanded.width);
   await button('Fit view').click();
   const narrow = await assertVisibleCanvas(300);
+  await expect
+    .poll(async () => {
+      const lastNode = await surface.locator('[data-flow-node="orders-db"]').boundingBox();
+      return (
+        lastNode !== null &&
+        lastNode.x >= narrow.x &&
+        lastNode.x + lastNode.width <= narrow.x + narrow.width
+      );
+    })
+    .toBe(true);
   await page.screenshot({ path: fileURLToPath(new URL('./sidebar-narrow.png', import.meta.url)) });
-  await button('Show controls').click();
+  await button('Show controls').press('Enter');
+  await expect(button('Hide controls')).toBeFocused();
   await expect(nav).toBeVisible();
   await section('Appearance');
   await page.getByRole('combobox', { name: 'Node design', exact: true }).focus();

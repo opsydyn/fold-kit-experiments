@@ -1,3 +1,4 @@
+import { Html } from '@effect/ui/html';
 import {
   architectureNodePresets,
   // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Shared SDK outline geometry.
@@ -5,7 +6,6 @@ import {
   type ZlozHistoryChange,
   type ZlozNode,
 } from '@opsydyn/foldkit-zloz';
-import type { HtmlBuilder } from 'foldkit/html';
 
 import { hotspotStatus } from './workshop';
 
@@ -35,33 +35,33 @@ export function workshopChangeLabel(change: ZlozHistoryChange<ZlozNode>): string
 }
 
 // The SDK owns the inert overlay and movement arrows. Customise just the workshop node mark.
-export function workshopGhost<M>(change: ZlozHistoryChange<ZlozNode>, h: HtmlBuilder<M>) {
+export function workshopGhost<M>(change: ZlozHistoryChange<ZlozNode>, h: Html.H<M>) {
   const summary = workshopChangeLabel(change);
   if (!summary) return undefined;
   const node = change.before ?? change.after;
   const geometry = outlineFor(node);
-  return h.g(
-    [
-      h.DataAttribute('zloz-history-node', change.kind),
-      h.DataAttribute('zloz-history-id', change.id),
-      h.Class('workshop-ghost'),
-      h.Transform(`translate(${node.position.x} ${node.position.y})`),
-    ],
-    [
+  return h
+    .el('g')
+    .attr('data-zloz-history-node', change.kind)
+    .attr('data-zloz-history-id', change.id)
+    .attr('class', 'workshop-ghost')
+    .attr('transform', `translate(${node.position.x} ${node.position.y})`)
+    .children(
       ...[geometry.outlinePath, ...geometry.decorationPaths].map((path) =>
-        h.path(
-          [
-            h.D(path),
-            h.Fill('none'),
-            h.Stroke('currentColor'),
-            h.StrokeWidth('2'),
-            h.StrokeDasharray(change.kind === 'removed' ? '3 5' : '8 5'),
-          ],
-          [],
-        ),
+        h
+          .el('path')
+          .attr('d', path)
+          .attr('fill', 'none')
+          .attr('stroke', 'currentColor')
+          .attr('stroke-width', '2')
+          .attr('stroke-dasharray', change.kind === 'removed' ? '3 5' : '8 5')
+          .children(),
       ),
-      h.text([h.X('4'), h.Y('-24')], [node.label || node.id]),
-      h.text([h.X('4'), h.Y('-8')], [summary]),
-    ],
-  );
+      h
+        .el('text')
+        .attr('x', '4')
+        .attr('y', '-24')
+        .children(node.label || node.id),
+      h.el('text').attr('x', '4').attr('y', '-8').children(summary),
+    );
 }

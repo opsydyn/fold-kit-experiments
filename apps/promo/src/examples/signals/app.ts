@@ -1,4 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-import type { Props } from './model';
-export default lazyApp<Props & { readonly noMeta?: boolean }>(() => import('./main'));
+import { PromoSignals } from './main';
+
+export default astroComponent(PromoSignals);

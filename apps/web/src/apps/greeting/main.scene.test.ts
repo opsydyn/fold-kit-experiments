@@ -1,22 +1,14 @@
-import { Schema } from 'effect';
-import { Scene } from 'foldkit';
-import { describe, test } from 'vitest';
+import { HtmlServer } from '@effect/ui/html';
+import { Effect, Schema } from 'effect';
+import { expect, test } from 'vitest';
 
-import { Flags, init } from './model';
-import { update } from './update';
-import { view } from './view';
+import { Greeting } from './main';
+import { Props } from './model';
 
-const initialModel = init(Schema.decodeSync(Flags)({ name: 'astronaut', locale: 'en' })).model;
-
-describe('greeting scene', () => {
-  test('switches the rendered greeting to Arabic', () => {
-    Scene.scene(
-      { update, view },
-      Scene.given(initialModel),
-      Scene.expect(Scene.role('button', { name: 'English' })).toHaveAttr('aria-pressed', 'true'),
-      Scene.click(Scene.role('button', { name: 'Arabic' })),
-      Scene.expect(Scene.role('button', { name: 'Arabic' })).toHaveAttr('aria-pressed', 'true'),
-      Scene.expect(Scene.text('مرحبا، astronaut!')).toExist(),
-    );
-  });
+test('server-renders the selected locale and both language controls', async () => {
+  const props = Schema.decodeSync(Props)({ name: 'astronaut', locale: 'ar' });
+  const { html } = await Effect.runPromise(HtmlServer.renderToHtml(Greeting, props));
+  expect(html).toContain('مرحبا، astronaut!');
+  expect(html).toContain('aria-label="Greeting language"');
+  expect(html).toMatch(/aria-pressed="true"[^>]*>Arabic<\/button>/);
 });

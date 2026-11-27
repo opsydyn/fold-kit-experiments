@@ -1,8 +1,9 @@
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import type { CartesianLayout } from '@opsydyn/foldkit-viz/chart/cartesian';
 import type { ErrorBarSegment } from '@opsydyn/foldkit-viz/chart/errorBars';
 import { resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
-import { pointSeries } from '@opsydyn/foldkit-viz/foldkit/cartesian';
-import type { Html, HtmlBuilder } from 'foldkit/html';
+import { pointSeries } from '@opsydyn/foldkit-viz/effect-ui/cartesian';
 
 import { exampleTheme } from '#example/frame';
 
@@ -20,153 +21,122 @@ const recordSummary = (
   record: SignalRecord | null,
   snapshot: SourceSnapshot | null,
   captured: boolean,
-  h: HtmlBuilder<Message>,
-): Html =>
-  h.article(
-    [h.Class('signal-comparison-record')],
-    [
-      h.h3([], [label]),
-      record === null
-        ? h.p([], [captured ? 'No baseline captured' : 'No current inspection'])
-        : h.p([h.Class('signal-comparison-identity')], [`${record.id} / ${utc(record.time)}`]),
-      ...(record === null
-        ? []
-        : [
-            h.dl(
-              [],
-              (['latency', 'errors'] as const).map((metric) => {
-                const unit = metric === 'latency' ? 'ms' : '%',
-                  reading = record[metric];
-                return h.div(
-                  [],
-                  [
-                    h.dt([], [metric === 'latency' ? 'Latency (ms)' : 'Errors (%)']),
-                    h.dd(
-                      [],
-                      [
-                        `${readingText(reading)}${readingValue(reading) === null ? '' : ` ${unit}`}`,
-                      ],
-                    ),
-                    h.p([h.Class('signal-reading-detail')], [qualityDetails(reading, unit)]),
-                  ],
-                );
-              }),
+  h: Html.H<Message>,
+): View.Content<Message> =>
+  h.article.attr('class', 'signal-comparison-record').children(
+    h.h3.children(label),
+    record === null
+      ? h.p.children(captured ? 'No baseline captured' : 'No current inspection')
+      : h.p
+          .attr('class', 'signal-comparison-identity')
+          .children(`${record.id} / ${utc(record.time)}`),
+    ...(record === null
+      ? []
+      : [
+          h.dl.children(
+            (['latency', 'errors'] as const).map((metric) => {
+              const unit = metric === 'latency' ? 'ms' : '%',
+                reading = record[metric];
+              return h.div.children(
+                h.dt.children(metric === 'latency' ? 'Latency (ms)' : 'Errors (%)'),
+                h.dd.children(
+                  `${readingText(reading)}${readingValue(reading) === null ? '' : ` ${unit}`}`,
+                ),
+                h.p.attr('class', 'signal-reading-detail').children(qualityDetails(reading, unit)),
+              );
+            }),
+          ),
+        ]),
+    ...(snapshot === null
+      ? []
+      : [
+          h.p
+            .attr('class', 'signal-reading-detail')
+            .children(
+              `${captured ? 'Baseline source' : 'Current source'}: ${sourceFreshness(snapshot)}${captured ? ' at capture' : ''} · ${snapshot.revision} · as of ${utc(snapshot.asOf)} · updated ${utc(snapshot.updatedAt)} · stale after ${snapshot.staleAfterMs} ms`,
             ),
-          ]),
-      ...(snapshot === null
-        ? []
-        : [
-            h.p(
-              [h.Class('signal-reading-detail')],
-              [
-                `${captured ? 'Baseline source' : 'Current source'}: ${sourceFreshness(snapshot)}${captured ? ' at capture' : ''} · ${snapshot.revision} · as of ${utc(snapshot.asOf)} · updated ${utc(snapshot.updatedAt)} · stale after ${snapshot.staleAfterMs} ms`,
-              ],
-            ),
-          ]),
-    ],
+        ]),
   );
-export const comparisonPanel = (model: ReadyModel, h: HtmlBuilder<Message>): Html => {
+export const comparisonPanel = (model: ReadyModel, h: Html.H<Message>): View.Content<Message> => {
   const comparison = deriveSignalComparison(model);
   const captured = Baseline.match(model.baseline, { None: () => null, Captured: (b) => b });
   const delta = (label: string, value: MetricComparison) =>
-    h.div(
-      [],
-      [
-        h.dt([], [label]),
-        MetricComparison.match(value, {
-          Available: (r) =>
-            h.dd(
-              [h.Class('signal-comparison-delta')],
-              [`${r.delta > 0 ? '+' : ''}${r.delta} ${r.unit}`],
-            ),
-          Unavailable: (r) =>
-            h.dd(
-              [h.Class('signal-comparison-unavailable')],
-              [
-                {
-                  NoBaseline: 'No baseline captured',
-                  NoCurrent: 'No current inspection',
-                  NonNumeric: 'Comparison unavailable',
-                }[r.reason],
-              ],
-            ),
-        }),
-      ],
+    h.div.children(
+      h.dt.children(label),
+      MetricComparison.match(value, {
+        Available: (r) =>
+          h.dd
+            .attr('class', 'signal-comparison-delta')
+            .children(`${r.delta > 0 ? '+' : ''}${r.delta} ${r.unit}`),
+        Unavailable: (r) =>
+          h.dd.attr('class', 'signal-comparison-unavailable').children(
+            {
+              NoBaseline: 'No baseline captured',
+              NoCurrent: 'No current inspection',
+              NonNumeric: 'Comparison unavailable',
+            }[r.reason],
+          ),
+      }),
     );
-  return h.section(
-    [h.Class('signal-comparison')],
-    [
-      h.h2([], ['Compare observations']),
-      h.p(
-        [h.Class('signal-reading-detail')],
-        [
-          'Capture a baseline, then resume inspection to compare another record. Supplied ranges describe each reading; differences do not imply statistical significance.',
-        ],
+  return h.section.attr('class', 'signal-comparison').children(
+    h.h2.children('Compare observations'),
+    h.p
+      .attr('class', 'signal-reading-detail')
+      .children(
+        'Capture a baseline, then resume inspection to compare another record. Supplied ranges describe each reading; differences do not imply statistical significance.',
       ),
-      h.div(
-        [h.Class('signal-controls')],
-        [
-          h.button(
-            [
-              h.Type('button'),
-              h.OnClick(Message.ClickedCaptureBaseline()),
-              h.Disabled(comparison.current === null),
-            ],
-            [captured === null ? 'Capture baseline' : 'Replace baseline'],
+    h.div.attr('class', 'signal-controls').children(
+      h.button
+        .attr('type', 'button')
+        .on('click', Message.ClickedCaptureBaseline())
+        .disabled(comparison.current === null)
+        .children(captured === null ? 'Capture baseline' : 'Replace baseline'),
+      h.button
+        .attr('type', 'button')
+        .on('click', Message.ClickedClearBaseline())
+        .disabled(captured === null)
+        .children('Clear baseline'),
+    ),
+    h.div
+      .attr('class', 'signal-comparison-grid')
+      .attr('aria-live', 'polite')
+      .children(
+        recordSummary(
+          'Captured baseline',
+          captured?.record ?? null,
+          captured?.snapshot ?? null,
+          true,
+          h,
+        ),
+        recordSummary(
+          'Current inspection',
+          comparison.current,
+          comparison.current === null ? null : model.snapshot,
+          false,
+          h,
+        ),
+        h.dl
+          .attr('class', 'signal-comparison-differences')
+          .children(
+            delta('Latency difference', comparison.latency),
+            delta('Error rate difference', comparison.errors),
           ),
-          h.button(
-            [
-              h.Type('button'),
-              h.OnClick(Message.ClickedClearBaseline()),
-              h.Disabled(captured === null),
-            ],
-            ['Clear baseline'],
-          ),
-        ],
+        ...(comparison.baselineOutsideView
+          ? [
+              h.p
+                .attr('class', 'signal-comparison-outside')
+                .children('Outside current view · captured baseline retained'),
+            ]
+          : []),
       ),
-      h.div(
-        [h.Class('signal-comparison-grid'), h.AriaLive('polite')],
-        [
-          recordSummary(
-            'Captured baseline',
-            captured?.record ?? null,
-            captured?.snapshot ?? null,
-            true,
-            h,
-          ),
-          recordSummary(
-            'Current inspection',
-            comparison.current,
-            comparison.current === null ? null : model.snapshot,
-            false,
-            h,
-          ),
-          h.dl(
-            [h.Class('signal-comparison-differences')],
-            [
-              delta('Latency difference', comparison.latency),
-              delta('Error rate difference', comparison.errors),
-            ],
-          ),
-          ...(comparison.baselineOutsideView
-            ? [
-                h.p(
-                  [h.Class('signal-comparison-outside')],
-                  ['Outside current view · captured baseline retained'],
-                ),
-              ]
-            : []),
-        ],
-      ),
-    ],
   );
 };
 export const comparisonLayers = (
   model: ReadyModel,
   role: ChartRole,
   layout: CartesianLayout,
-  h: HtmlBuilder<Message>,
-): ReadonlyArray<Html> => {
+  h: Html.H<Message>,
+): ReadonlyArray<View.Content<Message>> => {
   const chart = deriveComparisonChart(model, role, layout),
     metric = role === 'errors' ? 'errors' : 'latency';
   const colour =
@@ -174,40 +144,37 @@ export const comparisonLayers = (
       ? 'var(--chart-series-b, var(--coral))'
       : 'var(--chart-series-a, var(--blue))';
   const segment = (part: ErrorBarSegment, cap: boolean) =>
-    h.line(
-      [
-        h.Class(cap ? 'signal-error-bar-cap' : 'signal-error-bar-stem'),
-        h.X1(String(part.start[0])),
-        h.Y1(String(part.start[1])),
-        h.X2(String(part.end[0])),
-        h.Y2(String(part.end[1])),
-      ],
-      [],
-    );
-  const layers: Html[] = chart.errorBars.map(({ purpose, mark }) => {
+    h
+      .el('line')
+      .attr('class', cap ? 'signal-error-bar-cap' : 'signal-error-bar-stem')
+      .attr('x1', String(part.start[0]))
+      .attr('y1', String(part.start[1]))
+      .attr('x2', String(part.end[0]))
+      .attr('y2', String(part.end[1]))
+      .children();
+  const layers: View.Content<Message>[] = chart.errorBars.map(({ purpose, mark }) => {
     const estimated = mark.datum[metric]._tag === 'Estimated';
     const equal =
       mark.lowerCap.start[0] === mark.upperCap.start[0] &&
       mark.lowerCap.start[1] === mark.upperCap.start[1];
-    return h.g(
-      [
-        h.Key(`${purpose}-${mark.key}`),
-        h.Class('signal-comparison-error-bar'),
-        h.DataAttribute('comparison-purpose', purpose),
-        h.AriaLabel(
-          `${purpose === 'inspection' ? 'Inspected interval' : 'Comparison baseline interval'}: ${mark.key} · ${mark.datum[metric]._tag}`,
-        ),
-        h.Stroke(colour),
-        h.StrokeWidth('1.5'),
-        h.StrokeDasharray(purpose === 'inspection' ? (estimated ? '7 4' : '') : '3 3'),
-        h.Fill('none'),
-      ],
-      [
+    return h
+      .el('g')
+      .key(`${purpose}-${mark.key}`)
+      .attr('class', 'signal-comparison-error-bar')
+      .attr('data-comparison-purpose', purpose)
+      .attr(
+        'aria-label',
+        `${purpose === 'inspection' ? 'Inspected interval' : 'Comparison baseline interval'}: ${mark.key} · ${mark.datum[metric]._tag}`,
+      )
+      .attr('stroke', colour)
+      .attr('stroke-width', '1.5')
+      .attr('stroke-dasharray', purpose === 'inspection' ? (estimated ? '7 4' : '') : '3 3')
+      .attr('fill', 'none')
+      .children(
         segment(mark.stem, false),
         segment(mark.lowerCap, true),
         ...(equal ? [] : [segment(mark.upperCap, true)]),
-      ],
-    );
+      );
   });
   const reference = chart.baselineReference;
   if (reference !== null) {
@@ -215,42 +182,39 @@ export const comparisonLayers = (
       y = layout.y(reference.value);
     if (role !== 'overview')
       layers.push(
-        h.line(
-          [
-            h.Class('signal-baseline-reference'),
-            h.AriaLabel(
-              `Comparison baseline: ${reference.record.id} · ${reference.value} ${metric === 'latency' ? 'ms' : '%'}`,
-            ),
-            h.X1(String(layout.plot.left)),
-            h.X2(String(layout.plot.right)),
-            h.Y1(String(y)),
-            h.Y2(String(y)),
-            h.Stroke(colour),
-            h.StrokeWidth('1'),
-            h.StrokeDasharray('3 3'),
-          ],
-          [],
-        ),
+        h
+          .el('line')
+          .attr('class', 'signal-baseline-reference')
+          .attr(
+            'aria-label',
+            `Comparison baseline: ${reference.record.id} · ${reference.value} ${metric === 'latency' ? 'ms' : '%'}`,
+          )
+          .attr('x1', String(layout.plot.left))
+          .attr('x2', String(layout.plot.right))
+          .attr('y1', String(y))
+          .attr('y2', String(y))
+          .attr('stroke', colour)
+          .attr('stroke-width', '1')
+          .attr('stroke-dasharray', '3 3')
+          .children(),
       );
     else if (
       reference.record.time >= layout.xDomain[0] &&
       reference.record.time <= layout.xDomain[1]
     )
       layers.push(
-        h.line(
-          [
-            h.Class('signal-baseline-time'),
-            h.AriaLabel(`Baseline time: ${utc(reference.record.time)}`),
-            h.X1(String(x)),
-            h.X2(String(x)),
-            h.Y1(String(layout.plot.top)),
-            h.Y2(String(layout.plot.bottom)),
-            h.Stroke(colour),
-            h.StrokeWidth('1'),
-            h.StrokeDasharray('3 3'),
-          ],
-          [],
-        ),
+        h
+          .el('line')
+          .attr('class', 'signal-baseline-time')
+          .attr('aria-label', `Baseline time: ${utc(reference.record.time)}`)
+          .attr('x1', String(x))
+          .attr('x2', String(x))
+          .attr('y1', String(layout.plot.top))
+          .attr('y2', String(layout.plot.bottom))
+          .attr('stroke', colour)
+          .attr('stroke-width', '1')
+          .attr('stroke-dasharray', '3 3')
+          .children(),
       );
     if (reference.record.id !== model.inspection.key)
       layers.push(
@@ -279,8 +243,8 @@ export const comparisonLayers = (
 export const baselineReferenceList = (
   model: ReadyModel,
   role: ChartRole,
-  h: HtmlBuilder<Message>,
-): ReadonlyArray<Html> =>
+  h: Html.H<Message>,
+): ReadonlyArray<View.Content<Message>> =>
   role === 'overview'
     ? []
     : Baseline.match(model.baseline, {
@@ -291,12 +255,12 @@ export const baselineReferenceList = (
           return value === null
             ? []
             : [
-                h.li(
-                  [h.Key(`baseline-${role}`), h.Class('signal-baseline-meaning')],
-                  [
+                h.li
+                  .key(`baseline-${role}`)
+                  .attr('class', 'signal-baseline-meaning')
+                  .children(
                     `Comparison baseline: ${record.id} / ${utc(record.time)} · ${value} ${role === 'errors' ? '%' : 'ms'} · ${qualityDetails(reading, role === 'errors' ? '%' : 'ms')}`,
-                  ],
-                ),
+                  ),
               ];
         },
       });

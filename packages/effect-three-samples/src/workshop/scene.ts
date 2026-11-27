@@ -28,7 +28,6 @@ import {
   textureAsset,
 } from '@opsydyn/effect-three';
 import { Option } from 'effect';
-import { matchData } from 'foldkit/asyncData';
 
 import { assetIds, type Model } from './model';
 
@@ -52,11 +51,7 @@ const assetsOf = (model: Model): ReadonlyArray<Asset> =>
 
 /** The floor's map: the lent texture once it has settled, none before. */
 const floorMap = (model: Model): string | null =>
-  matchData(model.floor, {
-    onEmpty: () => null,
-    onFailure: () => null,
-    onData: () => assetIds.floor,
-  });
+  model.floor._tag === 'Success' ? assetIds.floor : null;
 
 const captionOf = (model: Model): string =>
   Option.match(Option.fromNullishOr(model.clip), {

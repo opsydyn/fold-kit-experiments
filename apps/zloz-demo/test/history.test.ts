@@ -1,5 +1,4 @@
 import { parseEditions, serializeEditions, updateEditor } from '@opsydyn/foldkit-zloz';
-import { Story } from 'foldkit';
 import { expect, test } from 'vitest';
 
 import { Message } from '../src/editor/message';
@@ -67,23 +66,21 @@ test(
   () => {
     const examples = update(init().model, Message.ClickedOrderHistory()).model;
     const surface = { width: 390, height: 700 };
-    Story.story(
-      update,
-      Story.given(examples),
-      Story.message(Message.SelectedHistoryEdition({ id: 'order-evolved' })),
-      Story.message(
-        Message.ObservedZlozInput({ message: { type: 'SurfaceMeasured', size: surface } }),
-      ),
-      Story.message(Message.SelectedHistoryEdition({ id: 'order-start' })),
-      Story.model((model) => expect(model.historyReview?.editor.surface).toEqual(surface)),
-      Story.message(Message.ClickedHistoryPresent()),
-      Story.model((present) => {
-        expect(present.editor.surface).toEqual(surface);
-        expect(present.editor.graph).toBe(examples.editor.graph);
-        expect(present.editor.viewport).toBe(examples.editor.viewport);
-        expect(present.editor.past).toBe(examples.editor.past);
-      }),
-    );
+    const reviewing = update(
+      examples,
+      Message.SelectedHistoryEdition({ id: 'order-evolved' }),
+    ).model;
+    const resized = update(
+      reviewing,
+      Message.ObservedZlozInput({ message: { type: 'SurfaceMeasured', size: surface } }),
+    ).model;
+    const rewound = update(resized, Message.SelectedHistoryEdition({ id: 'order-start' })).model;
+    expect(rewound.historyReview?.editor.surface).toEqual(surface);
+    const present = update(rewound, Message.ClickedHistoryPresent()).model;
+    expect(present.editor.surface).toEqual(surface);
+    expect(present.editor.graph).toBe(examples.editor.graph);
+    expect(present.editor.viewport).toBe(examples.editor.viewport);
+    expect(present.editor.past).toBe(examples.editor.past);
   },
 );
 

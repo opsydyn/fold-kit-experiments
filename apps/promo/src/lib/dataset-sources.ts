@@ -6,7 +6,7 @@ const files = import.meta.glob<string>('../../../../packages/dataset-explorer/sr
   import: 'default',
   eager: true,
 });
-export const datasetSources = Object.entries(files).map(([path, content]) => ({
-  name: Schema.decodeUnknownSync(SourceName)(path.split('/').at(-1)),
-  content,
-}));
+export const datasetSources = Object.entries(files).flatMap(([path, content]) => {
+  const name = path.split('/').at(-1);
+  return Schema.is(SourceName)(name) ? [{ name, content }] : [];
+});

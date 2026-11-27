@@ -193,7 +193,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
 
   const canvasCamera = (page: Page) =>
     page.locator('[data-flow-surface]').evaluate((element) => {
-      const world = element.querySelector('[style*="transform-origin"]');
+      const world = element.querySelector('.zloz-ui-world');
       if (!world) throw new Error('Canvas world is missing');
       const matrix = new DOMMatrix(getComputedStyle(world).transform);
       return {
@@ -222,8 +222,24 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         writes.push(request.postData() ?? '');
     });
     try {
+      const initial = await fetch(`${origin}/app/${data.organizationId}/diagrams/new`, {
+        headers: { cookie: data.editor.cookie },
+      });
+      expect(initial.ok).toBe(true);
+      const imports: string[] = [];
+      await new HTMLRewriter()
+        .on('[data-effect-ui-root] > section[aria-label]', {
+          element: (element) => {
+            const label = element.getAttribute('aria-label');
+            if (label) imports.push(label);
+          },
+        })
+        .transform(initial)
+        .text();
+      expect(imports).toEqual(['LikeC4 import', 'Alchemy infrastructure import']);
       await page.goto(`${origin}/app/${data.organizationId}/diagrams/new`);
       const panel = page.getByRole('region', { name: 'LikeC4 import' });
+      await browserExpect(page.locator('astro-island[ssr]').filter({ has: panel })).toHaveCount(0);
       await panel
         .getByLabel('LikeC4 JSON file')
         .setInputFiles(fileURLToPath(new URL('./fixtures/likec4-view.json', import.meta.url)));
@@ -519,6 +535,23 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     expect((await rename(data.viewer.cookie, 'Viewer edit')).status).toBe(403);
     expect((await rename(data.outsider.cookie, 'Other team edit')).status).toBe(403);
     expect((await rename(data.owner.cookie, '  ')).status).toBe(400);
+    const initial = await fetch(url, { headers: { cookie: data.owner.cookie } });
+    expect(initial.status).toBe(200);
+    const roots: string[] = [];
+    await new HTMLRewriter()
+      .on('.board-title [data-effect-ui-root]', {
+        element: () => {
+          roots.push('board');
+        },
+      })
+      .on('#my-preferences [data-effect-ui-root]', {
+        element: () => {
+          roots.push('preferences');
+        },
+      })
+      .transform(initial)
+      .text();
+    expect(roots.sort()).toEqual(['board', 'preferences']);
     const browser = await chromium.launch();
     await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
     const open = async (cookie: string) => {
@@ -558,6 +591,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     await editor.getByRole('button', { name: 'Apply my name' }).click();
     for (const page of [owner, editor, viewer]) {
       await browserExpect(heading(page)).toHaveText('Refund approvals', { timeout: 15000 });
+      await browserExpect(page).toHaveTitle('Refund approvals | ZLOZ');
       await page.reload();
       await browserExpect(heading(page)).toHaveText('Refund approvals');
       expect(page.url()).toBe(url);
@@ -659,7 +693,15 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await page.getByLabel('Inspector view', { exact: true }).selectOption('selection');
       await node(page, before).press('Enter');
       await page.getByLabel('Node label', { exact: true }).fill(after);
+      const sent = page.waitForRequest(
+        (request) => request.method() === 'POST' && request.url() === api + '/operations',
+        { timeout: 5000 },
+      );
       await page.getByRole('button', { name: 'Rename node', exact: true }).click();
+      expect(parseOperationRequest((await sent).postData() ?? '').operation).toMatchObject({
+        type: 'RenameNode',
+        label: after,
+      });
       await browserExpect(node(page, after)).toBeVisible();
       await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
     };
@@ -1155,6 +1197,13 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       role: 'editor',
       frame: { document: { version: 0, undo: [] } },
     });
+    const boardPage = await fetch(`${origin}/app/${data.organizationId}/diagrams/${id}`, {
+      headers: { cookie: data.editor.cookie },
+    });
+    expect(boardPage.status).toBe(200);
+    const boardHtml = await boardPage.text();
+    expect(boardHtml.includes('data-flow-surface="shared-diagram"')).toBe(true);
+    expect(boardHtml.includes('aria-label="Board commands"')).toBe(true);
     const url = new URL('/api/zloz/live', origin.replace('http:', 'ws:'));
     url.searchParams.set(
       'read',
@@ -2005,7 +2054,12 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         await browserExpect(apply).toBeEnabled();
         await browserExpect(ghosts(editor)).toHaveCount(4);
       };
+      let navigations = 0;
+      editor.on('framenavigated', (frame) => {
+        if (frame === editor.mainFrame()) navigations++;
+      });
       await preview();
+      expect(navigations).toBe(0);
       if (method === 'elk')
         await editor.screenshot({ path: join(tmpdir(), 'zloz-teams-layout-preview.png') });
       const reviewed = new Map(
@@ -2289,6 +2343,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const owner = await session(data.owner.cookie);
     await editor.goto(boardUrl);
     const panel = editor.getByRole('region', { name: 'Alchemy infrastructure import' });
+    await browserExpect(editor.locator('astro-island[ssr]').filter({ has: panel })).toHaveCount(0);
     const snapshot = {
       format: 'foldkit-zloz-alchemy-infrastructure',
       version: 1,
@@ -3255,7 +3310,10 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
               ) >= snapshot.frame.document.version,
           );
           await page.getByRole('button', { name: 'Fit view', exact: true }).click();
-          await poll(async () => (await page.locator('[data-flow-node]').count()) === count);
+          await poll(
+            async () =>
+              (await page.locator('[data-flow-node]:not([data-flow-group])').count()) === count,
+          );
         }
       };
       await saved(pageA);
@@ -3289,6 +3347,8 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
           .locator('[data-flow-port="out"]')
           .evaluate((port) => {
             const style = getComputedStyle(port);
+            const socket = port.getBoundingClientRect();
+            const frame = port.closest('[data-flow-node]')!.getBoundingClientRect();
             return {
               width: style.width,
               height: style.height,
@@ -3298,8 +3358,9 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
               cursor: style.cursor,
               pointerEvents: style.pointerEvents,
               position: style.position,
-              right: style.right,
-              bottom: style.bottom,
+              horizontalAnchor: Math.abs(socket.x + socket.width / 2 - frame.right) <= 2,
+              verticalAnchor:
+                Math.abs(socket.y + socket.height / 2 - (frame.y + frame.height / 2)) <= 2,
               translation: [
                 new DOMMatrixReadOnly(style.transform).m41,
                 new DOMMatrixReadOnly(style.transform).m42,
@@ -3315,13 +3376,13 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         cursor: 'crosshair',
         pointerEvents: 'auto',
         position: 'absolute',
-        right: '-24px',
-        bottom: '16px',
+        horizontalAnchor: true,
+        verticalAnchor: true,
         translation: [-12, -12],
       });
       const nodeStyle = (page: typeof pageA) =>
         alpha(page).evaluate((node) => {
-          const shell = getComputedStyle(node.firstElementChild!);
+          const shell = getComputedStyle(node);
           const title = getComputedStyle(node.querySelector('[data-flow-handle]')!);
           return {
             height: shell.height,
@@ -3619,7 +3680,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         async () =>
           (await pageA.locator('[data-save-status]').textContent()) === 'Save outcome unknown',
       );
-      expect(await pageB.locator('[data-flow-node]').count()).toBe(3);
+      expect(await pageB.locator('[data-flow-node]:not([data-flow-group])').count()).toBe(3);
       await pageA.unroute('**/operations');
       await pageA.getByRole('button', { name: 'Retry saved request', exact: true }).click();
       await allNodesVisible(4);
@@ -5759,6 +5820,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       const page = await context.newPage();
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto(`${origin}/app/${data.organizationId}/diagrams/${id}`);
+      await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
       if (index === 2) await page.getByRole('button', { name: 'Inspector', exact: true }).click();
       await page.getByLabel('Assess relationship', { exact: true }).selectOption('ab');
       pages.push(page);

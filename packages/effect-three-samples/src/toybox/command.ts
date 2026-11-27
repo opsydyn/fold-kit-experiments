@@ -1,31 +1,53 @@
-import { Effect } from 'effect';
 /** Asking the browser about virtual reality, and entering and leaving it. */
-import { Command } from 'foldkit';
+import { Command } from '@effect/ui';
+import { Effect, Layer } from 'effect';
 
-import { environment } from './environment';
+import { ToyboxEnvironment, toyboxEnvironment } from './environment';
 import { Message } from './message';
 
-export const CheckVr = Command.define('CheckVr', {
-  messages: [Message.CheckedVr],
-  execute: Effect.suspend(() => environment.xr.supported('immersive-vr')).pipe(
-    Effect.map((supported) => Message.CheckedVr({ supported })),
-  ),
-});
+export class CheckVr extends Command.Service<CheckVr>()('CheckVr', {
+  args: {},
+  success: Message,
+}) {}
+export class EnterVr extends Command.Service<EnterVr>()('EnterVr', {
+  args: {},
+  success: Message,
+}) {}
+export class ExitVr extends Command.Service<ExitVr>()('ExitVr', { args: {}, success: Message }) {}
 
-/** Run from the click on "Enter VR": browsers start sessions only from a user gesture. */
-export const EnterVr = Command.define('EnterVr', {
-  messages: [Message.ChangedVrSession, Message.FailedVr],
-  execute: Effect.suspend(() => environment.xr.enter('immersive-vr')).pipe(
-    Effect.match({
-      onSuccess: () => Message.ChangedVrSession({ presenting: true }),
-      onFailure: () => Message.FailedVr(),
-    }),
-  ),
-});
-
-export const ExitVr = Command.define('ExitVr', {
-  messages: [Message.ChangedVrSession],
-  execute: Effect.suspend(() => environment.xr.exit).pipe(
-    Effect.map(() => Message.ChangedVrSession({ presenting: false })),
-  ),
-});
+export function toyboxLayer() {
+  const commands = Layer.mergeAll(
+    CheckVr.toLayer(
+      Effect.map(
+        ToyboxEnvironment,
+        ({ xr }) =>
+          () =>
+            xr
+              .supported('immersive-vr')
+              .pipe(Effect.map((supported) => Message.CheckedVr({ supported }))),
+      ),
+    ),
+    EnterVr.toLayer(
+      Effect.map(
+        ToyboxEnvironment,
+        ({ xr }) =>
+          () =>
+            xr.enter('immersive-vr').pipe(
+              Effect.match({
+                onSuccess: () => Message.ChangedVrSession({ presenting: true }),
+                onFailure: () => Message.FailedVr(),
+              }),
+            ),
+      ),
+    ),
+    ExitVr.toLayer(
+      Effect.map(
+        ToyboxEnvironment,
+        ({ xr }) =>
+          () =>
+            xr.exit.pipe(Effect.map(() => Message.ChangedVrSession({ presenting: false }))),
+      ),
+    ),
+  );
+  return commands.pipe(Layer.provideMerge(toyboxEnvironment));
+}

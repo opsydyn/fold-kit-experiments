@@ -1,0 +1,30 @@
+---
+import { addMarks, marksFor } from '@opsydyn/foldkit-viz/effect/plot';
+import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
+import { VizDotPlot } from '../VizDotPlot';
+
+const data = [{ minute: 0, latency: 25 }, { minute: 1, latency: 75 }];
+const base = {
+  width: 100,
+  height: 100,
+  margins: { top: 0, right: 0, bottom: 0, left: 0 },
+  title: 'Latency over time',
+  description: 'Two latency measurements.',
+  x: { domain: [0, 1] },
+  y: { domain: [0, 100] },
+  data,
+  marks: [],
+} satisfies PlotSpec;
+const marks = marksFor<(typeof data)[number]>();
+const spec = addMarks(marks.dot({ x: 'minute', y: 'latency' }))(base);
+const invalid = addMarks({ mark: 'dot', x: 'minute', y: 'missing' })(base);
+---
+<html lang="en">
+  <head><title>Viz plot composition</title></head>
+  <body>
+    <main>
+      <div id="valid-plot"><VizDotPlot {spec} /></div>
+      <div id="invalid-plot"><VizDotPlot spec={invalid} /></div>
+    </main>
+  </body>
+</html>

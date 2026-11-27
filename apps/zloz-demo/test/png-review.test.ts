@@ -24,8 +24,19 @@ test('workbench delegates render to a package Command, guards current source, an
     update({ ...accepted, modelEpoch: accepted.modelEpoch + 1 }, request('PngRenderRequested'))
       .commands,
   ).toBeUndefined();
-  const cancelled = update(rendering.model, request('PngRenderCancelled')).model;
-  expect(workbenchPngReview(cancelled).busy).toBe(false);
+  const stale = update(rendering.model, request('PngRenderCancelled', { key: 'old-source' }));
+  expect(stale.interrupts).toBeUndefined();
+  expect(workbenchPngReview(stale.model).busy).toBe(true);
+  const cancelled = update(rendering.model, request('PngRenderCancelled'));
+  expect(cancelled.interrupts).toHaveLength(1);
+  const issued = rendering.commands?.[0];
+  expect(issued?.groupKey).toBeDefined();
+  expect(cancelled.interrupts?.[0]).toMatchObject({
+    _tag: 'Interrupt',
+    name: 'RenderPng',
+    groupKey: issued?.groupKey,
+  });
+  expect(workbenchPngReview(cancelled.model).busy).toBe(false);
 });
 
 test('retained PNG opt-in is independent from SVG and preserves the working editor and Undo', () => {

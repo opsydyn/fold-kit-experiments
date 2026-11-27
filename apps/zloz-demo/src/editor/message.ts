@@ -1,5 +1,5 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
 import {
   ColorScheme,
@@ -30,7 +30,7 @@ import {
   DiagnosticFlag,
   PortSnapPriority,
 } from './model';
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   SelectedC4PlacementMember: {
     modelId: Schema.String,
     epoch: Schema.Number,
@@ -173,7 +173,6 @@ export const Message = defineMessageUnion({
   SucceededModelDocumentImport: { id: Schema.Number, document: Schema.Unknown },
   FailedModelDocumentImport: { id: Schema.Number },
   ClickedCancelModelImport: {},
-  CompletedCancelModelImport: {},
   ClickedModelImportProtection: {},
   ChangedForkName: { name: Schema.String },
   ClickedForkEdition: {},
@@ -184,7 +183,6 @@ export const Message = defineMessageUnion({
   SucceededEditionArchiveImport: { id: Schema.Number, editions: Schema.Unknown },
   FailedEditionArchiveImport: { id: Schema.Number },
   ClickedCancelEditionImport: {},
-  CompletedCancelEditionImport: {},
   ClickedPreviewEditionRestore: {},
   ClickedConfirmEditionRestore: {},
   ClickedCancelEditionRestore: {},
@@ -286,10 +284,34 @@ export const Message = defineMessageUnion({
   SelectedPortPositionMode: { mode: Schema.Literals(['offset', 'anchor']) },
   SelectedPortPositionSide: { side: Schema.Literals(['left', 'right', 'top', 'bottom']) },
   ChangedPortPositionNumber: { field: Schema.Literals(['offset', 'x', 'y']), text: Schema.String },
-  SubmittedPortPosition: {},
+  SubmittedPortPosition: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    nodeId: Schema.String,
+    portId: Schema.String,
+    draft: Schema.Union([
+      Schema.Struct({
+        mode: Schema.Literal('offset'),
+        side: Schema.Literals(['left', 'right', 'top', 'bottom']),
+        offset: Schema.String,
+      }),
+      Schema.Struct({
+        mode: Schema.Literal('anchor'),
+        side: Schema.Literals(['left', 'right', 'top', 'bottom']),
+        x: Schema.String,
+        y: Schema.String,
+      }),
+    ]),
+  },
   ClickedCancelPortPosition: {},
   ChangedPortLabelDraft: { text: Schema.String },
-  SubmittedPortLabel: {},
+  SubmittedPortLabel: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    nodeId: Schema.String,
+    portId: Schema.String,
+    text: Schema.String,
+  },
   ClickedCancelPortLabel: {},
   SelectedReconnectionSnap: { reconnectionSnap: ReconnectionSnap },
   ClickedPortLock: { port: PortLock },
@@ -505,13 +527,22 @@ export const Message = defineMessageUnion({
   ChangedPortChooserSearch: { field: PortChooserSearchField, query: Schema.String },
   ChangedDiagramSearch: { query: Schema.String },
   SelectedSearchScope: { scope: SearchScope },
-  SubmittedDiagramSearch: {},
+  SubmittedDiagramSearch: {
+    query: Schema.String,
+    scope: SearchScope,
+    modelId: Schema.String,
+    epoch: Schema.Number,
+  },
   ClickedExport: {},
   ClickedMermaidPreview: {},
   SelectedWorkbenchSection: { section: WorkbenchSection },
   ClickedWorkbenchSidebar: {},
-  ClickedMermaidLossConsent: {},
-  ClickedMermaidDownload: {},
+  ClickedMermaidLossConsent: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+  },
+  ClickedMermaidDownload: { modelId: Schema.String, epoch: Schema.Number, revision: Schema.Number },
   CompletedMermaidDownload: {},
   FailedMermaidDownload: {},
   ChoseImportFiles: { files: Schema.Array(Schema.instanceOf(File)) },

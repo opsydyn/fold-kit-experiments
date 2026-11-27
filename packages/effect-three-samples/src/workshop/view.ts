@@ -1,33 +1,22 @@
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
-import { Option } from 'effect';
-import { match } from 'foldkit/asyncData';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
+import { Match, Option } from 'effect';
 
-import { sceneMount } from '../labelledEnvironment';
+import { defineLabelledSceneMount, EffectThreeStage } from '../effect-ui-scene';
 import { Message } from './message';
 import { type Clip, clips, type Model, type RobotInfo } from './model';
 import { sceneFor } from './scene';
 
+const SceneMount = defineLabelledSceneMount();
 const clipLabel = { wave: 'Wave', roll: 'Roll' } satisfies Record<Clip, string>;
 
-const clipButton = (model: Model, h: HtmlBuilder<Message>, clip: Clip | null): Html =>
-  h.button(
-    [
-      h.Class('e3-button'),
-      h.Type('button'),
-      h.AriaPressed(String(model.clip === clip)),
-      h.OnClick(Message.ClickedClip({ clip })),
-    ],
-    [
-      Option.match(Option.fromNullishOr(clip), {
-        onNone: () => 'Still',
-        onSome: (c) => clipLabel[c],
-      }),
-    ],
-  );
-
-const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
-  h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
+const clipButton = (model: Model, h: Html.H<Message>, clip: Clip | null) =>
+  h.button
+    .class('e3-button')
+    .attr('type', 'button')
+    .attr('aria-pressed', String(model.clip === clip))
+    .on('click', Message.ClickedClip({ clip }))
+    .children(clip === null ? 'Still' : clipLabel[clip]);
 
 const detailOf = (info: RobotInfo): string => (info.final ? 'Loaded' : 'Low detail, sharpening');
 
@@ -39,82 +28,71 @@ const loaded = (model: Model, info: RobotInfo): string =>
   });
 
 const readout = (model: Model): string =>
-  match(model.robot, {
-    onIdle: () => 'Unloaded: the model, texture and sign font are gone.',
-    onLoading: () => 'Loading the robot…',
-    onRefreshing: (info) => loaded(model, info),
-    onFailure: (error) => error,
-    onStale: ({ error }) => error,
-    onSuccess: (info) => loaded(model, info),
-  });
+  Match.value(model.robot).pipe(
+    Match.tagsExhaustive({
+      Idle: () => 'Unloaded: the model, texture and sign font are gone.',
+      Loading: () => 'Loading the robot…',
+      Failure: ({ error }) => error,
+      Success: ({ data }) => loaded(model, data),
+    }),
+  );
 
-/** The loading controls: unload when anything is loaded, reload when not. */
-const loadButton = (model: Model, h: HtmlBuilder<Message>): Html =>
-  match(model.robot, {
-    onIdle: () => button(h, 'Reload', Message.ClickedReload()),
-    onLoading: () => button(h, 'Unload', Message.ClickedUnload()),
-    onRefreshing: () => button(h, 'Unload', Message.ClickedUnload()),
-    onFailure: () => button(h, 'Reload', Message.ClickedReload()),
-    onStale: () => button(h, 'Unload', Message.ClickedUnload()),
-    onSuccess: () => button(h, 'Unload', Message.ClickedUnload()),
-  });
+const loadButton = (model: Model, h: Html.H<Message>) => {
+  const reloading = model.robot._tag === 'Idle' || model.robot._tag === 'Failure';
+  return h.button
+    .class('e3-button')
+    .attr('type', 'button')
+    .disabled(model.sceneStatus?._tag === 'FailedScene')
+    .on('click', reloading ? Message.ClickedReload() : Message.ClickedUnload())
+    .children(reloading ? 'Reload' : 'Unload');
+};
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'Workshop — effect-three',
-  body: h.div(
-    [h.Class('e3-sample')],
-    [
-      EffectThreeFoldkit.view(
-        {
-          scene: sceneFor(model),
-          mount: sceneMount,
-          className: 'e3-stage',
-          onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-          onClick: ({ part }) => Message.ClickedPart({ part: part ?? 'robot' }),
-          onAssetLoaded: ({ id, final, parts, clips }) =>
-            Message.LoadedAsset({ id, final, parts, clips }),
-          onAssetFailed: ({ id, reason }) => Message.FailedAsset({ id, reason }),
-        },
-        h,
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.div.class('e3-sample').children(
+    EffectThreeStage(h)
+      .class('e3-stage')
+      .on('scene-click', ({ part }) => Message.ClickedPart({ part: part ?? 'robot' }))
+      .on('scene-asset-loaded', ({ id, final, parts, clips }) =>
+        Message.LoadedAsset({ id, final, parts, clips }),
+      )
+      .on('scene-asset-failed', ({ id, reason }) => Message.FailedAsset({ id, reason }))
+      .onMount(
+        Mount.map(SceneMount({ scene: sceneFor(model) }), (lifecycle) =>
+          Message.ReceivedSceneLifecycle({ lifecycle }),
+        ),
+      )
+      .children(),
+    h.p
+      .class('e3-readout')
+      .attr('aria-live', 'polite')
+      .children(
+        model.sceneStatus?._tag === 'FailedScene'
+          ? `Could not start the workshop (${model.sceneStatus.reason}).`
+          : readout(model),
       ),
-      h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
-      h.div(
-        [h.Class('e3-controls'), h.AriaLabel('Animation')],
-        [...clips.map((clip) => clipButton(model, h, clip)), clipButton(model, h, null)],
-      ),
-      h.div(
-        [h.Class('e3-controls')],
-        [
-          h.label(
-            [h.Class('e3-note')],
-            [
-              'Speed ',
-              h.input([
-                h.Class('e3-range'),
-                h.Type('range'),
-                h.Min('-2'),
-                h.Max('2'),
-                h.Step('0.25'),
-                h.Value(String(model.speed)),
-                h.OnInput((value) =>
-                  Message.ChangedSpeed({ speed: Number.parseFloat(value) || 0 }),
-                ),
-              ]),
-            ],
+    h.div
+      .class('e3-controls')
+      .attr('aria-label', 'Animation')
+      .children(...clips.map((clip) => clipButton(model, h, clip)), clipButton(model, h, null)),
+    h.div.class('e3-controls').children(
+      h.label.class('e3-note').children(
+        'Speed ',
+        h.input
+          .class('e3-range')
+          .attr('type', 'range')
+          .attr('min', '-2')
+          .attr('max', '2')
+          .attr('step', '0.25')
+          .value(String(model.speed))
+          .on('input', ({ value }) =>
+            Message.ChangedSpeed({ speed: Number.parseFloat(value) || 0 }),
           ),
-          loadButton(model, h),
-        ],
       ),
-      h.p(
-        [h.Class('e3-note')],
-        [
-          'The robot is a glTF model we generate from three.js primitives. The scene asks for it, ',
-          'the floor texture and the sign font in its description, and the environment loads ',
-          'them; unloading stops asking, which cancels a load still under way and frees what ',
-          'had arrived. The robot shows up through a borrowed node. Its clips are a function ',
-          'of scene time, so they pause with the scene and rewind with DevTools time travel.',
-        ],
+      loadButton(model, h),
+    ),
+    h.p
+      .class('e3-note')
+      .children(
+        'The scene asks for the robot, floor texture and sign font. Unloading cancels pending requests and releases assets that have arrived. The robot follows its animation clip as the scene advances.',
       ),
-    ],
-  ),
-});
+  );

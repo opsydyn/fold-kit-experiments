@@ -1,24 +1,26 @@
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Message } from '@opsydyn/dataset-explorer/message';
 import { init, Model } from '@opsydyn/dataset-explorer/model';
 import { DatasetQuery } from '@opsydyn/dataset-explorer/query';
 import { update } from '@opsydyn/dataset-explorer/update';
 import { view } from '@opsydyn/dataset-explorer/view';
-import { Effect, pipe, Result, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
+import { Effect, Result } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-const render = (model: Model) =>
-  pipe(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model }),
-        view,
-      },
-      { flags: {}, isHydratable: false },
-    ),
-    Effect.runPromise,
-  );
+const RenderFixture = Html.component({
+  name: 'DatasetExplorerRenderFixture',
+  model: Model,
+  props: Model,
+  message: Message,
+}).make({
+  init: ({ props }) => props,
+  update: ($) => $.model,
+  view,
+});
+async function render(model: Model) {
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(RenderFixture, model));
+  return output;
+}
 
 const ready = () => {
   const started = init();

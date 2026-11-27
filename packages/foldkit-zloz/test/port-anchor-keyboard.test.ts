@@ -1,13 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozView } from '../src/foldkit';
 import * as Zloz from '../src/index';
 import type { EditorEvent, EditorPolicy, PortAnchorTargetStep } from '../src/index';
+import { renderCanvas } from './render-effect-ui';
 
 const graph: Zloz.ZlozGraph = {
   nodes: [
@@ -205,29 +202,17 @@ test('atomic keyboard moves re-read current per-port rules while exact arrow nud
 test('native and custom anchor handles receive opt-in keyboard help and shortcut metadata', async () => {
   for (const enabled of [false, true]) {
     const state = { ...Zloz.createEditor(graph), selectedNodes: ['n'] };
-    const result = await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model: state }),
-          view: (model, h: HtmlBuilder<EditorEvent>) => ({
-            title: 'Keyboard targets',
-            body: zlozView(h, model, {
-              id: 'keyboard',
-              label: 'Keyboard',
-              onEvent: (event) => event,
-              portAnchorHandles: true,
-              portAnchorKeyboardTargets: enabled,
-              renderPortAnchorHandle: (context) => {
-                expect(context.keyboardTargets).toBe(enabled);
-                return undefined;
-              },
-            }),
-          }),
+    const result = await renderCanvas(state, {
+      id: 'keyboard',
+      label: 'Keyboard',
+      portAnchors: {
+        keyboardTargets: enabled,
+        renderHandle: (context) => {
+          expect(context.keyboardTargets).toBe(enabled);
+          return undefined;
         },
-        { flags: {}, isHydratable: false },
-      ),
-    );
+      },
+    });
     const window = new Window();
     window.document.body.innerHTML = result.html;
     const surface = window.document.querySelector('[data-flow-surface]');

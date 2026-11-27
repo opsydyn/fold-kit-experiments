@@ -1,35 +1,35 @@
 import { expect, it } from 'bun:test';
 
+import type { View } from '@effect/ui';
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { Html, HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import { compilePhosphorIcon } from '../src/compile';
-import { phosphorIcon } from '../src/index';
+import { phosphorIcon } from '../src/effect-ui';
+import { preparePhosphorIcon } from '../src/index';
 
 const source =
   '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" fill="currentColor" viewBox="0 0 256 256"><path d="M0 0h20v20Z" opacity="0.2"/><g stroke="currentColor" stroke-width="8"><circle cx="16" cy="16" r="8"/></g></svg>';
-async function render<M>(view: (h: HtmlBuilder<M>) => Html) {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: 0 }),
-        view: (_model: number, h: HtmlBuilder<M>) => ({ title: 'Icons', body: view(h) }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+async function render(view: (h: Html.H<never>) => View.Content<never>) {
+  const Icons = Html.component({ name: 'Icons', model: Schema.Null, message: Schema.Never }).make({
+    init: () => null,
+    update: ($) => $.model,
+    view,
+  });
+  const result = await Effect.runPromise(HtmlServer.renderToHtml(Icons, {}, { static: true }));
   return result.html;
 }
 
 it('renders actual SVG geometry with the caller builder, currentColor and duotone opacity', async () => {
   const definition = compilePhosphorIcon(source);
   const markup = await render((h) =>
-    h.button(
-      [h.AriaLabel('Add system')],
-      [phosphorIcon(h, definition, { size: 28, colour: 'var(--icon)' })],
+    h.button.attr('aria-label', 'Add system').children(
+      phosphorIcon(h, definition, {
+        size: 28,
+        colour: 'var(--icon)',
+        attributes: { class: 'system-icon' },
+      }),
     ),
   );
   expect(markup).toContain('viewBox="0 0 256 256"');
@@ -38,6 +38,7 @@ it('renders actual SVG geometry with the caller builder, currentColor and duoton
   const window = new Window();
   window.document.body.innerHTML = markup;
   expect(window.document.querySelector('svg')?.style.color).toBe('var(--icon)');
+  expect(window.document.querySelector('svg')?.getAttribute('class')).toBe('system-icon');
   expect(markup).toContain('d="M0 0h20v20Z"');
   expect(markup).toContain('opacity="0.2"');
   expect(markup).toContain('stroke-width="8"');
@@ -49,12 +50,9 @@ it('renders actual SVG geometry with the caller builder, currentColor and duoton
 it('labels standalone artwork without generating global title IDs and mirrors only when requested', async () => {
   const definition = compilePhosphorIcon(source);
   const markup = await render((h) =>
-    h.div(
-      [],
-      [
-        phosphorIcon(h, definition, { label: 'A <system> " & more', mirrored: true, size: '1em' }),
-        phosphorIcon(h, definition),
-      ],
+    h.div.children(
+      phosphorIcon(h, definition, { label: 'A <system> " & more', mirrored: true, size: '1em' }),
+      phosphorIcon(h, definition),
     ),
   );
   expect(markup).toContain('role="img"');
@@ -70,11 +68,11 @@ it('labels standalone artwork without generating global title IDs and mirrors on
   expect(markup).not.toContain('<title');
 });
 
-it('rejects invalid dimensions and empty accessible labels', async () => {
+it('rejects invalid dimensions and empty accessible labels', () => {
   const definition = compilePhosphorIcon(source);
   for (const size of [0, -1, NaN, Infinity, ''])
-    await expect(render((h) => phosphorIcon(h, definition, { size }))).rejects.toThrow();
-  await expect(render((h) => phosphorIcon(h, definition, { label: ' ' }))).rejects.toThrow();
+    expect(() => preparePhosphorIcon(definition, { size })).toThrow(RangeError);
+  expect(() => preparePhosphorIcon(definition, { label: ' ' })).toThrow(RangeError);
 });
 
 it('rejects active SVG, external resources, entities and malformed input instead of silently dropping it', () => {

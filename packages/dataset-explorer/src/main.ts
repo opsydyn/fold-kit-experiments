@@ -1,15 +1,20 @@
-import { highlightingResources } from './highlighting';
-import { Message } from './message';
-import type { Model } from './model';
-import { sourceLineSubscriptions } from './source-lines';
-export { Model, init } from './model';
-export { Message } from './message';
-export { update } from './update';
-export { view } from './view';
-export const managedResources = highlightingResources<Model, Message>({
-  acquired: Message.AcquiredHighlighter,
-  failed: Message.FailedHighlighter,
-  released: Message.ReleasedHighlighter,
-});
+import { Html } from '@effect/ui/html';
 
-export const subscriptions = sourceLineSubscriptions<Model, Message>(Message.NavigatedSourceLine);
+import { Message } from './message';
+import { initialModel, Model, Props } from './model';
+import { update } from './update';
+import { view } from './view';
+
+export const DatasetExplorer = Html.component({
+  name: 'DatasetExplorer',
+  props: Props,
+  model: Model,
+  message: Message,
+}).make({
+  init: ({ props }) => initialModel(props),
+  update: ($, message) => {
+    const result = update($.model, message);
+    return $.set(result.model).run(...(result.commands ?? []));
+  },
+  view,
+});

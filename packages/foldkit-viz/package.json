@@ -1,13 +1,13 @@
 {
   "name": "@opsydyn/foldkit-viz",
   "version": "0.19.1",
-  "description": "D3-quality visualisation primitives for FoldKit — no D3 dependency.",
+  "description": "D3-quality visualisation primitives with optional Effect UI renderers — no D3 dependency.",
   "keywords": [
     "charts",
     "d3",
     "effect",
+    "effect-ui",
     "elm-architecture",
-    "foldkit",
     "svg",
     "visualisation"
   ],
@@ -139,14 +139,8 @@
       "chart/bars": [
         "./dist/chart/bars.d.mts"
       ],
-      "foldkit/paint": [
-        "./dist/foldkit/paint.d.mts"
-      ],
       "chart/theme": [
         "./dist/chart/theme.d.mts"
-      ],
-      "foldkit/cartesian": [
-        "./dist/foldkit/cartesian.d.mts"
       ],
       "layout/wordcloud": [
         "./dist/layout/wordcloud.d.mts"
@@ -175,9 +169,6 @@
       "chart/orbit": [
         "./dist/chart/orbit.d.mts"
       ],
-      "foldkit/orbit": [
-        "./dist/foldkit/orbit.d.mts"
-      ],
       "math/regression": [
         "./dist/math/regression.d.mts"
       ],
@@ -196,8 +187,17 @@
       "effect/plot": [
         "./dist/effect/plot.d.mts"
       ],
-      "foldkit/plot": [
-        "./dist/foldkit/plot.d.mts"
+      "effect-ui/cartesian": [
+        "./dist/effect-ui/cartesian.d.mts"
+      ],
+      "effect-ui/orbit": [
+        "./dist/effect-ui/orbit.d.mts"
+      ],
+      "effect-ui/paint": [
+        "./dist/effect-ui/paint.d.mts"
+      ],
+      "effect-ui/plot": [
+        "./dist/effect-ui/plot.d.mts"
       ],
       "canvas/plot": [
         "./dist/canvas/plot.d.mts"
@@ -217,8 +217,8 @@
       "interaction/keyboard": [
         "./dist/interaction/keyboard.d.mts"
       ],
-      "foldkit/keyboard": [
-        "./dist/foldkit/keyboard.d.mts"
+      "effect-ui/keyboard": [
+        "./dist/effect-ui/keyboard.d.mts"
       ],
       "chart/space3d": [
         "./dist/chart/space3d.d.mts"
@@ -373,17 +373,9 @@
       "types": "./dist/chart/bars.d.mts",
       "import": "./dist/chart/bars.mjs"
     },
-    "./foldkit/paint": {
-      "types": "./dist/foldkit/paint.d.mts",
-      "import": "./dist/foldkit/paint.mjs"
-    },
     "./chart/theme": {
       "types": "./dist/chart/theme.d.mts",
       "import": "./dist/chart/theme.mjs"
-    },
-    "./foldkit/cartesian": {
-      "types": "./dist/foldkit/cartesian.d.mts",
-      "import": "./dist/foldkit/cartesian.mjs"
     },
     "./layout/wordcloud": {
       "types": "./dist/layout/wordcloud.d.mts",
@@ -421,10 +413,6 @@
       "types": "./dist/chart/orbit.d.mts",
       "import": "./dist/chart/orbit.mjs"
     },
-    "./foldkit/orbit": {
-      "types": "./dist/foldkit/orbit.d.mts",
-      "import": "./dist/foldkit/orbit.mjs"
-    },
     "./math/regression": {
       "types": "./dist/math/regression.d.mts",
       "import": "./dist/math/regression.mjs"
@@ -450,9 +438,21 @@
       "types": "./dist/effect/plot.d.mts",
       "import": "./dist/effect/plot.mjs"
     },
-    "./foldkit/plot": {
-      "types": "./dist/foldkit/plot.d.mts",
-      "import": "./dist/foldkit/plot.mjs"
+    "./effect-ui/cartesian": {
+      "types": "./dist/effect-ui/cartesian.d.mts",
+      "import": "./dist/effect-ui/cartesian.mjs"
+    },
+    "./effect-ui/orbit": {
+      "types": "./dist/effect-ui/orbit.d.mts",
+      "import": "./dist/effect-ui/orbit.mjs"
+    },
+    "./effect-ui/paint": {
+      "types": "./dist/effect-ui/paint.d.mts",
+      "import": "./dist/effect-ui/paint.mjs"
+    },
+    "./effect-ui/plot": {
+      "types": "./dist/effect-ui/plot.d.mts",
+      "import": "./dist/effect-ui/plot.mjs"
     },
     "./canvas/plot": {
       "types": "./dist/canvas/plot.d.mts",
@@ -478,9 +478,9 @@
       "types": "./dist/interaction/keyboard.d.mts",
       "import": "./dist/interaction/keyboard.mjs"
     },
-    "./foldkit/keyboard": {
-      "types": "./dist/foldkit/keyboard.d.mts",
-      "import": "./dist/foldkit/keyboard.mjs"
+    "./effect-ui/keyboard": {
+      "types": "./dist/effect-ui/keyboard.d.mts",
+      "import": "./dist/effect-ui/keyboard.mjs"
     },
     "./chart/space3d": {
       "types": "./dist/chart/space3d.d.mts",
@@ -512,15 +512,16 @@
   },
   "devDependencies": {
     "@duckdb/node-api": "2.0.0-r.1",
+    "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
     "@opsydyn/effect-three": "workspace:*",
     "@opsydyn/testing": "workspace:*",
     "@types/node": "^22.0.0",
     "ajv": "8.20.0",
     "apache-arrow": "17.0.0",
     "bun-types": "^1.3.14",
-    "effect": "4.1.0",
+    "effect": "4.1.6",
     "fast-check": "^4.8.0",
-    "foldkit": "0.171.0",
+    "happy-dom": "^21.0.4",
     "ts-json-schema-generator": "2.9.0",
     "tsdown": "^0.21.8",
     "typedoc": "^0.28.19",
@@ -528,18 +529,18 @@
     "vitest": "^5.0.5"
   },
   "peerDependencies": {
+    "@effect/ui": "0.0.0",
     "@opsydyn/effect-three": ">=0.6.4 <0.8.0",
-    "effect": ">=4.0.0 <5.0.0",
-    "foldkit": ">=0.167.0 <0.172.0"
+    "effect": ">=4.0.0 <5.0.0"
   },
   "peerDependenciesMeta": {
+    "@effect/ui": {
+      "optional": true
+    },
     "@opsydyn/effect-three": {
       "optional": true
     },
     "effect": {
-      "optional": true
-    },
-    "foldkit": {
       "optional": true
     }
   },

@@ -1,12 +1,7 @@
-import { expect, mock, test } from 'bun:test';
+import { expect, test } from 'bun:test';
 
 import { Option } from 'effect';
 
-// The view uses the page's environment; the update logic and scene under test do not.
-await mock.module('../src/labelledEnvironment', () => ({
-  environment: {},
-  sceneMount: () => undefined,
-}));
 const { Message } = await import('../src/workshop/message');
 const { init, update } = await import('../src/workshop/update');
 const { sceneFor } = await import('../src/workshop/scene');

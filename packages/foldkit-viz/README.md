@@ -1,19 +1,17 @@
 # foldkit-viz
 
-D3-quality visualisation primitives for FoldKit — **no D3 dependency**.
+D3-quality visualisation primitives with optional Effect UI renderers.
 
-A pure-TypeScript data-transformation and geometry layer designed for use with
-[FoldKit](https://github.com/foldkit/foldkit)'s TEA (The Elm Architecture) rendering model.
-The root and mathematical modules are pure and framework-agnostic. The optional
-`foldkit/cartesian` adapter renders through your parent's FoldKit `HtmlBuilder`.
+The root, geometry and mathematical modules are framework-agnostic. The
+`effect-ui/*` subpaths render through the owning component's HTML builder.
+The app owns selection, remote loads, and measurement. See the
+[comparison workbench](../../apps/web/src/apps/comparison/) for linked charts
+with caller-owned state.
 
-The runnable [`/request-diagnostics`](../../apps/web/src/apps/request-diagnostics/) example shows these primitives inside a FoldKit state machine. The machine belongs to the consuming application; this package remains focused on chart geometry and chart-local state.
-
-The [`comparison workbench`](../../apps/web/src/apps/comparison/) demonstrates
-stable keyed panels and linked range inspection using these primitives.
-`foldChildAt`, panel identity, selection policy and browser effects remain
-application-owned. The promo reuses that workbench with maintained source and
-standalone exports; no public comparison controller is added to this package.
+The major release uses `effect-ui/cartesian`, `effect-ui/orbit`,
+`effect-ui/paint`, `effect-ui/plot`, and `effect-ui/keyboard` for UI adapters.
+Those adapters accept Effect UI builders and mounts. Consumers using the old
+FoldKit renderer can use Viz 0.x with its corresponding documentation.
 
 ---
 
@@ -21,7 +19,7 @@ standalone exports; no public comparison controller is added to this package.
 
 For coding agents, the independent
 [foldkit-viz skill](https://github.com/opsydyn/fold-kit-experiments/tree/main/skills/foldkit-viz)
-includes a standalone pure-TypeScript example and optional FoldKit rendering
+includes a standalone pure-TypeScript example and optional Effect UI rendering
 guidance. Install the complete skill folder through your agent host; it is
 separate from this npm package and does not require Astro or its skill.
 
@@ -57,7 +55,7 @@ const spec = {
 const html = plotHtml(compilePlot(spec), { summary: true, table: plotTable(spec) });
 ```
 
-The rule is an independent layer on the same scale. Edit its value to move the objective. When the row type is known, use `marksFor<Row>()` and `addMarks` from `@opsydyn/foldkit-viz/effect/plot` to compose reusable marks with checked field names. When a spec comes from JSON, call `decodePlot(input)` and `Result.flatMap(compileChecked)`. The resulting Effect Result carries the spec path on an expected failure. The checked authoring entry point uses Effect 4.1. Use `Effect.fromResult` in a FoldKit command and keep the last successful chart in the Model during refresh. [FoldKit view and command example](../../skills/foldkit-viz/assets/effect-plot.ts) · [Linked-view recipe](../../apps/web/src/apps/linked-charts/)
+The rule is an independent layer on the same scale. Edit its value to move the objective. When the row type is known, use `marksFor<Row>()` and `addMarks` from `@opsydyn/foldkit-viz/effect/plot` to compose reusable marks with checked field names. When a spec comes from JSON, call `decodePlot(input)` and `Result.flatMap(compileChecked)`. The resulting Effect Result carries the spec path on an expected failure. The checked authoring entry point uses Effect 4.1. Use `Effect.fromResult` in an Effect UI command and keep the last successful chart in the Model during refresh. [Effect UI view and command example](../../skills/foldkit-viz/assets/effect-plot.ts) · [Linked-view recipe](../../apps/web/src/apps/linked-charts/)
 
 Pass `tables: plotTables(spec, geometry)` to `plotHtml` or `plotChart` for a table per layer. Tables identify source fields and reference rules. Histograms report compiled bin edges and values, including grouped and faceted bins. Pass `{ limit }` as the third argument to limit the rows read from each table. `plotTable(spec)` remains available for the first mark that reads fields.
 
@@ -65,21 +63,16 @@ Use `sharePlotScales({ x, color })` to reuse one explicit time domain and colour
 
 Set `x.format` or `y.format` with a serialisable number, percent, unit, or date/time descriptor. It formats ticks, summaries and tables. Use `plotValueFormatter` with the same descriptor in a custom readout. Dates without an offset represent UTC, and date/time formatting defaults to UTC. Use standard `Intl` unit names, such as `millisecond`. [Service health recipe with a supplied interval, reference rule and shared scales](../../skills/foldkit-viz/assets/service-health.ts)
 
-## FoldKit compatibility
+## Effect UI compatibility
 
-The optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.172.0` and Effect 4,
-and are qualified on FoldKit `0.171.0` with Effect `4.1.0`. Consumers can use
-`Command.define(name, { interrupt: true, ... })` to replace remote chart-data
-loads while this package remains focused on pure geometry, chart-local state,
-and rendering helpers. Chart views consume the render-scoped `HtmlBuilder`
-supplied by their parent; the package does not own application effects or
-remote-data policy.
+Use the local Viz `1.0.0-next.0` archive for the Effect UI examples. See the
+[migration guide](../../docs/assessments/2026-11-26-effect-ui-1.0-migration.md)
+for the coordinated consumer rehearsal.
 
-The pure entry points do not require FoldKit or Effect. Install both peers to
-use `foldkit/cartesian`. The adapter accepts a caller-supplied builder, including
-one supplied by server rendering; it owns no runtime or server entry point.
-Astro server handoff belongs to `@opsydyn/astro-foldkit`'s opt-in `definePage`
-path. Application Commands, request flags and data loading remain app-owned.
+Install the Effect UI snapshot pinned in the workspace with Effect 4.1 to use
+the UI adapters. They accept an Effect UI `Html.H` builder from the owning
+component and work in its server and browser hosts. For Astro islands, use
+`@opsydyn/astro-effect-ui` to render and activate the component.
 
 ---
 
@@ -117,7 +110,9 @@ path. Application Commands, request flags and data loading remain app-owned.
 | `@opsydyn/foldkit-viz/webgl/points`            | `pointsLayer` — dense dot marks drawn and highlighted on the GPU                                                                                                      |
 | `@opsydyn/foldkit-viz/jupyter`                 | `displayPlot`, `plotMimeBundle` — inline plots in Deno and Bun Jupyter kernels                                                                                        |
 | `@opsydyn/foldkit-viz/plot`                    | `compilePlot`, `describePlot`, `plotTable`, `columnTable`, `fromArrow`, `fromDuckDB`, `indexPlot`, `highlightPoints` — the plot grammar                               |
-| `@opsydyn/foldkit-viz/foldkit/plot`            | `plotChart`, `plotCanvas` — compiled plots in a FoldKit view                                                                                                          |
+| `@opsydyn/foldkit-viz/effect-ui/cartesian`     | SVG frames, axes, grid lines and data tables in an Effect UI view                                                                                                     |
+| `@opsydyn/foldkit-viz/effect-ui/plot`          | `plotChart` — compiled plots as an SVG figure in an Effect UI view                                                                                                    |
+| `@opsydyn/foldkit-viz/effect-ui/plot`          | `plotChart`, `plotCanvas` — compiled plots in an Effect UI view                                                                                                       |
 | `@opsydyn/foldkit-viz/canvas/plot`             | `paintPlot`, `paintCanvas` — compiled plots on a 2D canvas                                                                                                            |
 | `@opsydyn/foldkit-viz/chart/cartesian`         | `scatterGeometry`, `lineGeometry`, `histogramGeometry`                                                                                                                |
 | `@opsydyn/foldkit-viz/chart/bars`              | `barGeometry` — grouped and stacked bars                                                                                                                              |
@@ -129,10 +124,10 @@ path. Application Commands, request flags and data loading remain app-owned.
 | `@opsydyn/foldkit-viz/chart/space3d`           | `space3d`, `scatter3d`, `surface3d`, `rgbOf` — 3D charts as plain geometry                                                                                            |
 | `@opsydyn/foldkit-viz/effect-three/space3d`    | `scatter3dScene`, `surface3dScene`, `space3dNodes` — 3D charts as effect-three scenes                                                                                 |
 | `@opsydyn/foldkit-viz/chart/theme`             | `lightTheme`, `darkTheme`, `chartThemes`, `createSeriesStyles`, `themeProperties`                                                                                     |
-| `@opsydyn/foldkit-viz/foldkit/cartesian`       | `chartFrame`, `axis`, `grid`, `legend`, `dataTable`, `barSeries`, `cellSeries`, `hexSeries`                                                                           |
-| `@opsydyn/foldkit-viz/foldkit/orbit`           | `orbitChart`                                                                                                                                                          |
-| `@opsydyn/foldkit-viz/foldkit/paint`           | `linearGradient`, `radialGradient`, `hatchPattern`, `dotPattern`                                                                                                      |
-| `@opsydyn/foldkit-viz/foldkit/keyboard`        | `chartKeyDown`, `chartKeyDownFocus`                                                                                                                                   |
+| `@opsydyn/foldkit-viz/effect-ui/cartesian`     | `chartFrame`, `axis`, `grid`, `legend`, `dataTable`, `barSeries`, `cellSeries`, `hexSeries`                                                                           |
+| `@opsydyn/foldkit-viz/effect-ui/orbit`         | `orbitChart`                                                                                                                                                          |
+| `@opsydyn/foldkit-viz/effect-ui/paint`         | `linearGradient`, `radialGradient`, `hatchPattern`, `dotPattern`                                                                                                      |
+| `@opsydyn/foldkit-viz/effect-ui/keyboard`      | `chartKeyDown`, `chartKeyDownFocus`                                                                                                                                   |
 | `@opsydyn/foldkit-viz/interaction/keyboard`    | `chartCommandOf`, `targetAfter` — keyboard paths through chart targets                                                                                                |
 | `@opsydyn/foldkit-viz/interaction/coordinates` | `clientToLocal`                                                                                                                                                       |
 | `@opsydyn/foldkit-viz/interaction/viewport`    | `zoomDomain`, `panDomain`, `constrainDomain`                                                                                                                          |
@@ -177,7 +172,7 @@ const geometry = barGeometry(
 // geometry.bars contains x/y/width/height and the original datum.
 ```
 
-The optional `foldkit/paint` subpath provides `dotPattern`, `hatchPattern`,
+The optional `effect-ui/paint` subpath provides `dotPattern`, `hatchPattern`,
 `linearGradient` and `radialGradient`. Compose them inside your builder's SVG
 `defs`; supply IDs unique across the whole document. They accept CSS colours and
 variables, own no state, and are not exported from the framework-free root.
@@ -207,14 +202,14 @@ const geometry = orbitGeometry(
 // geometry.halo.arcs holds one arc per category with its count.
 ```
 
-The optional `foldkit/orbit` subpath renders the geometry with the parent's
+The optional `effect-ui/orbit` subpath renders the geometry with the parent's
 builder through `orbitChart`. Without `onSelect` it is an image whose nodes name
 themselves in native tooltips, so it reads completely as static HTML. With
 `onSelect` each node is a focusable button that selects on click, Enter or
 Space, and `onInspect` reports hover and focus. A `pulse` ring is classed
 `chart-orbit-pulse` for the host's CSS to animate; respect
 `prefers-reduced-motion` when it does. Pair it with `dataTable` from
-`foldkit/cartesian` for a non-visual reading. The web app's `/complexity-field`
+`effect-ui/cartesian` for a non-visual reading. The web app's `/complexity-field`
 page composes both into a complete card.
 
 ## 3D scatter and surface (0.19.0+)
@@ -267,7 +262,7 @@ promo's standalone projects, which include the compiled modules they consume.
 
 - `chart/cartesian`: `lineGeometry`, `scatterGeometry`, `histogramGeometry` and layout types.
 - `chart/theme`: `lightTheme`, `darkTheme`, `resolveSeriesStyle`, `createSeriesStyles`, `themeProperties`.
-- `foldkit/cartesian`: optional frame, grid, axes, line/point/bar layers, annotation, tooltip, legend and data table.
+- `effect-ui/cartesian`: optional frame, grid, axes, line/point/bar layers, annotation, tooltip, legend and data table.
 
 Your data shape is arbitrary. Accessors preserve original records for tooltips
 and tables; datum keys must be globally unique. Series IDs identify stable groups.
@@ -287,7 +282,7 @@ import {
   lineSeries,
   annotation,
   tooltip,
-} from '@opsydyn/foldkit-viz/foldkit/cartesian';
+} from '@opsydyn/foldkit-viz/effect-ui/cartesian';
 
 const data = [
   { id: 'jan', month: 1, revenue: 45, team: 'north' },
@@ -351,10 +346,10 @@ const detail =
     style,
     theme,
     render: ({ datum, x, y, style }, h) =>
-      h.text(
-        [h.X(String(x)), h.Y(String(y - 16)), h.Fill(style.fill)],
-        [`${datum.team}: ${datum.revenue}`],
-      ),
+      h
+        .el('text')
+        .attrs({ x: String(x), y: String(y - 16), fill: style.fill })
+        .children(`${datum.team}: ${datum.revenue}`),
   });
 ```
 
@@ -450,7 +445,7 @@ const drawn = m4(series, { x: (p) => p.t, y: (p) => p.v }, { width: 800 }); // o
 - `math/bin2d`: `rectBins` for 2D histograms in data units; `hexbin` and
   `hexagonPath` for hexagonal density in pixel space, after d3-hexbin.
 - `chart/cells`: `cellGeometry` lays out heatmaps, calendar heatmaps and
-  correlation matrices; `foldkit/cartesian` adds `cellSeries` and `hexSeries`.
+  correlation matrices; `effect-ui/cartesian` adds `cellSeries` and `hexSeries`.
 - `math/downsample`: `lttb` keeps the shape at a target point count; `m4` keeps
   each pixel column's first, last, lowest and highest point, so the drawn line
   matches the full one. Both return original rows in order and handle a
@@ -465,7 +460,7 @@ it, and it renders the same everywhere.
 
 ```ts
 import { compilePlot } from '@opsydyn/foldkit-viz/plot';
-import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+import { plotChart } from '@opsydyn/foldkit-viz/effect-ui/plot';
 
 const geometry = compilePlot({
   width: 720,
@@ -477,7 +472,7 @@ const geometry = compilePlot({
     { mark: 'line', x: 'mass', y: 'flipper', transform: { type: 'regression' } },
   ],
 });
-// In a FoldKit view: plotChart(h, geometry)
+// In an Effect UI view: plotChart(h, geometry)
 ```
 
 - Marks: `dot`, `line`, `area`, `bar` (with `y0` or `x0` for interval bars),
@@ -493,7 +488,7 @@ const geometry = compilePlot({
   `downsample`, alone or chained in order; area takes `window`.
 - Errors name the spec path, such as `marks[0].x: field "dosage" is missing from
 the data`.
-- `compilePlot` is pure and framework-free; `foldkit/plot` renders the result as
+- `compilePlot` is pure and framework-free; `effect-ui/plot` renders the result as
   an accessible SVG with a legend. The web app's `/plot-grammar` page shows each
   chart beside its spec, and ships no JavaScript.
 
@@ -506,7 +501,7 @@ canvas and draw hover feedback in an SVG overlay above it.
 ```ts
 import { compilePlot, indexPlot, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
 import { paintCanvas } from '@opsydyn/foldkit-viz/canvas/plot';
-import { plotCanvas } from '@opsydyn/foldkit-viz/foldkit/plot';
+import { plotCanvas } from '@opsydyn/foldkit-viz/effect-ui/plot';
 
 const geometry = compilePlot({
   width: 720,
@@ -555,6 +550,12 @@ plotCanvas(h, geometry, {
 The library still installs no listeners: the parent streams pointer events and
 keeps hover, brush and domain in its Model. The web app's `/explore` page links a
 million-point scatter to a latency histogram this way.
+
+In an Effect UI view, import `plotChart` from
+`@opsydyn/foldkit-viz/effect-ui/plot` and call `plotChart(h, geometry, options)`.
+For changing browser charts, use an Effect UI browser host that creates
+SVG `title` and `desc` in the SVG namespace. The private migration branch
+applies this fix as a Bun patch to its pinned Effect UI preview.
 
 ### Points on the GPU (0.19.0+)
 
@@ -700,12 +701,18 @@ demo in the web app's gallery that sits on axes is now a spec.
 
 ```ts
 import { chartCommandOf, targetAfter } from '@opsydyn/foldkit-viz/interaction/keyboard';
-import { chartKeyDown, chartKeyDownFocus } from '@opsydyn/foldkit-viz/foldkit/keyboard';
+import { chartKeyDown, chartKeyDownFocus } from '@opsydyn/foldkit-viz/effect-ui/keyboard';
 import { compilePlot, describePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
-import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+import { plotChart } from '@opsydyn/foldkit-viz/effect-ui/plot';
 
 // A chart's targets step with the keys a listbox uses.
-h.OnKeyDownPreventDefault(chartKeyDown((command) => PressedChartKey({ command })));
+h.div.on(
+  'keydown',
+  chartKeyDown((command) => PressedChartKey({ command })),
+  {
+    preventDefault: true,
+  },
+);
 // In update: const next = targetAfter(count, current, command);
 
 // Every chart can describe itself and carry its data as a hidden table.
@@ -719,14 +726,16 @@ plotChart(h, compilePlot(spec), { summary: true, table: plotTable(spec) });
   - keys held with Ctrl, Alt or Meta are left to the browser.
 - **`targetAfter(count, current, command)`** applies a command to a target
   index.
-- **`chartKeyDown` and `chartKeyDownFocus`** wrap the two for FoldKit's
-  `OnKeyDownPreventDefault` and `OnKeyDownFocus`. The latter moves roving focus
-  to the target's element.
+- **`chartKeyDown` and `chartKeyDownFocus`** read Effect UI key payloads.
+  `chartKeyDown` returns a message for a chart command. `chartKeyDownFocus`
+  returns the next focus selector and message for the application's focus
+  command. Both leave browser shortcuts, editable fields, and text
+  composition alone.
 - **`describePlot(geometry)`** summarises a plot in plain language: what it
   draws and how many, what the axes cover, and what colour shows.
 - **`plotTable(spec)`** lists the data a spec plots, field by field, capped at
   200 rows with the total noted.
-- **Framework boundary:** the `foldkit/*` and `effect/*` entry points use optional peers,
+- **Framework boundary:** the `effect-ui/*` and `effect/*` entry points use optional peers,
   and a test enforces it.
 
 ## Column data and other languages (0.18.0+)
@@ -912,7 +921,7 @@ const png = await plotPng(geometry, new OffscreenCanvas(1, 1), { pixelRatio: 2 }
   viewers have no page colour to inherit. `legend: false` and `background: false`
   leave those out.
 - `plotHtml(geometry, options)` is the whole figure (the SVG, the data table and
-  HTML legends) in the page's colour, the same markup `foldkit/plot`'s `plotChart`
+  HTML legends) in the page's colour, the same figure `effect-ui/plot`'s `plotChart`
   renders. Both come from one renderer, and a test holds them byte for byte
   equal. Given a `theme`, the figure paints its own background and text colour.
 - `canvas/image` paints the same picture as `plotSvg` on any 2D canvas context:
@@ -997,100 +1006,16 @@ accepts already-derived records and computes geometry; it owns no async state.
 
 ## Remote visual loads
 
-For future remote filter, brush, or zoom loads, construct the refresh step with
-an explicit selection snapshot and request ID. `LoadFilteredData` is an
-app-owned interruptible Command whose declared args include `selection` and
-`requestId`; its `execute` uses those args and returns the ID with its result
-Message. Commands do not read the later Model implicitly.
+Keep the current selection and displayed geometry in the component model. Pass
+the selection and a request ID as arguments to the owning Effect UI command.
+When starting a replacement load, use command mode `switch` for the same
+command group so the new load starts after interruption and cleanup. Accept a
+result only if its request ID matches the current request. On validation or
+fetch failure, keep the last valid geometry and give the user the error.
 
-In this example, `Model.data` is `AsyncData<Data, string>`. `Selection`, `Data`,
-`Model`, and `Message` are application types. The app also stores the latest
-`selection`, a monotonic `nextRequestId`, `routeActive`, and a discriminated
-`request` union: `Idle | Running { requestId } | Cancelling { requestId }`.
-
-```ts
-import { Option } from 'effect';
-import { getData, Idle, revalidateOrLoad, succeed } from 'foldkit/asyncData';
-import { refresh } from 'foldkit/update';
-import type { Return } from 'foldkit/update';
-
-import { LoadFilteredData } from './command';
-import type { Message } from './message';
-import type { Data, Model, Selection } from './model';
-
-const loadOnFilter = (selection: Selection, requestId: number) =>
-  refresh<Model, Message, Data, string>({
-    read: (model) => Option.some(model.data),
-    revalidate: revalidateOrLoad,
-    write: (model, data) => ({ ...model, data }),
-    load: LoadFilteredData({ selection, requestId }),
-  });
-
-// Call only when request is Idle and data is not Loading or Refreshing.
-const startLatest = (model: Model): Return<Model, Message> => {
-  const requestId = model.nextRequestId;
-  const next: Model = {
-    ...model,
-    nextRequestId: requestId + 1,
-    request: { _tag: 'Running', requestId },
-  };
-  return loadOnFilter(next.selection, requestId)(next);
-};
-
-// The outcome handler first checks Cancelling and the cancelled request ID.
-const afterInterruption = (model: Model): Return<Model, Message> => {
-  const next: Model = {
-    ...model,
-    request: { _tag: 'Idle' },
-    data: Option.match(getData(model.data), {
-      onNone: () => Idle(),
-      onSome: (data) => succeed(data),
-    }),
-  };
-  if (!next.routeActive) return { model: next };
-  return startLatest(next);
-};
-```
-
-Use this explicit **latest-selection wins** policy in the app's update loop:
-
-1. Record every new filter, brush, or zoom selection in `Model.selection`. If
-   the route is active and `request` is `Idle`, call `startLatest` with that
-   updated Model. While the route is inactive, only store the selection.
-2. If a request is `Running`, change it to `Cancelling` with the same request
-   ID and return only its keyed interruption Command. Capture that ID in the
-   interruption outcome Message. Do not start a replacement in the same batch.
-3. While `Cancelling`, keep replacing `Model.selection` with the latest input;
-   emit no further load or interruption Commands. Ignore normal result Messages
-   for this cancelled request, including a result racing with interruption.
-4. For a matching interruption outcome (`Interrupted` or `NotFound`), call
-   `afterInterruption` using the current Model. An interrupted Command will not
-   send its original result Message. The helper therefore explicitly clears
-   pending AsyncData: `Loading` becomes `Idle`, and `Refreshing(data)` becomes
-   `Success(data)`. It then starts the latest selection with a fresh ID, moving
-   back to `Loading` or `Refreshing`. Calling `refresh` on the old pending state
-   would produce no Command because `revalidateOrLoad` returns `None` there.
-5. Accept a normal result only when its ID matches the `Running` request.
-   Apply `settle(model.data, result)` from `foldkit/asyncData` and set `request`
-   to `Idle` in the same update. Ignore stale IDs and duplicate outcomes. Cached
-   data retained during replacement still belongs to the previous selection;
-   present it as such until the matching replacement result arrives.
-6. On route exit, mark the route inactive and interrupt any `Running` request,
-   or wait for the existing `Cancelling` outcome. The same outcome handler
-   clears pending AsyncData but starts no replacement while inactive. Route
-   entry can call `startLatest` from `Idle`; if still `Cancelling`, wait for its
-   outcome before loading the latest selection.
-
-The app owns command keys and correlation, interruption/cancellation policy,
-AsyncData, and the Model. `refresh` supplies the revalidation step, not that
-replacement policy. The app derives the records supplied to `foldkit-viz`,
-whose synchronous functions compute geometry; chart primitives cannot fetch
-data or subscribe to events or Ports.
-
-Use typed Ports only for host input/output: map validated inbound values to app
-Messages and emit outbound values through app-owned Commands. Keep internal
-state in the Model and internal event flow in Messages and update. Astro mounts
-the island and supplies lifecycle facts; it does not own remote visual loads.
+The [Effect plot example](../../skills/foldkit-viz/assets/effect-plot.ts)
+shows how to validate new data and settle it into a model. Astro owns island
+activation and removal. The component owns the request and its lifetime.
 
 ---
 
@@ -1115,20 +1040,19 @@ const pathD = line(points, { curve: 'catmullRom' });
 
 ## Animation
 
-Use `math/tween` with FoldKit's `Subscription.animationFrameEntry` for smooth transitions:
+Use `math/tween` with Effect UI's `HtmlSubscription.onAnimationFrame` for smooth transitions.
 
 ```typescript
 import { tweenCreate, tweenStep, tweenValue, allTweensDone } from '@opsydyn/foldkit-viz/math/tween';
-import { Subscription } from 'foldkit';
+import { HtmlSubscription } from '@effect/ui/html';
 
 // In model.ts
 const tween = tweenCreate(600 /* ms */, easeOutCubic);
 
 // In subscription.ts
-Subscription.animationFrameEntry({
-  isActive: (model) => !allTweensDone(model.tweens),
-  toMessage: (dt) => Ticked({ dt }),
-});
+const subscriptions = ({ model }: { model: Model }) => [
+  !allTweensDone(model.tweens) && HtmlSubscription.onAnimationFrame((dt) => Ticked({ dt })),
+];
 
 // In update.ts — on Tick:
 tweenStep(model.tween, dt);
@@ -1229,7 +1153,7 @@ bounded by `maxSteps` (default 8000, maximum 100000 per word). Rotated measured
 rectangles are conservative, so packing is less dense than pixel-mask clouds.
 There is no font/DOM dependency in the layout: measure the same font, weight
 and size used by your SVG renderer. The native promo example performs font
-loading and canvas measurement in a Foldkit Command, discarding stale revisions.
+loading and canvas measurement in an Effect UI command, discarding stale revisions.
 
 `wrapText` preserves explicit newlines, collapses other whitespace and breaks
 long words on Unicode graphemes. It reports `overflow` if a glyph exceeds the
@@ -1241,8 +1165,8 @@ import {
   hatchPattern,
   linearGradient,
   radialGradient,
-} from '@opsydyn/foldkit-viz/foldkit/paint';
-// Optional Foldkit adapter: compose the returned nodes inside h.defs.
+} from '@opsydyn/foldkit-viz/effect-ui/paint';
+// Compose the returned nodes inside h.el('defs').children(...).
 // Use a unique caller-owned id per definition, then fill with url(#that-id).
 ```
 
@@ -1279,7 +1203,7 @@ and validates every unique non-empty key and finite X value. These helpers do no
 install event listeners, retain application state, or require Foldkit/Effect.
 
 `chartFrame` also accepts an optional typed `onMount` action on its SVG. Use a
-caller-defined Foldkit Mount stream to acquire scoped pointer/resize facts; the
+caller-defined Effect UI mount stream to acquire scoped pointer/resize facts; the
 adapter owns no input state. Existing frames without this option render unchanged.
 
 ## Contiguous signals and supplied intervals

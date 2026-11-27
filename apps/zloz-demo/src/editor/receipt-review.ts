@@ -1,3 +1,4 @@
+import type { Html } from '@effect/ui/html';
 import {
   captureEdition,
   resolveHistoryChangeNavigator,
@@ -20,25 +21,16 @@ import {
   type EditorState,
   type ZlozEventStormingDddConversion,
 } from '@opsydyn/foldkit-zloz';
-import {
-  zlozView,
-  zlozHistoryChangeButton,
-  zlozC4Node,
-  zlozDddNode,
-  zlozEventStormingNode,
-  zlozC4Group,
-  zlozDddGroup,
-} from '@opsydyn/foldkit-zloz/foldkit';
 import { Match, Option } from 'effect';
-import type { HtmlBuilder } from 'foldkit/html';
-import type { Return } from 'foldkit/update';
 
 import { ReadConversionReceipt } from './command';
 import { editionArchiveByteLimit } from './history';
 import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
-import { workbenchThemes } from './theme';
+import { nativeDetachedReview } from './native-detached-review';
+import { architectureNativePanel } from './native-panel';
+import type { Return } from './transition';
 
 export type ReceiptReview = Readonly<{
   id: number;
@@ -233,7 +225,7 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
           receiptReadRun: id,
           receiptReviewNotice: 'Opening receipt for read-only comparison…',
         },
-        commands: [ReadConversionReceipt({ id, file })],
+        commands: [ReadConversionReceipt.make({ id, file })],
       };
     }),
     Match.tag('ClickedCancelReceiptRead', (_input): Return<Model, Message> => {
@@ -404,7 +396,7 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
     Match.tag('ObservedReceiptInput', (input): Return<Model, Message> => {
       const review = model.receiptReview;
       if (!review || review.id !== input.id || review.side !== input.side) return { model };
-      // SAFETY: only the detached zlozView emits this input. The package adapter rejects non-navigation events.
+      // SAFETY: only the detached canvas emits this input. The package adapter rejects non-navigation events.
       const event = input.message as EditorEvent;
       const next = updateHistoryReview(
         { editionId: String(review.id), editor: review.editor },
@@ -439,7 +431,7 @@ function meaning(value: ZlozNode | ZlozEdge | null): string {
   if (!architecture) return 'Untyped';
   return `${architecture.family} · ${architecture.role}${architecture.description ? ` · ${architecture.description}` : ''}`;
 }
-export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
+export function receiptReviewPanel<M>(model: Model, h: Html.H<M>, send: (message: Message) => M) {
   const review = model.receiptReview;
   const changes = review ? receiptComparison(review) : null;
   const steps = receiptChangeSteps(model);
@@ -456,150 +448,127 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
       : createEventStormingDddConversionPlan(review.receipt.source, review.receipt.mappings).preview
           .disclosures
     : [];
-  return h.section(
-    [h.AriaLabel('Portable receipt comparison'), h.Class('receipt-review')],
-    [
-      h.h3([], ['Reopen a conversion receipt']),
+  return h.section
+    .attr('aria-label', 'Portable receipt comparison')
+    .class('receipt-review')
+    .children(
+      h.h3.children('Reopen a conversion receipt'),
       ...(review
         ? [
-            h.p(
-              [h.Role('status'), h.AriaLabel('Receipt model type')],
-              [
+            h.p
+              .attr('role', 'status')
+              .attr('aria-label', 'Receipt model type')
+              .children(
                 review.receipt.format === 'foldkit-zloz-c4-conversion'
                   ? 'C4 conversion receipt · read-only'
                   : 'DDD conversion receipt · read-only',
-              ],
-            ),
+              ),
           ]
         : []),
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          'Open conversion receipt',
-          h.input([
-            h.Key(`receipt-file:${model.receiptReadRun}`),
-            h.Type('file'),
-            h.Accept('.json,application/json'),
-            h.AriaLabel('Open conversion receipt'),
-            h.OnFileChange((files) => Message.ChoseConversionReceiptFiles({ files })),
-          ]),
-        ],
+      h.label.class('workbench-field').children(
+        'Open conversion receipt',
+        h.input
+          .key(`receipt-file:${model.receiptReadRun}`)
+          .attr('type', 'file')
+          .attr('accept', '.json,application/json')
+          .attr('aria-label', 'Open conversion receipt')
+          .value('')
+          .on('change', ({ files }) => send(Message.ChoseConversionReceiptFiles({ files }))),
       ),
-      h.p(
-        [],
-        [
-          'Read-only comparison. Validated data, not verified authorship; a receipt does not authorize editing.',
-        ],
+      h.p.children(
+        'Read-only comparison. Validated data, not verified authorship; a receipt does not authorize editing.',
       ),
       ...(model.receiptRead
         ? [
-            h.button(
-              [h.Type('button'), h.OnClick(Message.ClickedCancelReceiptRead())],
-              ['Cancel receipt read'],
-            ),
+            h.button
+              .attr('type', 'button')
+              .on('click', send(Message.ClickedCancelReceiptRead()))
+              .children('Cancel receipt read'),
           ]
         : []),
       ...(review && changes
         ? [
-            h.h4([], [review.receipt.source.document.name]),
-            h.details(
-              [],
-              [
-                h.summary([], ['Source identifiers']),
-                h.p(
-                  [],
-                  [
-                    `Model: ${review.receipt.source.document.id} · Source session: ${review.receipt.source.sessionId} · Revision ${review.receipt.source.revision}`,
-                  ],
-                ),
-              ],
+            h.h4.children(review.receipt.source.document.name),
+            h.details.children(
+              h.summary.children('Source identifiers'),
+              h.p.children(
+                `Model: ${review.receipt.source.document.id} · Source session: ${review.receipt.source.sessionId} · Revision ${review.receipt.source.revision}`,
+              ),
             ),
-            h.p(
-              [],
-              [
-                `Ancestry: ${review.receipt.source.document.origin ? `${review.receipt.source.document.origin.modelName} · ${review.receipt.source.document.origin.edition.name}` : 'No recorded fork'} · ${review.receipt.source.document.editions.length} retained editions`,
-              ],
+            h.p.children(
+              `Ancestry: ${review.receipt.source.document.origin ? `${review.receipt.source.document.origin.modelName} · ${review.receipt.source.document.origin.edition.name}` : 'No recorded fork'} · ${review.receipt.source.document.editions.length} retained editions`,
             ),
-            h.p(
-              [],
-              [
-                'Losses were accepted in the recorded conversion. That historical acknowledgement grants no consent here.',
-              ],
+            h.p.children(
+              'Losses were accepted in the recorded conversion. That historical acknowledgement grants no consent here.',
             ),
-            h.div(
-              [h.Class('receipt-side-controls'), h.AriaLabel('Receipt comparison side')],
-              [
+            h.div
+              .class('receipt-side-controls')
+              .attr('aria-label', 'Receipt comparison side')
+              .children(
                 ...(['before', 'after'] as const).map((side) =>
-                  h.button(
-                    [
-                      h.Type('button'),
-                      h.AriaPressed(review.side === side ? 'true' : 'false'),
-                      h.Disabled(sideReason !== null),
-                      ...(sideReason ? [h.AriaDescribedBy('receipt-navigation-reason')] : []),
-                      h.OnClick(Message.SelectedReceiptSide({ id: review.id, side })),
-                    ],
-                    [side === 'before' ? 'Before conversion' : 'After conversion'],
-                  ),
+                  h.button
+                    .attr('type', 'button')
+                    .attr('aria-pressed', review.side === side ? 'true' : 'false')
+                    .disabled(sideReason !== null)
+                    .attr('aria-describedby', sideReason ? 'receipt-navigation-reason' : undefined)
+                    .on('click', send(Message.SelectedReceiptSide({ id: review.id, side })))
+                    .children(side === 'before' ? 'Before conversion' : 'After conversion'),
                 ),
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.Disabled(overviewReason !== null),
-                    ...(overviewReason ? [h.AriaDescribedBy('receipt-navigation-reason')] : []),
-                    h.OnClick(Message.ClickedReceiptOverview({ id: review.id, side: review.side })),
-                  ],
-                  ['Show receipt overview'],
-                ),
-                h.button(
-                  [h.Type('button'), h.OnClick(Message.ClickedCloseReceiptReview())],
-                  ['Return to working model'],
-                ),
-              ],
-            ),
+                h.button
+                  .attr('type', 'button')
+                  .disabled(overviewReason !== null)
+                  .attr(
+                    'aria-describedby',
+                    overviewReason ? 'receipt-navigation-reason' : undefined,
+                  )
+                  .on(
+                    'click',
+                    send(Message.ClickedReceiptOverview({ id: review.id, side: review.side })),
+                  )
+                  .children('Show receipt overview'),
+                h.button
+                  .attr('type', 'button')
+                  .on('click', send(Message.ClickedCloseReceiptReview()))
+                  .children('Return to working model'),
+              ),
             ...(sideReason || overviewReason
-              ? [h.p([h.Id('receipt-navigation-reason')], [sideReason ?? overviewReason ?? ''])]
+              ? [h.p.id('receipt-navigation-reason').children(sideReason ?? overviewReason ?? '')]
               : []),
-            h.details(
-              [],
-              [
-                h.summary([], ['Recorded loss reasons']),
-                h.ul(
-                  [],
-                  losses.map((loss) =>
-                    h.li([h.Key(`${loss.kind}:${loss.id}`)], [`${loss.id}: ${loss.reason}`]),
-                  ),
-                ),
-              ],
+            h.details.children(
+              h.summary.children('Recorded loss reasons'),
+              h.ul.children(...losses.map((loss) => h.li.children(`${loss.id}: ${loss.reason}`))),
             ),
-            h.h4([], ['Recorded changes']),
-            h.div(
-              [
-                h.Class('receipt-change-actions'),
-                h.Role('group'),
-                h.AriaLabel('Receipt change navigation'),
-              ],
-              (['previous', 'next'] as const).map((direction) => {
-                const decision = steps[direction];
-                const reason =
-                  decision.type === 'blocked'
-                    ? decision.reason
-                    : decision.type === 'ignored'
-                      ? 'Choose an available change.'
-                      : null;
-                return h.span(
-                  [h.Key(direction)],
-                  [
-                    h.button(
-                      [
-                        h.Type('button'),
-                        h.AriaLabel(
-                          direction === 'previous'
-                            ? 'Previous receipt change'
-                            : 'Next receipt change',
-                        ),
-                        h.Disabled(decision.type !== 'ready'),
-                        ...(reason ? [h.AriaDescribedBy(`receipt-step-${direction}-reason`)] : []),
-                        h.OnClick(
+            h.h4.children('Recorded changes'),
+            h.div
+              .class('receipt-change-actions')
+              .attr('role', 'group')
+              .attr('aria-label', 'Receipt change navigation')
+              .children(
+                ...(['previous', 'next'] as const).map((direction) => {
+                  const decision = steps[direction];
+                  const reason =
+                    decision.type === 'blocked'
+                      ? decision.reason
+                      : decision.type === 'ignored'
+                        ? 'Choose an available change.'
+                        : null;
+                  return h.span.key(direction).children(
+                    h.button
+                      .attr('type', 'button')
+                      .attr(
+                        'aria-label',
+                        direction === 'previous'
+                          ? 'Previous receipt change'
+                          : 'Next receipt change',
+                      )
+                      .disabled(decision.type !== 'ready')
+                      .attr(
+                        'aria-describedby',
+                        reason ? `receipt-step-${direction}-reason` : undefined,
+                      )
+                      .on(
+                        'click',
+                        send(
                           Message.ClickedReceiptChangeStep({
                             reviewId: review.id,
                             side: review.side,
@@ -607,155 +576,144 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
                             from: review.focusedChange,
                           }),
                         ),
-                      ],
-                      [direction === 'previous' ? 'Previous change' : 'Next change'],
-                    ),
-                    ...(reason ? [h.p([h.Id(`receipt-step-${direction}-reason`)], [reason])] : []),
-                  ],
-                );
-              }),
-            ),
-            h.p(
-              [h.Id('receipt-change-position'), h.AriaLive('polite')],
-              [
+                      )
+                      .children(direction === 'previous' ? 'Previous change' : 'Next change'),
+                    ...(reason
+                      ? [h.p.id(`receipt-step-${direction}-reason`).children(reason)]
+                      : []),
+                  );
+                }),
+              ),
+            h.p
+              .id('receipt-change-position')
+              .attr('aria-live', 'polite')
+              .children(
                 steps.position === null
                   ? `No change selected · ${steps.total} changes`
                   : `Change ${steps.position} of ${steps.total}`,
-              ],
-            ),
+              ),
 
-            h.p(
-              [],
-              [
-                'Focus a recorded change before or after conversion. Only the read-only receipt camera moves.',
-              ],
+            h.p.children(
+              'Focus a recorded change before or after conversion. Only the read-only receipt camera moves.',
             ),
             ...(navigation.before.reason
-              ? [h.p([h.Id('receipt-change-focus-reason')], [navigation.before.reason])]
+              ? [h.p.id('receipt-change-focus-reason').children(navigation.before.reason)]
               : []),
-            h.ul(
-              [h.AriaLabel('Receipt changes')],
-              [
+            h.ul.attr('aria-label', 'Receipt changes').children(
+              ...[
                 ...changes.nodes.map((change) => ({ entity: 'node' as const, change })),
                 ...changes.edges.map((change) => ({ entity: 'edge' as const, change })),
               ].map(({ entity, change }) =>
-                h.li(
-                  [
-                    h.Key(`${entity}:${change.id}`),
-                    h.Class(
-                      review.focusedChange?.entity === entity &&
-                        review.focusedChange.id === change.id
-                        ? 'receipt-change receipt-change--focused'
-                        : 'receipt-change',
+                h.li
+                  .key(`${entity}:${change.id}`)
+                  .class(
+                    review.focusedChange?.entity === entity && review.focusedChange.id === change.id
+                      ? 'receipt-change receipt-change--focused'
+                      : 'receipt-change',
+                  )
+                  .children(
+                    h.strong.children(
+                      `${entity === 'node' ? 'Node' : 'Connection'} · ${change.after?.label || change.before?.label || change.id}`,
                     ),
-                  ],
-                  [
-                    h.strong(
-                      [],
-                      [
-                        `${entity === 'node' ? 'Node' : 'Connection'} · ${change.after?.label || change.before?.label || change.id}`,
-                      ],
+                    h.p.children(
+                      `${change.id} · ${change.kind} · ${change.semanticChanged ? 'Meaning changed' : 'Meaning unchanged'} · ${change.layoutChanged ? 'Layout changed' : 'Layout unchanged'}`,
                     ),
-                    h.p(
-                      [],
-                      [
-                        `${change.id} · ${change.kind} · ${change.semanticChanged ? 'Meaning changed' : 'Meaning unchanged'} · ${change.layoutChanged ? 'Layout changed' : 'Layout unchanged'}`,
-                      ],
-                    ),
-                    h.p([], [`Before: ${meaning(change.before)}`]),
-                    h.p([], [`After: ${meaning(change.after)}`]),
-                    h.div(
-                      [h.Class('receipt-change-actions')],
-                      (['before', 'after'] as const).flatMap((side) => {
+                    h.p.children(`Before: ${meaning(change.before)}`),
+                    h.p.children(`After: ${meaning(change.after)}`),
+                    h.div.class('receipt-change-actions').children(
+                      ...(['before', 'after'] as const).flatMap((side) => {
                         const entry = navigation[side].entries.find(
                           (item) => item.entity === entity && item.id === change.id,
                         );
                         return entry
                           ? [
-                              h.span(
-                                [h.Key(side)],
-                                [
-                                  zlozHistoryChangeButton(
-                                    h,
-                                    entry,
-                                    (request) =>
+                              h.span.key(side).children(
+                                h.button
+                                  .attr('type', 'button')
+                                  .attr(
+                                    'aria-label',
+                                    `Focus ${entity === 'node' ? 'node' : 'connection'} ${entry.label} ${side} conversion`,
+                                  )
+                                  .attr(
+                                    'aria-pressed',
+                                    String(
+                                      review.side === side &&
+                                        review.focusedChange?.entity === entity &&
+                                        review.focusedChange.id === change.id,
+                                    ),
+                                  )
+                                  .disabled(entry.reason !== null)
+                                  .attr('aria-description', entry.reason ? entry.reason : undefined)
+                                  .attr('title', entry.reason ? entry.reason : undefined)
+                                  .on(
+                                    'click',
+                                    send(
                                       Message.ClickedReceiptChange({
                                         reviewId: review.id,
                                         side,
-                                        ...request,
+                                        ...entry.request,
                                       }),
-                                    [
-                                      h.AriaPressed(
-                                        review.side === side &&
-                                          review.focusedChange?.entity === entity &&
-                                          review.focusedChange.id === change.id
-                                          ? 'true'
-                                          : 'false',
-                                      ),
-                                    ],
-                                    [side === 'before' ? 'Focus before' : 'Focus after'],
-                                    {
-                                      label: `Focus ${entity === 'node' ? 'node' : 'connection'} ${entry.label} ${side} conversion`,
-                                    },
-                                  ),
-                                ],
+                                    ),
+                                  )
+                                  .children(side === 'before' ? 'Focus before' : 'Focus after'),
                               ),
                             ]
                           : [];
                       }),
                     ),
-                  ],
-                ),
+                  ),
               ),
             ),
           ]
         : []),
       ...(model.receiptReviewNotice
         ? [
-            h.p(
-              [h.Role('status'), h.AriaLive('polite'), h.AriaLabel('Receipt review feedback')],
-              [model.receiptReviewNotice],
-            ),
+            h.p
+              .attr('role', 'status')
+              .attr('aria-live', 'polite')
+              .attr('aria-label', 'Receipt review feedback')
+              .children(model.receiptReviewNotice),
           ]
         : []),
-    ],
-  );
+    );
 }
-export function receiptReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
+const receiptBanner = architectureNativePanel<ReceiptReview['side']>((h, side, send) =>
+  h.div
+    .class('receipt-canvas-banner')
+    .attr('role', 'status')
+    .children(
+      `Read-only receipt · ${side === 'before' ? 'Before conversion' : 'After conversion'} · Working model preserved`,
+      h.button
+        .attr('type', 'button')
+        .on('click', send(Message.ClickedCloseReceiptReview()))
+        .children('Close comparison'),
+    ),
+);
+
+export function receiptReviewCanvas<M>(model: Model, h: Html.H<M>, send: (message: Message) => M) {
   const review = model.receiptReview;
-  if (!review) return h.div([], []);
+  if (!review) return h.div.children();
+  const onEvent = (message: EditorEvent) =>
+    Message.ObservedReceiptInput({ id: review.id, side: review.side, message });
   const scheme =
     model.themePreference === 'system' ? model.systemColorScheme : model.themePreference;
-  return h.div(
-    [h.Key(`receipt:${review.id}:${review.side}`), h.Class('receipt-canvas')],
-    [
-      h.div(
-        [h.Class('receipt-canvas-banner'), h.Role('status')],
-        [
-          `Read-only receipt · ${review.side === 'before' ? 'Before conversion' : 'After conversion'} · Working model preserved`,
-          h.button(
-            [h.Type('button'), h.OnClick(Message.ClickedCloseReceiptReview())],
-            ['Close comparison'],
-          ),
-        ],
+  return h.div
+    .key(`receipt:${review.id}:${review.side}`)
+    .class('receipt-canvas')
+    .children(
+      receiptBanner(h, review.side, 'architecture-effect-ui', 'receipt-banner', send),
+      nativeDetachedReview(
+        h,
+        {
+          id: `receipt-${review.id}-${review.side}`,
+          label: 'Read-only receipt diagram',
+          editor: review.editor,
+          scheme: scheme ?? 'light',
+          onEvent,
+        },
+        'architecture-detached-review',
+        `receipt-${review.id}-${review.side}`,
+        send,
       ),
-      zlozView(h, review.editor, {
-        id: `receipt-${review.id}-${review.side}`,
-        label: 'Read-only receipt diagram',
-        height: 'fill',
-        theme: workbenchThemes[scheme ?? 'light'],
-        diagnostics: false,
-        background: { type: 'dots' },
-        renderNodeShell: (context, builder) =>
-          zlozEventStormingNode(context, builder) ??
-          zlozC4Node(context, builder) ??
-          zlozDddNode(context, builder),
-        renderGroupShell: (context, builder) =>
-          zlozC4Group(context, builder) ?? zlozDddGroup(context, builder),
-        renderLayout: (parts) => parts.canvas,
-        onEvent: (message) =>
-          Message.ObservedReceiptInput({ id: review.id, side: review.side, message }),
-      }),
-    ],
-  );
+    );
 }

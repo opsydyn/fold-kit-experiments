@@ -1,18 +1,11 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import {
-  zlozView,
-  zlozPortLabel,
-  zlozNodeFrame,
-  zlozPort,
-  type ZlozViewOptions,
-} from '../src/foldkit';
-import { createEditor, updateEditor, type EditorEvent, type EditorState } from '../src/index';
+import { type GraphSurfaceOptions } from '../src/effect-ui';
+import { createEditor, updateEditor, type EditorState } from '../src/index';
+import { portLabelContexts } from '../src/port-label-presentation';
+import { renderCanvas } from './render-effect-ui';
 
 const initial = createEditor({
   nodes: [
@@ -42,25 +35,8 @@ const initial = createEditor({
   edges: [],
 });
 
-async function render(state: EditorState, options: Partial<ZlozViewOptions<EditorEvent>> = {}) {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Port labels',
-          body: zlozView(h, model, {
-            id: 'ports',
-            label: 'Port labels',
-            onEvent: (event) => event,
-            ...options,
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+async function render(state: EditorState, options: Partial<GraphSurfaceOptions<string>> = {}) {
+  const result = await renderCanvas(state, { id: 'ports', ...options });
   const window = new Window();
   window.document.body.innerHTML = result.html;
   return window.document;
@@ -68,7 +44,7 @@ async function render(state: EditorState, options: Partial<ZlozViewOptions<Edito
 
 test('port labels opt in and follow canonical world anchors on every side', async () => {
   expect((await render(initial)).querySelector('[data-flow-port-label]')).toBeNull();
-  const document = await render(initial, { portLabels: true, minimalMode: true });
+  const document = await render(initial, { portLabels: true });
   expect(document.querySelectorAll('[data-flow-port-label]')).toHaveLength(5);
   for (const [id, left, top] of [
     ['left', '82px', '110px'],
@@ -78,9 +54,9 @@ test('port labels opt in and follow canonical world anchors on every side', asyn
     ['custom', '168px', '170px'],
   ]) {
     const label = document.querySelector('[data-flow-port-label="' + id + '"]');
-    expect(label?.getAttribute('style')).toContain('left: ' + left);
-    expect(label?.getAttribute('style')).toContain('top: ' + top);
-    expect(label?.getAttribute('style')).toContain('pointer-events: none');
+    expect(label?.getAttribute('style')).toContain('left:' + left);
+    expect(label?.getAttribute('style')).toContain('top:' + top);
+    expect(label?.getAttribute('style')).toContain('pointer-events:none');
     expect(label?.getAttribute('aria-hidden')).toBe('true');
   }
   expect(document.querySelector('[data-flow-port-label="left"]')?.textContent).toBe('Primary');
@@ -99,31 +75,23 @@ test('custom port labels compose independently of node shells and retain native 
     { ...initial, readOnly: true },
     {
       portLabels: { offset: 24 },
-      renderNodeShell: (context, h) =>
-        zlozNodeFrame(
-          h,
-          context,
-          [h.Class('custom-shell')],
-          context.node.ports.map((port) => zlozPort(h, context, port, [], ['→'])),
-        ),
-      renderPortLabel: (context, h) =>
-        context.port.id === 'top'
+      renderNodeShell: () => ({ className: 'custom-shell' }),
+      renderPort: () => ({ content: '→' }),
+      portLabelPlacement: ({ port }) =>
+        port.id === 'left' ? { placement: 'right', offset: 30 } : undefined,
+      renderPortLabel: ({ port, label }, h) =>
+        port.id === 'top'
           ? null
-          : context.port.id === 'left'
-            ? zlozPortLabel(
-                h,
-                { ...context, placement: 'right', offset: 30 },
-                [h.Class('custom-port-badge')],
-                [h.strong([], [context.label])],
-              )
+          : port.id === 'left'
+            ? h.strong.class('custom-port-badge').children(label)
             : undefined,
     },
   );
-  const badge = document.querySelector('.custom-port-badge');
+  const badge = document.querySelector('.custom-port-badge')?.parentElement;
   expect(badge?.textContent).toBe('Primary');
-  expect(badge?.getAttribute('style')).toContain('left: 130px');
-  expect(badge?.getAttribute('style')).toContain('top: 110px');
-  expect(badge?.getAttribute('style')).toContain('pointer-events: none');
+  expect(badge?.getAttribute('style')).toContain('left:130px');
+  expect(badge?.getAttribute('style')).toContain('top:110px');
+  expect(badge?.getAttribute('style')).toContain('pointer-events:none');
   expect(document.querySelectorAll('[data-flow-port-label]')).toHaveLength(4);
   expect(document.querySelector('.custom-shell [data-flow-port-label]')).toBeNull();
   expect(document.querySelector('[data-flow-port="left"]')?.getAttribute('aria-label')).toBe(
@@ -137,5 +105,5 @@ test('custom port labels compose independently of node shells and retain native 
   expect(
     (await render(hidden, { portLabels: true })).querySelector('[data-flow-port-label]'),
   ).toBeNull();
-  await expect(render(initial, { portLabels: { offset: -1 } })).rejects.toThrow();
+  expect(() => portLabelContexts(initial.graph.nodes, { offset: -1 })).toThrow();
 });

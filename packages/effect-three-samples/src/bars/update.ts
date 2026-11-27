@@ -1,9 +1,7 @@
-import { Match, Option } from 'effect';
-import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { Match, Option, Struct } from 'effect';
 
 import { barOf } from './layout';
-import { Message } from './message';
+import type { Message } from './message';
 import {
   type Bar,
   isShown,
@@ -14,7 +12,7 @@ import {
   seriesList,
 } from './model';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = { readonly model: Model };
 
 const keepShown = (model: Model) => (bar: Option.Option<Bar>) =>
   Option.filter(bar, (current) => isShown(model, current.series));
@@ -22,7 +20,7 @@ const keepShown = (model: Model) => (bar: Option.Option<Bar>) =>
 /** Applies a new hidden set, dropping a hover or pin on a series that is now hidden. */
 const withHidden = (model: Model, hidden: ReadonlyArray<Series>): Model => {
   const next = { ...model, hidden };
-  return modifyFields(next, { hovered: keepShown(next), selected: keepShown(next) });
+  return Struct.evolve(next, { hovered: keepShown(next), selected: keepShown(next) });
 };
 
 const shownCount = (model: Model): number =>
@@ -73,21 +71,24 @@ const withBar = (key: string, model: Model, apply: (bar: Bar) => Model): AppRetu
 };
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    HoveredBar: ({ key }) =>
-      withBar(key, model, (bar) => modifyFields(model, { hovered: () => Option.some(bar) })),
-    LeftBar: ({ key }) =>
-      withBar(key, model, (bar) =>
-        modifyFields(model, {
-          hovered: (hovered) => Option.filter(hovered, (current) => !sameBar(current, bar)),
-        }),
-      ),
-    ClickedBar: ({ key }) => withBar(key, model, (bar) => pin(model, bar)),
-    DoubleClickedBar: ({ key }) => withBar(key, model, (bar) => isolate(model, bar.series)),
-    ClickedEmptySpace: () => ({ model: modifyFields(model, { selected: () => Option.none() }) }),
-    ClickedNewData: () => ({ model: modifyFields(model, { seed: (seed) => seed + 1 }) }),
-    ClickedOrder: () => ({ model: modifyFields(model, { order: (order) => nextOrder[order] }) }),
-    ClickedSeries: ({ series }) => ({ model: toggleSeries(model, series) }),
-    ChangedTheme: ({ theme }) => ({ model: modifyFields(model, { theme: () => theme }) }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      HoveredBar: ({ key }) =>
+        withBar(key, model, (bar) => Struct.evolve(model, { hovered: () => Option.some(bar) })),
+      LeftBar: ({ key }) =>
+        withBar(key, model, (bar) =>
+          Struct.evolve(model, {
+            hovered: (hovered) => Option.filter(hovered, (current) => !sameBar(current, bar)),
+          }),
+        ),
+      ClickedBar: ({ key }) => withBar(key, model, (bar) => pin(model, bar)),
+      DoubleClickedBar: ({ key }) => withBar(key, model, (bar) => isolate(model, bar.series)),
+      ClickedEmptySpace: () => ({ model: Struct.evolve(model, { selected: () => Option.none() }) }),
+      ClickedNewData: () => ({ model: Struct.evolve(model, { seed: (seed) => seed + 1 }) }),
+      ClickedOrder: () => ({ model: Struct.evolve(model, { order: (order) => nextOrder[order] }) }),
+      ClickedSeries: ({ series }) => ({ model: toggleSeries(model, series) }),
+      ChangedTheme: ({ theme }) => ({ model: Struct.evolve(model, { theme: () => theme }) }),
+      ReceivedSceneLifecycle: () => ({ model }),
+    }),
+  );

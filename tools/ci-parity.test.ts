@@ -517,10 +517,6 @@ const NOT_READS: ReadonlyMap<string, string> = new Map([
     'Playwright writes screenshots and traces here; the uncached browser task does not read them as inputs',
   ],
   [
-    'packages/effect-three-samples/scripts/scene-mcp.ts :: ../../../node_modules/.bin/foldkit-devtools-mcp',
-    'the Foldkit DevTools MCP server it starts when run, not a file a task reads',
-  ],
-  [
     'apps/promo/test/comparison-source.test.ts :: ../../',
     "the apps folder, as the source collector's base; it reads promo's files and apps/web/src (the reads-web-sources tag)",
   ],
@@ -545,7 +541,7 @@ const NOT_READS: ReadonlyMap<string, string> = new Map([
     'a path handed to Alchemy at deploy time; the only moon task, typecheck, does not read it',
   ],
   [
-    'infra/zloz/alchemy.run.ts :: ../../packages/astro-foldkit/**',
+    'infra/zloz/alchemy.run.ts :: ../../packages/astro-effect-ui/**',
     'a path handed to Alchemy at deploy time; the only moon task, typecheck, does not read it',
   ],
   [

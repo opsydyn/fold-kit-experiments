@@ -3,19 +3,17 @@ import { describe, expect, it } from 'vitest';
 
 import { spec } from '../choropleth/spec';
 import { Message } from './message';
-import { init } from './model';
+import { initialModel as model } from './model';
 import { update } from './update';
-
-const { model } = init({});
 
 describe('zoomable choropleth', () => {
   it('zooms between one and eight times, and pans the centre', () => {
-    const zoomed = update(model, Message.ZoomedIn()).model;
+    const zoomed = update(model, Message.ZoomedIn());
     expect(zoomed.zoom).toBe(2);
-    expect(update(model, Message.ZoomedOut()).model.zoom).toBe(1);
-    const east = update(zoomed, Message.PannedEast()).model;
+    expect(update(model, Message.ZoomedOut()).zoom).toBe(1);
+    const east = update(zoomed, Message.PannedEast());
     expect(east.center[0]).toBeGreaterThan(zoomed.center[0]);
-    expect(update(east, Message.ResetView()).model).toEqual(model);
+    expect(update(east, Message.ResetView())).toEqual(model);
   });
 
   it('draws more of the map off the panel as it zooms in', () => {

@@ -14,9 +14,19 @@ test.skipIf(!base)(
     );
     expect(pages.length).toBeGreaterThanOrEqual(10);
     expect(pages).toContain('examples/signals/index.html');
+    const signals = await Bun.file(join(directory, 'examples/signals/index.html')).text();
+    expect(signals).toContain('data-effect-ui-root');
+    for (const title of ['Latency overview', 'Latency detail', 'Error detail']) {
+      expect(signals).toContain(`aria-label="${title}.`);
+    }
+    expect(signals.match(/ data-record-id=/g)).toHaveLength(115);
     const home = await Bun.file(join(directory, 'index.html')).text();
     expect(home.includes(`href="${base}examples/signals/"`)).toBe(true);
     expect(home.includes(`href="${base}examples/wordcloud/"`)).toBe(true);
+    const explorer = await Bun.file(join(directory, 'examples/datasets/index.html')).text();
+    expect(explorer).toContain('data-effect-ui-root');
+    expect(explorer).toContain('aria-label="Dataset selection"');
+    expect(explorer).toContain('Awaiting a snapshot');
     for (const example of ['signals', 'wordcloud']) {
       for (const theme of ['light', 'dark']) {
         expect(home.includes(`${base}images/showcase/${example}-${theme}.png`)).toBe(true);

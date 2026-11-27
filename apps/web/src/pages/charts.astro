@@ -108,7 +108,7 @@ const explorations = [
 const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`;
 ---
 
-<Layout title="Charts — Astro + FoldKit">
+<Layout title="Charts — Viz">
   <h1 class={layoutStyles.heading}>Charts</h1>
   <h2 class={gridStyles.sectionHeading}>Explorations</h2>
   <div class={gridStyles.features}>
@@ -136,155 +136,155 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
   <div class={gridStyles.grid}>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Budget breakdown</p>
-      <DonutApp noMeta/>
+      <DonutApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Monthly figures</p>
-      <BarApp noMeta />
+      <BarApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Monthly trend</p>
-      <LineApp noMeta />
+      <LineApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Monthly revenue</p>
-      <AreaApp noMeta />
+      <AreaApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Experience vs salary</p>
-      <ScatterApp noMeta />
+      <ScatterApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Price vs rating by sales</p>
-      <BubbleApp noMeta />
+      <BubbleApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>JS ecosystem</p>
-      <ForceGraphApp noMeta />
+      <ForceGraphApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Language comparison</p>
-      <RadarApp noMeta />
+      <RadarApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Tech revenue by segment</p>
-      <TreemapApp noMeta />
+      <TreemapApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>JS framework downloads</p>
-      <StreamgraphApp noMeta />
+      <StreamgraphApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Tech market cap by sector</p>
-      <SunburstApp noMeta />
+      <SunburstApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Traffic by hour &amp; day</p>
-      <HeatmapApp noMeta />
+      <HeatmapApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Tech sector cross-investment</p>
-      <ChordApp noMeta />
+      <ChordApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>UK energy flow</p>
-      <SankeyApp noMeta />
+      <SankeyApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Language families</p>
-      <PackedCirclesApp noMeta />
+      <PackedCirclesApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Salary by level</p>
-      <BoxPlotApp noMeta />
+      <BoxPlotApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>NVDA Apr – May</p>
-      <CandlestickApp noMeta />
+      <CandlestickApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Annual P&amp;L</p>
-      <WaterfallApp noMeta />
+      <WaterfallApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>System metrics</p>
-      <GaugeApp noMeta />
+      <GaugeApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Car comparison</p>
-      <ParallelCoordsApp noMeta />
+      <ParallelCoordsApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>2025 commit activity</p>
-      <CalendarHeatmapApp noMeta />
+      <CalendarHeatmapApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Stock price — zoom &amp; pan</p>
-      <ZoomableLineApp client:load noMeta />
+      <ZoomableLineApp client:load />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Phyllotaxis — zoom &amp; mini map</p>
-      <PhyllotaxisApp client:load noMeta />
+      <PhyllotaxisApp client:load />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Salary distribution</p>
-      <HistogramApp noMeta />
+      <HistogramApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>MPG vs horsepower by origin</p>
-      <SymbolScatterApp noMeta />
+      <SymbolScatterApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Frontend tech stack</p>
-      <TidyTreeApp noMeta />
+      <TidyTreeApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Product launch timeline</p>
-      <TimelineApp noMeta />
+      <TimelineApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Salary by level</p>
-      <ViolinApp noMeta />
+      <ViolinApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Indo-European language family</p>
-      <RadialTreeApp noMeta />
+      <RadialTreeApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>npm packages — downloads vs stars</p>
-      <LogScatterApp noMeta />
+      <LogScatterApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Curve interpolation types</p>
-      <CurveComparisonApp noMeta />
+      <CurveComparisonApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Monthly revenue growth</p>
-      <DivergingBarApp noMeta />
+      <DivergingBarApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>API response times</p>
-      <ThresholdBarApp noMeta />
+      <ThresholdBarApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Easing functions</p>
-      <EasingCurvesApp client:load noMeta />
+      <EasingCurvesApp client:load />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Color space interpolation</p>
-      <ColorSpacesApp client:load noMeta />
+      <ColorSpacesApp client:load />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Bivariate density contour</p>
-      <DensityContourApp noMeta />
+      <DensityContourApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Voronoi diagram</p>
-      <VoronoiDiagramApp noMeta />
+      <VoronoiDiagramApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Map projections</p>
-      <MapProjectionsApp noMeta />
+      <MapProjectionsApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>KPI vs targets</p>

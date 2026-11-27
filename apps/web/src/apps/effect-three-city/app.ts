@@ -1,5 +1,6 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
+import Sample from '@opsydyn/effect-three-samples/city';
 
 import '@opsydyn/effect-three-samples/styles.css';
 
-export default lazyApp(() => import('@opsydyn/effect-three-samples/city'));
+export default astroComponent(Sample);

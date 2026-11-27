@@ -36,7 +36,6 @@ async function qualifyPacked() {
     '@alchemy.run/domain@2.0.0-beta.85',
     'alchemy@2.0.0-beta.85',
     'effect@4.1.0',
-    'foldkit@0.170.0',
     '@effect/platform-browser@4.1.0',
     '@effect/sql-d1@4.1.0',
     '@effect/platform-bun@4.1.0',

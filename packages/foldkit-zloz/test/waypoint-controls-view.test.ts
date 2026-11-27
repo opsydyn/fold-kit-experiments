@@ -1,39 +1,23 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozView, zlozEdgeWaypointHandle, type ZlozViewOptions } from '../src/foldkit';
-import { createEditor, parseGraph, updateEditor, type EditorEvent } from '../src/index';
+import type { GraphSurfaceOptions } from '../src/effect-ui';
+import { createEditor, parseGraph, updateEditor } from '../src/index';
 import fixture from './fixtures/waypoints-v1.json';
+import { renderCanvas } from './render-effect-ui';
 
 const selected = updateEditor(createEditor(parseGraph(JSON.stringify(fixture))), {
   type: 'EdgeSelected',
   id: 'e',
   additive: false,
 });
-async function render(options: Partial<ZlozViewOptions<EditorEvent>> = {}) {
-  const output = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: selected }),
-        view: (state, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Bends',
-          body: zlozView(h, state, {
-            id: 'bends',
-            label: 'Bends',
-            onEvent: (event) => event,
-            edgeWaypoints: true,
-            ...options,
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+async function render(options: Partial<GraphSurfaceOptions<string>> = {}) {
+  const output = await renderCanvas(selected, {
+    edgeWaypoints: { onEdit: ({ type }) => type },
+    edgeEditing: { onEdit: ({ type }) => type },
+    ...options,
+  });
   const window = new Window();
   window.document.body.innerHTML = output.html;
   return window.document;
@@ -48,8 +32,8 @@ test('native controls expose stable delegated metadata, measurements and actual 
   expect(handle?.getAttribute('aria-label')).toBe('Move bend 1');
   expect(document.querySelector('[data-flow-waypoint-readout]')?.textContent).toBe('200, 200');
   const protectedView = await render({
-    canChangeEdgeWaypoints: () => 'Protected by team policy',
-    minimalMode: true,
+    policy: { canChangeEdgeWaypoints: () => 'Protected by team policy' },
+    edgeWaypoints: { onEdit: ({ type }) => type, measurements: false },
   });
   expect(protectedView.querySelector('[data-flow-waypoint]')?.hasAttribute('disabled')).toBe(true);
   expect(protectedView.body.textContent).toContain('Protected by team policy');
@@ -57,42 +41,35 @@ test('native controls expose stable delegated metadata, measurements and actual 
 });
 
 test('diagnostics are independent of handles, and complete custom/null/off rendering is supported', async () => {
-  for (const options of [
-    { minimalMode: true },
-    { diagnostics: false },
-    { diagnostics: { measurements: false } },
-  ]) {
-    const document = await render(options);
-    expect(document.querySelector('[data-flow-waypoint-readout]')).toBeNull();
-    expect(document.querySelectorAll('[data-flow-waypoint]')).toHaveLength(1);
-  }
+  const withoutMeasurements = await render({
+    edgeWaypoints: { onEdit: ({ type }) => type, measurements: false },
+  });
+  expect(withoutMeasurements.querySelector('[data-flow-waypoint-readout]')).toBeNull();
+  expect(withoutMeasurements.querySelectorAll('[data-flow-waypoint]')).toHaveLength(1);
   expect(
-    (await render({ edgeWaypoints: false })).querySelector('[data-flow-waypoint-controls]'),
+    (await render({ edgeWaypoints: undefined })).querySelector('[data-flow-waypoint-controls]'),
   ).toBeNull();
   expect(
-    (await render({ renderEdgeWaypoints: () => null })).querySelector(
-      '[data-flow-waypoint-controls]',
-    ),
+    (
+      await render({ edgeWaypoints: { onEdit: ({ type }) => type, render: () => null } })
+    ).querySelector('[data-flow-waypoint-controls]'),
   ).toBeNull();
   const custom = await render({
-    renderEdgeWaypoints: (context, h) =>
-      h.div(
-        [h.DataAttribute('custom-bends', '')],
-        context.handles.map((handle) =>
-          zlozEdgeWaypointHandle(h, handle, [h.Class('diamond')], ['◆']),
-        ),
-      ),
+    edgeWaypoints: {
+      onEdit: ({ type }) => type,
+      presentation: { className: 'custom-bends', marker: '◆', heading: 'Custom bends' },
+    },
   });
-  expect(custom.querySelector('[data-custom-bends] [data-flow-waypoint]')?.className).toBe(
-    'diamond',
-  );
+  expect(custom.querySelector('.custom-bends [data-flow-waypoint]')?.textContent).toBe('◆');
 });
 
 test('labels clear authored handles by a configurable presentation offset without changing geometry', async () => {
   const defaults = await render();
   const badge = defaults.querySelector('button[aria-label^="Add label for"]');
   expect(badge?.parentElement?.getAttribute('style')).toMatch(/top:\s*168px/);
-  const aligned = await render({ waypointLabelOffset: { x: 0, y: 0 } });
+  const aligned = await render({
+    edgeWaypoints: { onEdit: ({ type }) => type, labelOffset: { x: 0, y: 0 } },
+  });
   expect(
     aligned
       .querySelector('button[aria-label^="Add label for"]')

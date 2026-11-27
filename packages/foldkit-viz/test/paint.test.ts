@@ -1,34 +1,28 @@
 import { expect, it } from 'bun:test';
 
-import { dotPattern, hatchPattern, linearGradient, radialGradient } from '../src/foldkit/paint';
+import { dotPattern, hatchPattern, linearGradient, radialGradient } from '../src/effect-ui/paint';
 import { renderChart } from './render-chart';
 it('renders independently named pattern and gradient definitions using caller colours', async () => {
   const html = await renderChart((h) =>
-    h.svg(
-      [],
-      [
-        h.defs(
-          [],
-          [
-            dotPattern(h, { id: 'chart-a-dots', colour: 'var(--coral)', spacing: 8, radius: 1.5 }),
-            hatchPattern(h, { id: 'chart-b-hatch', colour: 'currentColor', spacing: 10 }),
-            linearGradient(h, {
-              id: 'chart-c-linear',
-              stops: [
-                { offset: 0, colour: 'var(--blue)' },
-                { offset: 1, colour: 'var(--mint)', opacity: 0.4 },
-              ],
-            }),
-            radialGradient(h, {
-              id: 'chart-d-radial',
-              stops: [
-                { offset: 0, colour: '#fff' },
-                { offset: 1, colour: '#000' },
-              ],
-            }),
+    h.el('svg').children(
+      h.el('defs').children(
+        dotPattern(h, { id: 'chart-a-dots', colour: 'var(--coral)', spacing: 8, radius: 1.5 }),
+        hatchPattern(h, { id: 'chart-b-hatch', colour: 'currentColor', spacing: 10 }),
+        linearGradient(h, {
+          id: 'chart-c-linear',
+          stops: [
+            { offset: 0, colour: 'var(--blue)' },
+            { offset: 1, colour: 'var(--mint)', opacity: 0.4 },
           ],
-        ),
-      ],
+        }),
+        radialGradient(h, {
+          id: 'chart-d-radial',
+          stops: [
+            { offset: 0, colour: '#fff' },
+            { offset: 1, colour: '#000' },
+          ],
+        }),
+      ),
     ),
   );
   expect(html).toContain('id="chart-a-dots"');

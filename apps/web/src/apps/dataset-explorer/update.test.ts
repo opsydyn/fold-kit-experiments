@@ -2,10 +2,9 @@ import { Request } from '@opsydyn/dataset-explorer/data';
 import { Message } from '@opsydyn/dataset-explorer/message';
 import { init } from '@opsydyn/dataset-explorer/model';
 import type { Model } from '@opsydyn/dataset-explorer/model';
-import { DatasetQuery } from '@opsydyn/dataset-explorer/query';
+import { DatasetQuery, status } from '@opsydyn/dataset-explorer/query';
 import { update } from '@opsydyn/dataset-explorer/update';
-import { Option, Result, Schema } from 'effect';
-import { getData } from 'foldkit/asyncData';
+import { Result, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 const commandInput = Schema.Struct({ args: Request, generation: Schema.Number });
@@ -32,9 +31,6 @@ const completion = (started: ReturnType<typeof update>, index = 0, failed = fals
 const visible = (model: Model) =>
   DatasetQuery.read(model.datasets, {
     dataset: model.selected,
-    revision: 0,
-    profile: 'normal',
-    fail: false,
   });
 const loaded = () => {
   const started = init();
@@ -44,7 +40,7 @@ const loaded = () => {
 describe('dataset explorer query composition', () => {
   it('starts a cold HTTP load from init', () => {
     const started = init();
-    expect(visible(started.model)._tag).toBe('Loading');
+    expect(status(visible(started.model))).toBe('Loading');
     expect(started.commands).toHaveLength(1);
     expect(started.commands?.[0]?.args).toMatchObject({ args: { dataset: 'north' } });
   });
@@ -52,10 +48,10 @@ describe('dataset explorer query composition', () => {
   it('retains the displayed snapshot while refreshing', () => {
     const model = loaded();
     const refreshed = update(model, Message.ClickedRefresh());
-    expect(visible(refreshed.model)._tag).toBe('Refreshing');
-    expect(Option.getOrThrow(getData(visible(refreshed.model))).revision).toBe(1);
+    expect(status(visible(refreshed.model))).toBe('Refreshing');
+    expect(visible(refreshed.model).snapshot?.revision).toBe(1);
     const settled = update(refreshed.model, completion(refreshed)).model;
-    expect(Option.getOrThrow(getData(visible(settled))).revision).toBe(2);
+    expect(visible(settled).snapshot?.revision).toBe(2);
   });
 
   it('returns to a cached dataset without fetching again', () => {
@@ -65,7 +61,7 @@ describe('dataset explorer query composition', () => {
     const returned = update(coastLoaded, Message.ClickedDataset({ dataset: 'north' }));
     expect(returned.model.selected).toBe('north');
     expect(returned.commands ?? []).toHaveLength(0);
-    expect(Option.getOrThrow(getData(visible(returned.model))).revision).toBe(1);
+    expect(visible(returned.model).snapshot?.revision).toBe(1);
   });
 
   it('folds a response into its own dataset after the selection changes', () => {
@@ -73,10 +69,10 @@ describe('dataset explorer query composition', () => {
     const coast = update(north.model, Message.ClickedDataset({ dataset: 'coast' }));
     const northFinished = update(coast.model, completion(north)).model;
     expect(northFinished.selected).toBe('coast');
-    expect(visible(northFinished)._tag).toBe('Loading');
+    expect(status(visible(northFinished))).toBe('Loading');
     const returned = update(northFinished, Message.ClickedDataset({ dataset: 'north' }));
     expect(returned.commands ?? []).toHaveLength(0);
-    expect(Option.getOrThrow(getData(visible(returned.model))).dataset).toBe('north');
+    expect(visible(returned.model).snapshot?.dataset).toBe('north');
   });
 
   it('keeps the newer snapshot when the race demo receives the old response last', () => {
@@ -84,7 +80,7 @@ describe('dataset explorer query composition', () => {
     expect(race.commands).toHaveLength(2);
     const fast = update(race.model, completion(race, 1)).model;
     const slow = update(fast, completion(race, 0)).model;
-    expect(Option.getOrThrow(getData(visible(slow))).revision).toBe(3);
+    expect(visible(slow).snapshot?.revision).toBe(3);
     expect(slow.trace.slice(-2)).toEqual([
       { dataset: 'north', revision: 3, outcome: 'accepted' },
       { dataset: 'north', revision: 2, outcome: 'ignored' },
@@ -94,11 +90,11 @@ describe('dataset explorer query composition', () => {
   it('retains usable data when a refresh fails, then recovers on retry', () => {
     const started = update(loaded(), Message.ClickedFailedRefresh());
     const stale = update(started.model, completion(started, 0, true)).model;
-    expect(visible(stale)._tag).toBe('Stale');
-    expect(Option.getOrThrow(getData(visible(stale))).revision).toBe(1);
+    expect(status(visible(stale))).toBe('Stale');
+    expect(visible(stale).snapshot?.revision).toBe(1);
     const retry = update(stale, Message.ClickedRefresh());
     const recovered = update(retry.model, completion(retry)).model;
-    expect(visible(recovered)._tag).toBe('Success');
-    expect(Option.getOrThrow(getData(visible(recovered))).revision).toBe(3);
+    expect(status(visible(recovered))).toBe('Success');
+    expect(visible(recovered).snapshot?.revision).toBe(3);
   });
 });

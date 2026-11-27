@@ -1,11 +1,9 @@
 import { addMarks, compileChecked, decodePlot, marksFor, type PlotIssue } from '@opsydyn/foldkit-viz/effect/plot';
-import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+import { plotChart } from '@opsydyn/foldkit-viz/effect-ui/plot';
 import { plotTable } from '@opsydyn/foldkit-viz/plot';
 import type { PlotGeometry, PlotSpec } from '@opsydyn/foldkit-viz/plot';
 import { Effect, Result } from 'effect';
-import { revalidateOrLoad, settle } from 'foldkit/asyncData';
-import type { AsyncData } from 'foldkit/asyncData';
-import type { Html, HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
 
 const readings = [
   { minute: 0, latencyMs: 140 },
@@ -26,23 +24,29 @@ const frame = {
 
 export const latencyPlot = addMarks(latency, objective)(frame);
 
-/** Call inside the FoldKit command that loads and validates the next chart. */
+/** Call inside the Effect UI command that loads and validates the next chart. */
 export const preparePlot = (input: unknown) =>
   Effect.fromResult(Result.flatMap(decodePlot(input), compileChecked));
 
-/** Keep the current chart in the Model while the refresh command runs. */
-export const beginRefresh = revalidateOrLoad<PlotGeometry, PlotIssue>;
+type ChartState = {
+  readonly geometry: PlotGeometry | null;
+  readonly issue: PlotIssue | null;
+};
 
-/** Call from the command's settled message handler. Failure keeps the prior geometry as Stale. */
+/** Apply a matching command result. An invalid refresh preserves the previous chart. */
 export const finishRefresh = (
-  current: AsyncData<PlotGeometry, PlotIssue>,
+  current: ChartState,
   result: Result.Result<PlotGeometry, PlotIssue>,
-) => settle(current, result);
+): ChartState =>
+  Result.match(result, {
+    onFailure: (issue) => ({ ...current, issue }),
+    onSuccess: (geometry) => ({ geometry, issue: null }),
+  });
 
 /** Pass the application's builder. The host owns the displayed error and prior chart. */
-export function latencyView<Message>(h: HtmlBuilder<Message>): Html {
+export function latencyView<Message>(h: Html.H<Message>) {
   return Result.match(compileChecked(latencyPlot), {
-    onFailure: (issue) => h.p([h.Role('alert')], [issue.message]),
+    onFailure: (issue) => h.p.attr('role', 'alert').children(issue.message),
     onSuccess: (geometry) =>
       plotChart(h, geometry, { summary: true, table: plotTable(latencyPlot) }),
   });

@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 export const Mode = Schema.Literals(['grouped', 'stacked']);
+export const Paint = Schema.Literals(['solid', 'dots', 'hatch', 'gradient']);
 export const Orientation = Schema.Literals(['vertical', 'horizontal']);
 export const Datum = Schema.Struct({
   id: Schema.String,
@@ -15,19 +16,14 @@ export const Model = Schema.Struct({
   orientation: Orientation,
   width: Schema.Number,
   activeKey: Schema.NullOr(Schema.String),
-  paint: Schema.Literals(['solid', 'dots', 'hatch', 'gradient']),
+  paint: Paint,
 });
 export type Model = typeof Model.Type;
-export interface InitReturn {
-  readonly model: Model;
-}
-export const init = (props: Props): InitReturn => ({
-  model: {
-    ...props,
-    mode: 'grouped',
-    orientation: 'vertical',
-    width: 700,
-    activeKey: null,
-    paint: 'solid',
-  },
+export const init = ({ data }: Props): Model => ({
+  data,
+  mode: 'grouped',
+  orientation: 'vertical',
+  width: 700,
+  activeKey: null,
+  paint: 'solid',
 });

@@ -1,8 +1,8 @@
-import { SourceHighlighter, highlightedTree } from '@opsydyn/dataset-explorer/highlighting';
-import { SourceLine, focusSourceLine } from '@opsydyn/dataset-explorer/source-lines';
+import { Command } from '@effect/ui';
+import { SourceLine } from '@opsydyn/dataset-explorer/source-line-core';
+import { focusSourceLine, highlightSource } from '@opsydyn/dataset-explorer/source-ui';
 import sdk from '@stackblitz/sdk';
 import { Data, Effect, Schema } from 'effect';
-import { Command } from 'foldkit';
 
 import { Message } from './message';
 import { Settings } from './model';
@@ -12,10 +12,10 @@ class ProjectPreparationError extends Data.TaggedError('ProjectPreparationError'
   readonly message: string;
 }> {}
 
-export const CopySource = Command.define('CopySource', {
-  args: { source: Schema.String },
-  messages: [Message.SucceededAction, Message.FailedAction],
-  execute: ({ source }) =>
+export const CopySource = Command.make(
+  'CopySource',
+  { args: { source: Schema.String } },
+  ({ source }) =>
     Effect.tryPromise({
       try: () => navigator.clipboard.writeText(source),
       catch: () => 'Copy was blocked. Select the code and copy it with your keyboard.',
@@ -25,29 +25,32 @@ export const CopySource = Command.define('CopySource', {
         onFailure: (error) => Message.FailedAction({ error }),
       }),
     ),
-});
+);
 
-export const ExportProject = Command.define('ExportProject', {
-  args: {
-    action: Schema.Literals(['download', 'playground']),
-    settings: Settings,
-    templateUrl: Schema.String,
+export const ExportProject = Command.make(
+  'ExportProject',
+  {
+    args: {
+      action: Schema.Literals(['download', 'playground']),
+      settings: Settings,
+      templateUrl: Schema.String,
+    },
   },
-  messages: [Message.SucceededAction, Message.FailedAction],
-  execute: ({ action, settings, templateUrl }) =>
+  ({ action, settings, templateUrl }) =>
     Effect.tryPromise({
-      try: async () => {
-        const response = await fetch(templateUrl);
+      try: async (signal) => {
+        const response = await fetch(templateUrl, { signal });
         if (!response.ok) throw new ProjectPreparationError({ message: 'Project download failed' });
         const template = Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.String))(
           await response.json(),
         );
+        signal.throwIfAborted();
         const files = projectFiles(template, settings);
         if (action === 'playground') {
           sdk.openProject(
             {
               title: 'Foldkit Viz — Live scatter',
-              description: 'Explore scale domains and inspect points with FoldKit.',
+              description: 'Explore scatter geometry with Effect UI.',
               template: 'node',
               files,
             },
@@ -71,33 +74,20 @@ export const ExportProject = Command.define('ExportProject', {
         onFailure: (error) => Message.FailedAction({ error }),
       }),
     ),
-});
+);
 
-export const HighlightSource = Command.define('HighlightSource', {
-  args: { source: Schema.String, language: Schema.String },
-  messages: [Message.SettledHighlightedSource],
-  execute: ({ source, language }) =>
-    SourceHighlighter.get.pipe(
-      Effect.match({
-        onSuccess: (engine) =>
-          Message.SettledHighlightedSource({
-            highlightedSource: {
-              source,
-              language,
-              tree: highlightedTree(source, language, engine),
-            },
-          }),
-        onFailure: () =>
-          Message.SettledHighlightedSource({
-            highlightedSource: { source, language, tree: highlightedTree(source, language) },
-          }),
-      }),
+export const HighlightSource = Command.make(
+  'HighlightScatterSource',
+  { args: { source: Schema.String, language: Schema.String } },
+  ({ source, language }) =>
+    highlightSource(source, language).pipe(
+      Effect.map((highlightedSource) => Message.SettledHighlightedSource({ highlightedSource })),
     ),
-});
+);
 
-export const FocusSourceLine = Command.define('FocusSourceLine', {
-  args: SourceLine.fields,
-  messages: [Message.CompletedSourceLineFocus],
-  execute: (location) =>
+export const FocusSourceLine = Command.make(
+  'FocusScatterSourceLine',
+  { args: SourceLine.fields },
+  (location) =>
     focusSourceLine(location).pipe(Effect.map(() => Message.CompletedSourceLineFocus())),
-});
+);

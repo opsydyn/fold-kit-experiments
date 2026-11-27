@@ -1,10 +1,12 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 export const Side = Schema.Literals(['baseline', 'selected']);
 export const Theme = Schema.Literals(['system', 'light', 'dark']);
 export const GhostPart = Schema.Literals(['enabled', 'nodes', 'edges', 'movements']);
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ObservedEditor: { epoch: Schema.Number, event: Schema.Unknown },
+  ObservedPlacement: { input: Schema.Unknown },
+  ClickedPlacementProtection: {},
   ChangedName: { name: Schema.String },
   ClickedCapture: {},
   SelectedSection: {

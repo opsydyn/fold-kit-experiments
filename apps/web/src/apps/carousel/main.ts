@@ -1,13 +1,15 @@
-import type { AppInitProps } from '../types';
+import { Html } from '@effect/ui/html';
+
+import { LoadSlides } from './command';
 import { Message } from './message';
-import { initModel, Model } from './model';
+import { Model } from './model';
 import { subscriptions } from './subscription';
-import { loadSlidesOnEntry, update } from './update';
+import { update } from './update';
 import { view } from './view';
 
-export { Message, Model, subscriptions, update, view };
-
-// init fires loadSlidesOnEntry as a Step: transitions slides Idle→Loading
-// and emits LoadSlides. Works identically for cold loads and future
-// navigation re-entries (Route.isEntering pattern).
-export const init = (_props: AppInitProps) => loadSlidesOnEntry(initModel);
+export const Carousel = Html.component({ name: 'Carousel', model: Model, message: Message }).make({
+  init: ($) => $.set(Model.Loading()).run(LoadSlides.make({})),
+  update: ($, message) => update($.model, message),
+  subscriptions,
+  view,
+});

@@ -12,7 +12,7 @@ const ready = (): ReadyModel => {
   if (m._tag !== 'Ready') throw new Error('Expected Ready');
   return m;
 };
-type ReplacementPayload = (typeof Message.ChangedSignalDataset.Type)['props'];
+type ReplacementPayload = (typeof Message.cases.ChangedSignalDataset.Type)['props'];
 const replace = (props: ReplacementPayload) =>
   update(ready(), Message.ChangedSignalDataset({ props })).model;
 test('quality fixture carries exact independent readings', () => {

@@ -9,9 +9,7 @@ import {
   serializeEventStormingDddConversion,
   updateEditor,
 } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Effect } from 'effect';
 import { expect, test } from 'vitest';
 
 import { Message } from '../src/editor/message';
@@ -22,6 +20,7 @@ import {
   receiptReviewPanel,
 } from '../src/editor/receipt-review';
 import { update } from '../src/editor/update';
+import { renderNativeReview } from './render-native-review';
 async function ready() {
   const graph = {
     nodes: [
@@ -246,21 +245,7 @@ test('native focus controls and unavailable reasons remain visible with minimal 
       editor: { ...source.receiptReview.editor, surface: null },
     },
   };
-  const html = (
-    await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model }),
-          view: (current, h: HtmlBuilder<Message>) => ({
-            title: 'Focus',
-            body: receiptReviewPanel(current, h),
-          }),
-        },
-        { flags: {}, isHydratable: false },
-      ),
-    )
-  ).html;
+  const html = (await Effect.runPromise(renderNativeReview(model, receiptReviewPanel))).html;
   expect(html).toContain('Focus node Order placed before conversion');
   expect(html).toContain('Focus connection Emits after conversion');
   expect(html).toContain('Waiting for the receipt canvas measurement');
@@ -383,21 +368,7 @@ test('step clicks cannot replay from an old cursor, side or receipt, or bypass c
 test('minimal-mode transport exposes its position and native boundary reasons', async () => {
   const model = { ...(await ready()), minimalMode: true, diagnosticsEnabled: false };
   const render = async (state: Model) =>
-    (
-      await Effect.runPromise(
-        renderToString(
-          {
-            Flags: Schema.Struct({}),
-            init: () => ({ model: state }),
-            view: (current, h: HtmlBuilder<Message>) => ({
-              title: 'Steps',
-              body: receiptReviewPanel(current, h),
-            }),
-          },
-          { flags: {}, isHydratable: false },
-        ),
-      )
-    ).html;
+    (await Effect.runPromise(renderNativeReview(state, receiptReviewPanel))).html;
   const initial = await render(model);
   expect(initial).toContain('No change selected');
   expect(initial).toMatch(

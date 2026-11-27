@@ -17,7 +17,7 @@ import { loadRapier } from '@opsydyn/effect-three-rapier/deterministic';
 import { Option } from 'effect';
 
 import { Message } from '../src/tabletop/message';
-import { init, type Model } from '../src/tabletop/model';
+import { fresh, type Model } from '../src/tabletop/model';
 import { sceneFor } from '../src/tabletop/scene';
 import { update } from '../src/tabletop/update';
 import type { Wire } from '../src/tabletop/wire';
@@ -47,7 +47,7 @@ const peerOf = (name: string, predict: boolean, clock: { now: number }): Peer =>
     },
   });
   const peer: Peer = {
-    model: init().model,
+    model: fresh,
     outbox: [],
     seen: new Map(),
     // A frame: the world is shown the Model, steps, and its reports go back to the Model.

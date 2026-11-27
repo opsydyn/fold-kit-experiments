@@ -20,7 +20,7 @@ const sources = Object.entries(files).map(([path, content]) => ({
     <p>Four months. Three teams. Parts, groups and totals.</p>
     <p class="small-note">Illustrative data.</p>
   </section>
-  <Bars client:load noMeta data={barData} />
+  <Bars client:load data={barData} />
   <noscript><p>Interactive controls require JavaScript. <a href={sitePath('/examples/#grouped-bars')}>View the static bar charts.</a></p></noscript>
   <section class="bars-source" aria-labelledby="bars-source-heading">
     <h2 id="bars-source-heading">Source</h2>

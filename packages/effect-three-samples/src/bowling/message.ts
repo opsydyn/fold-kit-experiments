@@ -1,9 +1,10 @@
+import { UiSchema } from '@effect/ui';
 import { SceneSchema } from '@opsydyn/effect-three';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
-export const Message = defineMessageUnion({
+import { SceneStart } from '../effect-ui-scene';
+
+export const Message = UiSchema.TaggedEnum({
   ChangedAim: { aim: Schema.Number },
   ChangedAngle: { angle: Schema.Number },
   ChangedSpeed: { speed: Schema.Number },
@@ -23,6 +24,6 @@ export const Message = defineMessageUnion({
   Settled: { shot: Schema.Number },
   MeasuredScoreboard: { measured: SceneSchema.LabelMeasuredDetail },
   MadeGesture: { gesture: SceneSchema.Gesture },
-  ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  ReceivedSceneLifecycle: { lifecycle: SceneStart },
 });
 export type Message = typeof Message.Type;

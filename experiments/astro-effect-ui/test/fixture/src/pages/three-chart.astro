@@ -1,0 +1,14 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Chart from '../../../../../../packages/effect-three-samples/src/chart3d/main';
+import '../../../../../../packages/effect-three-samples/src/styles.css';
+---
+<html lang="en">
+  <head><title>3D charts</title><ClientRouter /></head>
+  <body>
+    <main>
+      <Chart client:load />
+      <a href="/away/">Away</a>
+    </main>
+  </body>
+</html>

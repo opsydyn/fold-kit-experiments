@@ -1,4 +1,4 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
-import type { Props } from '@opsydyn/dataset-explorer/model';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
+import { DatasetExplorer } from '@opsydyn/dataset-explorer';
 
-export default lazyApp<Props>(() => import('@opsydyn/dataset-explorer'));
+export default astroComponent(DatasetExplorer);

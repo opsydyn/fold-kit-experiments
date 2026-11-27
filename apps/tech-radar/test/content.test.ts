@@ -5,6 +5,7 @@ import { Result, Schema } from 'effect';
 
 import { assembleRadar, type ContentFile, EntryFile, entriesByTag } from '../src/radar/content';
 import type { RadarDataset } from '../src/radar/three/data';
+import { RadarProps } from '../src/radar/three/model';
 import { demoRadar } from '../src/test/fixture';
 
 const contentDir = new URL('../src/content/', import.meta.url);
@@ -56,6 +57,18 @@ const editEntry = (id: string, change: (data: EntryFile) => object) => ({
 });
 
 describe('the radar markdown', () => {
+  test('passes the assembled content and deep-link props through the island JSON codec', () => {
+    const props: RadarProps = {
+      dataset: assembled(),
+      title: 'Tech Radar',
+      pages: { entry: '/blip/{id}/', editionEntry: '/edition/{edition}/blip/{id}/' },
+      link: { entry: 'foldkit', theme: 'paper' },
+      labelFonts: { instrument: '/models/inter-latin-400-normal.woff' },
+    };
+    const json = Schema.fromJsonString(Schema.toCodecJson(RadarProps));
+    expect(Schema.decodeUnknownSync(json)(Schema.encodeSync(json)(props))).toEqual(props);
+  });
+
   test('is the same radar as the fixture: entries, relationships and editions', () => {
     expect(sets(assembled())).toEqual(sets(demoRadar));
   });

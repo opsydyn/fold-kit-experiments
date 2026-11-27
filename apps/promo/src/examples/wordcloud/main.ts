@@ -1,4 +1,22 @@
-export { Model, init } from './model';
-export { Message } from './message';
-export { update } from './update';
-export { view } from './view';
+import { Html } from '@effect/ui/html';
+
+import { Message } from './message';
+import { init, Model, Props } from './model';
+import { update } from './update';
+import { view } from './view';
+
+export { init, Model, Message, update, view };
+
+export const WordCloud = Html.component({
+  name: 'PromoWordCloud',
+  props: Props,
+  model: Model,
+  message: Message,
+}).make({
+  init: ({ props }) => init(props),
+  update: ($, message) => {
+    const result = update($.model, message);
+    return $.set(result.model).run(...(result.commands ?? []));
+  },
+  view,
+});

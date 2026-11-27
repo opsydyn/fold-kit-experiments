@@ -3,12 +3,10 @@ import assert from 'node:assert/strict';
 
 import { createOperationDocument } from '@opsydyn/foldkit-zloz';
 import { isDiagramFrame, type DiagramFrame } from '@opsydyn/foldkit-zloz-alchemy/session';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 
 import * as Assessment from '../src/editor/assessment';
 import { makeCouplingStressFixture } from './coupling-load';
+import { renderStatic } from './render-native';
 
 const room = {
   teamId: 'chooser-team',
@@ -17,22 +15,12 @@ const room = {
   generation: 'chooser-tab',
 };
 async function render(frame: DiagramFrame, assessment: Assessment.Model = Assessment.init()) {
-  const rendered = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: assessment }),
-        view: (model, h: HtmlBuilder<Assessment.Message>) => ({
-          title: 'Assessment chooser work',
-          body: Assessment.view(
-            model,
-            { room, frame, editable: true, graphPending: false },
-            h,
-            (message) => message,
-          ),
-        }),
-      },
-      { flags: {}, isHydratable: false },
+  const rendered = await renderStatic(Assessment.Message, (h) =>
+    Assessment.view(
+      assessment,
+      { room, frame, editable: true, graphPending: false },
+      h,
+      (message) => message,
     ),
   );
   return rendered.html;

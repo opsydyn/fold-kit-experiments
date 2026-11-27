@@ -1,24 +1,18 @@
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
 
 import type { Message } from './message';
 import type { Model } from './model';
 
 import * as styles from './welcome.css';
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const { div, p, a, Class, Href } = h;
-  const hasName = model.username !== '';
-  return {
-    title: hasName ? `Welcome, ${model.username}!` : 'Welcome',
-    body: div(
-      [Class(styles.card)],
-      [
-        p(
-          [Class(hasName ? styles.greeting : styles.empty)],
-          [hasName ? `Welcome, ${model.username}!` : 'No name set yet.'],
-        ),
-        a([Class(styles.link), Href('/profile')], ['Set your name →']),
-      ],
-    ),
-  };
+export const view = (h: Html.H<Message>, { username }: Model) => {
+  const hasName = username !== '';
+  return h.div
+    .class(styles.card)
+    .children(
+      h.p
+        .class(hasName ? styles.greeting : styles.empty)
+        .children(hasName ? `Welcome, ${username}!` : 'No name set yet.'),
+      h.a.class(styles.link).attr('href', '/profile').children('Set your name →'),
+    );
 };

@@ -1,12 +1,10 @@
+import { Command, UiSchema } from '@effect/ui';
+import { BrowserHost, Html } from '@effect/ui/html';
 import { orbit, overlay, type RendererFactory, SceneSchema } from '@opsydyn/effect-three';
-import { Array as Arr, Effect, Option, Schema } from 'effect';
-import { Command, Runtime } from 'foldkit';
-import type { Html, HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
-import { modifyFields } from 'foldkit/struct';
+import { Array as Arr, Effect, Layer, Option, Schema, Struct } from 'effect';
 
-import * as EffectThreeFoldkit from '../../src/index.ts';
-/** A minimal Foldkit app exercising the adapter end to end (application boundary). */
+import * as EffectThreeUi from '../../src/index.ts';
+/** A minimal Effect UI app exercising the adapter end to end (application boundary). */
 import { checkerUrl } from './checker.ts';
 import { probe } from './instrument.ts';
 import { type Colour, homeCamera, type Motion, type Size, sceneFor } from './scene.ts';
@@ -14,7 +12,7 @@ import { type Colour, homeCamera, type Motion, type Size, sceneFor } from './sce
 // Wraps the WebGL renderer so the test can read three's `renderer.info.memory`, keeping
 // its render kit.
 const probedRenderer = (canvas: HTMLCanvasElement): RendererFactory => {
-  const factory = EffectThreeFoldkit.webglRendererFactory(canvas);
+  const factory = EffectThreeUi.webglRendererFactory(canvas);
   return {
     ...factory,
     create: () => {
@@ -25,8 +23,8 @@ const probedRenderer = (canvas: HTMLCanvasElement): RendererFactory => {
   };
 };
 
-const environment = EffectThreeFoldkit.makeEnvironment(window, { renderer: probedRenderer });
-const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
+const environment = EffectThreeUi.makeEnvironment(window, { renderer: probedRenderer });
+const sceneMount = EffectThreeUi.makeSceneMount(environment);
 probe.stats = environment.store.stats;
 
 const Model = Schema.Struct({
@@ -54,7 +52,7 @@ const Model = Schema.Struct({
 });
 type Model = typeof Model.Type;
 
-const Message = defineMessageUnion({
+const Message = UiSchema.TaggedEnum({
   ClickedToggleColour: {},
   ClickedToggleSize: {},
   ClickedToggleVisible: {},
@@ -63,7 +61,7 @@ const Message = defineMessageUnion({
   GotSceneEvent: { name: Schema.String },
   MovedOverNode: {},
   GotReconciled: { updated: Schema.Number },
-  GotSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  GotSceneLifecycle: { lifecycle: EffectThreeUi.SceneLifecycle },
   ClickedLoadModel: {},
   ClickedUnloadModel: {},
   ClickedLoadTexture: {},
@@ -79,58 +77,54 @@ const Message = defineMessageUnion({
 });
 type Message = typeof Message.Type;
 
-/** Loads the robot: settles as `ready:<clips>` or `failed`. */
 /** Loads the block font for the title: settles as ready or not. */
-const LoadFont = Command.define('LoadFont', {
-  messages: [Message.SettledFont],
-  execute: environment.assets.loadFont('block', 'block.typeface.json').pipe(
+const LoadFont = Command.make('LoadFont', { args: {} }, () =>
+  environment.assets.loadFont('block', 'block.typeface.json').pipe(
     Effect.match({
       onSuccess: () => Message.SettledFont({ ready: true }),
       onFailure: () => Message.SettledFont({ ready: false }),
     }),
   ),
-});
+);
 
 const fontOutcome = { true: 'ready', false: 'failed' } as const;
 
 /** The title shows once the font has been asked for: empty until it arrives. */
 const titleShown = { none: false, loading: true, ready: true, failed: true } as const;
 
-const LoadModel = Command.define('LoadModel', {
-  messages: [Message.SettledModel],
-  execute: environment.assets.loadModel('robot', 'robot.glb').pipe(
+/** Loads the robot: settles as `ready:<clips>` or `failed`. */
+const LoadModel = Command.make('LoadModel', { args: {} }, () =>
+  environment.assets.loadModel('robot', 'robot.glb').pipe(
     Effect.match({
       onSuccess: ({ clips }) => Message.SettledModel({ outcome: `ready:${clips.join(',')}` }),
       onFailure: () => Message.SettledModel({ outcome: 'failed' }),
     }),
   ),
-});
+);
 
-const UnloadModel = Command.define('UnloadModel', {
-  messages: [Message.SettledModel],
-  execute: environment.assets
+const UnloadModel = Command.make('UnloadModel', { args: {} }, () =>
+  environment.assets
     .unload('robot')
     .pipe(Effect.map(() => Message.SettledModel({ outcome: 'unloaded' }))),
-});
+);
 
-const LoadTexture = Command.define('LoadTexture', {
-  messages: [Message.SettledTexture],
-  execute: Effect.suspend(() => environment.assets.loadTexture('checker', checkerUrl())).pipe(
+const LoadTexture = Command.make('LoadTexture', { args: {} }, () =>
+  Effect.suspend(() => environment.assets.loadTexture('checker', checkerUrl())).pipe(
     Effect.match({
       onSuccess: () => Message.SettledTexture({ ready: true }),
       onFailure: () => Message.SettledTexture({ ready: false }),
     }),
   ),
-});
+);
 
 const otherColour: Record<Colour, Colour> = { red: 'blue', blue: 'red' };
 const otherSize: Record<Size, Size> = { small: 'large', large: 'small' };
 const otherMotion: Record<Motion, Motion> = { spin: 'still', still: 'spin' };
 
-const lifecycleUpdate = (model: Model, lifecycle: EffectThreeFoldkit.SceneLifecycle) =>
-  EffectThreeFoldkit.SceneLifecycle.match(lifecycle, {
-    StartedScene: () => modifyFields(model, { started: (count) => count + 1 }),
-    FailedScene: () => modifyFields(model, { failed: (count) => count + 1 }),
+const lifecycleUpdate = (model: Model, lifecycle: EffectThreeUi.SceneLifecycle) =>
+  EffectThreeUi.SceneLifecycle.match(lifecycle, {
+    StartedScene: () => Struct.evolve(model, { started: (count) => count + 1 }),
+    FailedScene: () => Struct.evolve(model, { failed: (count) => count + 1 }),
   });
 
 type OrbitCamera = Model['orbit'];
@@ -155,52 +149,57 @@ const cameraReadout = (camera: OrbitCamera): string =>
     onSome: (current) => current.position.map((value) => value.toFixed(3)).join(','),
   });
 
-const pureUpdate = (model: Model, message: Message) =>
+type Update = {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Issued<Message, never, never, 'Effect'>>;
+};
+
+const pureUpdate = (model: Model, message: Message): Update =>
   Message.match(message, {
     ClickedToggleColour: () => ({
-      model: modifyFields(model, { colour: (colour) => otherColour[colour] }),
+      model: Struct.evolve(model, { colour: (colour) => otherColour[colour] }),
     }),
-    ClickedToggleSize: () => ({ model: modifyFields(model, { size: (size) => otherSize[size] }) }),
+    ClickedToggleSize: () => ({ model: Struct.evolve(model, { size: (size) => otherSize[size] }) }),
     ClickedToggleVisible: () => ({
-      model: modifyFields(model, { visible: (visible) => !visible }),
+      model: Struct.evolve(model, { visible: (visible) => !visible }),
     }),
     ClickedToggleStill: () => ({
-      model: modifyFields(model, { motion: (motion) => otherMotion[motion] }),
+      model: Struct.evolve(model, { motion: (motion) => otherMotion[motion] }),
     }),
     ClickedNode: ({ key }) => ({
-      model: modifyFields(model, { clicks: (count) => count + 1, lastKey: () => key }),
+      model: Struct.evolve(model, { clicks: (count) => count + 1, lastKey: () => key }),
     }),
     GotSceneEvent: ({ name }) => ({
-      model: modifyFields(model, { events: (events) => [...events, name] }),
+      model: Struct.evolve(model, { events: (events) => [...events, name] }),
     }),
-    MovedOverNode: () => ({ model: modifyFields(model, { moves: (count) => count + 1 }) }),
+    MovedOverNode: () => ({ model: Struct.evolve(model, { moves: (count) => count + 1 }) }),
     ClickedLoadModel: () => ({
-      model: modifyFields(model, { robot: () => 'loading' }),
-      commands: [LoadModel()],
+      model: Struct.evolve(model, { robot: () => 'loading' }),
+      commands: [LoadModel.make()],
     }),
-    ClickedUnloadModel: () => ({ model, commands: [UnloadModel()] }),
-    ClickedLoadTexture: () => ({ model, commands: [LoadTexture()] }),
-    ClickedToggleGlow: () => ({ model: modifyFields(model, { glow: (glow) => !glow }) }),
+    ClickedUnloadModel: () => ({ model, commands: [UnloadModel.make()] }),
+    ClickedLoadTexture: () => ({ model, commands: [LoadTexture.make()] }),
+    ClickedToggleGlow: () => ({ model: Struct.evolve(model, { glow: (glow) => !glow }) }),
     ClickedToggleScreen: () => ({
-      model: modifyFields(model, { screen: (screen) => !screen }),
+      model: Struct.evolve(model, { screen: (screen) => !screen }),
     }),
-    ClickedToggleOrbit: () => ({ model: modifyFields(model, { orbit: toggledOrbit }) }),
-    ClickedToggleLabel: () => ({ model: modifyFields(model, { label: (label) => !label }) }),
+    ClickedToggleOrbit: () => ({ model: Struct.evolve(model, { orbit: toggledOrbit }) }),
+    ClickedToggleLabel: () => ({ model: Struct.evolve(model, { label: (label) => !label }) }),
     ClickedLoadFont: () => ({
-      model: modifyFields(model, { font: () => 'loading' as const }),
-      commands: [LoadFont()],
+      model: Struct.evolve(model, { font: () => 'loading' as const }),
+      commands: [LoadFont.make()],
     }),
     SettledFont: ({ ready }) => ({
-      model: modifyFields(model, { font: () => fontOutcome[`${ready}`] }),
+      model: Struct.evolve(model, { font: () => fontOutcome[`${ready}`] }),
     }),
     GotGesture: ({ gesture }) => ({
-      model: modifyFields(model, { orbit: orbitedBy(gesture) }),
+      model: Struct.evolve(model, { orbit: orbitedBy(gesture) }),
     }),
-    SettledModel: ({ outcome }) => ({ model: modifyFields(model, { robot: () => outcome }) }),
-    SettledTexture: ({ ready }) => ({ model: modifyFields(model, { textured: () => ready }) }),
+    SettledModel: ({ outcome }) => ({ model: Struct.evolve(model, { robot: () => outcome }) }),
+    SettledTexture: ({ ready }) => ({ model: Struct.evolve(model, { textured: () => ready }) }),
     GotSceneLifecycle: ({ lifecycle }) => ({ model: lifecycleUpdate(model, lifecycle) }),
     GotReconciled: ({ updated }) => ({
-      model: modifyFields(model, { lastUpdated: () => updated }),
+      model: Struct.evolve(model, { lastUpdated: () => updated }),
     }),
   });
 
@@ -209,20 +208,20 @@ function update(model: Model, message: Message) {
   return pureUpdate(model, message);
 }
 
-const cubeLabel = (model: Model, h: HtmlBuilder<Message>) => ({
+const cubeLabel = (model: Model, h: Html.H<Message>) => ({
   overlay: overlay({ key: 'cube-label', node: 'cube', position: [0, 1, 0], center: true }),
-  content: h.span([h.Id('cube-label')], [model.colour]),
+  content: h.span.attr('id', 'cube-label').children(model.colour),
 });
 
 /** A label above the cube, centred, in the cube's colour name, while switched on. */
-const labelsFor = (model: Model, h: HtmlBuilder<Message>) =>
+const labelsFor = (model: Model, h: Html.H<Message>) =>
   Option.liftPredicate(model, (shown) => shown.label).pipe(
     Option.map((shown) => cubeLabel(shown, h)),
     Option.toArray,
   );
 
-const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
-  EffectThreeFoldkit.view(
+const sceneView = (model: Model, h: Html.H<Message>) =>
+  EffectThreeUi.view(
     {
       scene: sceneFor(model.colour, model.size, model.motion, {
         robot: model.robot.startsWith('ready'),
@@ -256,38 +255,52 @@ const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
 
 const isVisible = (model: Model): boolean => model.visible;
 
-const view = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [],
-    [
-      h.button([h.Id('colour'), h.OnClick(Message.ClickedToggleColour())], ['colour']),
-      h.button([h.Id('visible'), h.OnClick(Message.ClickedToggleVisible())], ['visible']),
-      h.button([h.Id('size'), h.OnClick(Message.ClickedToggleSize())], ['size']),
-      h.button([h.Id('still'), h.OnClick(Message.ClickedToggleStill())], ['still']),
-      h.button([h.Id('load-model'), h.OnClick(Message.ClickedLoadModel())], ['load model']),
-      h.button([h.Id('unload-model'), h.OnClick(Message.ClickedUnloadModel())], ['unload']),
-      h.button([h.Id('load-texture'), h.OnClick(Message.ClickedLoadTexture())], ['texture']),
-      h.button([h.Id('glow'), h.OnClick(Message.ClickedToggleGlow())], ['glow']),
-      h.button([h.Id('screen'), h.OnClick(Message.ClickedToggleScreen())], ['screen']),
-      h.button([h.Id('orbit'), h.OnClick(Message.ClickedToggleOrbit())], ['orbit']),
-      h.button([h.Id('label'), h.OnClick(Message.ClickedToggleLabel())], ['label']),
-      h.button([h.Id('load-font'), h.OnClick(Message.ClickedLoadFont())], ['font']),
-      h.p([h.Id('font')], [model.font]),
-      h.p([h.Id('camera')], [cameraReadout(model.orbit)]),
-      h.p([h.Id('robot')], [model.robot]),
-      h.p([h.Id('clicks')], [String(model.clicks)]),
-      h.p([h.Id('last-key')], [model.lastKey]),
-      h.p([h.Id('events')], [model.events.join(' ')]),
-      h.p([h.Id('moves')], [String(model.moves)]),
-      h.p([h.Id('started')], [String(model.started)]),
-      h.p([h.Id('failed')], [String(model.failed)]),
-      h.p([h.Id('last-updated')], [String(model.lastUpdated)]),
-      ...Option.liftPredicate(model, isVisible).pipe(
-        Option.map((visible) => sceneView(visible, h)),
-        Option.toArray,
-      ),
-    ],
+const buttons = (h: Html.H<Message>) =>
+  [
+    h.button.attr('id', 'colour').on('click', Message.ClickedToggleColour()).children('colour'),
+    h.button.attr('id', 'visible').on('click', Message.ClickedToggleVisible()).children('visible'),
+    h.button.attr('id', 'size').on('click', Message.ClickedToggleSize()).children('size'),
+    h.button.attr('id', 'still').on('click', Message.ClickedToggleStill()).children('still'),
+    h.button
+      .attr('id', 'load-model')
+      .on('click', Message.ClickedLoadModel())
+      .children('load model'),
+    h.button
+      .attr('id', 'unload-model')
+      .on('click', Message.ClickedUnloadModel())
+      .children('unload'),
+    h.button
+      .attr('id', 'load-texture')
+      .on('click', Message.ClickedLoadTexture())
+      .children('texture'),
+    h.button.attr('id', 'glow').on('click', Message.ClickedToggleGlow()).children('glow'),
+    h.button.attr('id', 'screen').on('click', Message.ClickedToggleScreen()).children('screen'),
+    h.button.attr('id', 'orbit').on('click', Message.ClickedToggleOrbit()).children('orbit'),
+    h.button.attr('id', 'label').on('click', Message.ClickedToggleLabel()).children('label'),
+    h.button.attr('id', 'load-font').on('click', Message.ClickedLoadFont()).children('font'),
+  ] as const;
+
+const diagnostics = (h: Html.H<Message>, model: Model) =>
+  [
+    h.p.attr('id', 'font').children(model.font),
+    h.p.attr('id', 'camera').children(cameraReadout(model.orbit)),
+    h.p.attr('id', 'robot').children(model.robot),
+    h.p.attr('id', 'clicks').children(String(model.clicks)),
+    h.p.attr('id', 'last-key').children(model.lastKey),
+    h.p.attr('id', 'events').children(model.events.join(' ')),
+    h.p.attr('id', 'moves').children(String(model.moves)),
+    h.p.attr('id', 'started').children(String(model.started)),
+    h.p.attr('id', 'failed').children(String(model.failed)),
+    h.p.attr('id', 'last-updated').children(String(model.lastUpdated)),
+  ] as const;
+
+const view = (h: Html.H<Message>, model: Model) => {
+  const scene = Option.liftPredicate(model, isVisible).pipe(
+    Option.map((visible) => sceneView(visible, h)),
+    Option.getOrNull,
   );
+  return h.div.children(...buttons(h), ...diagnostics(h, model), scene);
+};
 
 const initialModel: Model = {
   colour: 'red',
@@ -310,12 +323,15 @@ const initialModel: Model = {
   font: 'none',
 };
 
-Runtime.run(
-  Runtime.makeElement({
-    Model,
-    init: () => ({ model: initialModel }),
-    update,
-    view,
-    container: document.getElementById('root'),
-  }),
-);
+const Fixture = Html.component({ name: 'SceneFixture', model: Model, message: Message }).make({
+  init: () => initialModel,
+  update: ($, message) => {
+    const next = update($.model, message);
+    return $.set(next.model).run(...(next.commands ?? []));
+  },
+  view,
+});
+
+const root = document.getElementById('root') ?? document.body;
+const browser = BrowserHost.mount(Fixture, {}, root);
+Effect.runFork(Layer.launch(browser));

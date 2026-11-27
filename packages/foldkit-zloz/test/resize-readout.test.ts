@@ -1,39 +1,11 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
-
-import { zlozView } from '../src/foldkit';
-import {
-  createEditor,
-  serializeGraph,
-  updateEditor,
-  type EditorEvent,
-  type EditorState,
-} from '../src/index';
+import { createEditor, serializeGraph, updateEditor, type EditorState } from '../src/index';
+import { renderCanvas } from './render-effect-ui';
 
 async function renderReadout(state: EditorState, resizeReadout = true) {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Readout',
-          body: zlozView(h, model, {
-            id: 'readout-test',
-            label: 'Resize',
-            onEvent: (event) => event,
-            resizeHandles: true,
-            resizeReadout,
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
-  return result.html;
+  return (await renderCanvas(state, { id: 'readout-test', resizeHandles: true, resizeReadout }))
+    .html;
 }
 
 const graph = {

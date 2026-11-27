@@ -1,14 +1,14 @@
+import { UiSchema } from '@effect/ui';
 import { SceneSchema } from '@opsydyn/effect-three';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
-import { defineMessageUnion } from 'foldkit/message';
 
+import { SceneStart } from '../effect-ui-scene';
 import { Chart, Theme } from './model';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ClickedChart: { chart: Chart },
   ClickedResetView: {},
   MadeGesture: { gesture: SceneSchema.Gesture },
   ChangedTheme: { theme: Theme },
-  ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  ReceivedSceneLifecycle: { lifecycle: SceneStart },
 });
 export type Message = typeof Message.Type;

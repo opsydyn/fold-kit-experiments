@@ -1,0 +1,12 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Radar from '../../../../../../apps/tech-radar/src/radar/three/main';
+import { demoRadar } from '../../../../../../apps/tech-radar/src/test/fixture';
+import '../../../../../../apps/tech-radar/src/radar/three/styles.css';
+---
+<html lang="en">
+  <head><title>Tech Radar</title><ClientRouter /></head>
+  <body>
+    <Radar client:load dataset={demoRadar} pages={{ entry: '/blip/{id}/', editionEntry: '/edition/{edition}/blip/{id}/' }} link={{ entry: 'foldkit', view: 'entry', theme: 'paper' }} />
+  </body>
+</html>

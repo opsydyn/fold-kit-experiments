@@ -1,6 +1,6 @@
 # ZLOZ sample
 
-Astro serves the page shell and hydrates a FoldKit editor island. The release
+Astro serves the page shell and hydrates an Effect UI editor island. The release
 workflow starts with a draft, review and publish step. Connect Review to
 Publish, arrange the graph with ELK, then save and reload the draft in your
 browser. This sample edits a diagram of the workflow.
@@ -159,7 +159,7 @@ handle affect its axis only; Shift keeps the larger step. All geometry is owned
 by the ZLOZ package, including legacy corner-event compatibility.
 
 Use **Background** to choose dots, squares, custom graph paper, or no grid.
-Dots are the default. The custom example composes native FoldKit builder nodes
+Dots are the default. The custom example composes native Effect UI nodes
 using the viewport and package grid spacing; it has no external rendering state.
 Changing backgrounds leaves the diagram and Undo history intact. **Snap to grid**
 is independent: group resize edges use the configured grid, with constraints and
@@ -200,11 +200,11 @@ other hosts; the workbench only owns its presentation preferences.
 ### Node/group presentation composition
 
 Use **Node design** to switch between the bundled cards and complete SVG orbit
-shells. The example in `src/editor/presentation.ts` uses the public frame, drag,
-port and resize primitives. Group chrome uses host buttons and typed editor events.
+shells. The example in `src/editor/native-canvas.ts` supplies artwork and host
+controls through the Effect UI surface options.
 It shares the package's measurements, input lifecycle, grouping and history.
 The selector lives in the sample; all interaction primitives ship in
-`@opsydyn/foldkit-zloz/foldkit`.
+`@opsydyn/foldkit-zloz/effect-ui`.
 
 See [composition qualification](evidence/composition.md) for browser evidence and
 current geometry limits.
@@ -364,7 +364,7 @@ change. Toggling protection while editing preserves the draft, disables
 Save, and explains why; unlock it to continue or Cancel to discard.
 [Workbench screenshot](evidence/port-edit-policy.png)
 
-The Ports inspector composes the package's native `/foldkit` inspector
+The Ports inspector composes the package's native `/effect-ui` inspector
 primitives. The workbench owns its rows, draft messages, visibility and
 custom reason badges. Try **Protect Review input** and **Minimal mode**;
 the controls retain the same Save/Cancel, keyboard and Undo behavior.
@@ -786,7 +786,7 @@ See [package qualification](../../packages/foldkit-zloz/evidence/v3-png-export.m
 and [browser/download evidence](evidence/v3-png/browser.json).
 
 **Clipboard** in the native `/groups/` sidebar composes package-level
-`zlozGroupClipboardV3`: select a group, **Copy selection**, then **Paste copy**.
+`groupClipboardV3`: select a group, **Copy selection**, then **Paste copy**.
 Groups/descendants, sockets, internal edges and world geometry use the native
 headless remapping/planner/Apply contract. External parents are detached and
 crossing edges omitted with visible findings. Repeated placement advances down

@@ -7,10 +7,10 @@ import { sitePath } from '../../lib/site-path';
 import '../../styles/web-islands.css';
 
 const files = import.meta.glob<string>(
-  '../../../../web/src/apps/duckdb/{engine,resource,command,model,message,update,view,main}.ts',
+  '../../../../web/src/apps/duckdb/{engine,resource,mount,model,message,update,view,main}.ts',
   { query: '?raw', import: 'default', eager: true },
 );
-const order = ['engine.ts', 'resource.ts', 'command.ts', 'model.ts', 'message.ts', 'update.ts', 'view.ts', 'main.ts'];
+const order = ['engine.ts', 'resource.ts', 'mount.ts', 'model.ts', 'message.ts', 'update.ts', 'view.ts', 'main.ts'];
 const sources = Object.entries(files)
   .map(([path, content]) => ({ name: path.split('/').at(-1) ?? path, content }))
   .sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
@@ -32,7 +32,7 @@ const geometry = compilePlot(spec); // the chart binning every row would draw`;
     <p>The database does the counting; Foldkit Viz draws what comes back.</p>
     <p class="small-note">Synthetic data, made by SQL.</p>
   </section>
-  <DuckDB client:load noMeta />
+  <DuckDB client:load />
   <noscript><p>This example needs JavaScript and WebAssembly to run DuckDB.</p></noscript>
   <section class="duckdb-how" aria-labelledby="duckdb-how-heading">
     <h2 id="duckdb-how-heading">Pushdown, as VegaFusion does for Vega</h2>

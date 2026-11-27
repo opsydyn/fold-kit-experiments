@@ -1,9 +1,12 @@
 import { easeOutCubic, type Tween, tweenCreate } from '@opsydyn/foldkit-viz/math/tween';
 import { Option, Schema } from 'effect';
 
-import type { AppInitProps } from '../types';
-
-export type Bar = Readonly<{ label: string; value: number; color: string }>;
+const Bar = Schema.Struct({
+  label: Schema.String,
+  value: Schema.Number,
+  color: Schema.String,
+});
+type Bar = typeof Bar.Type;
 
 /**
  * A bar's tween as the Model keeps it: data only. The easing function stays out of the
@@ -27,16 +30,11 @@ export const settled = ({ progress, duration, elapsed }: Tween): BarTween => ({
 });
 
 export const Model = Schema.Struct({
-  bars: Schema.Unknown,
+  bars: Schema.Array(Bar),
   tweens: Schema.Array(BarTween),
-  activeIndex: Schema.Unknown,
+  activeIndex: Schema.Option(Schema.Number),
 });
-export type Model = {
-  readonly bars: ReadonlyArray<Bar>;
-  /** One tween per bar — staggered entry animation */
-  readonly tweens: ReadonlyArray<BarTween>;
-  readonly activeIndex: Option.Option<number>;
-};
+export type Model = typeof Model.Type;
 
 const BARS: ReadonlyArray<Bar> = [
   { label: 'Q1', value: 42, color: '#6366f1' },
@@ -50,12 +48,8 @@ const BARS: ReadonlyArray<Bar> = [
 const DURATION = 600; // ms per bar
 const STAGGER = 80; // ms delay added per bar index
 
-export function init(_props: AppInitProps) {
-  return {
-    model: {
-      bars: BARS,
-      tweens: BARS.map((_, i) => settled(tweenCreate(DURATION + i * STAGGER, easeOutCubic))),
-      activeIndex: Option.none(),
-    },
-  };
-}
+export const init: Model = {
+  bars: BARS,
+  tweens: BARS.map((_, i) => settled(tweenCreate(DURATION + i * STAGGER, easeOutCubic))),
+  activeIndex: Option.none(),
+};

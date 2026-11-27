@@ -76,7 +76,7 @@ export async function handle(request: Request, frame: pl.DataFrame): Promise<Res
   if (!options.ok) return new Response(options.error, { status: 400 });
   const report = summarise(frame, options.value);
   if (url.pathname === '/spec.json') return Response.json(report.histogram.spec);
-  return new Response(await renderPage(report), {
+  return new Response(renderPage(report), {
     headers: { 'content-type': 'text/html; charset=utf-8' },
   });
 }

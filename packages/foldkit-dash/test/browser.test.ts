@@ -1,6 +1,6 @@
 /**
  * The starter, built, in Chromium: charts drawn, no script, no console errors, and usable
- * at phone width in light and dark. Run by `bun run test:browser`.
+ * at phone width in light and dark. Run by `bun run test:e2e`.
  */
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from 'bun:test';
 import { mkdtempSync } from 'node:fs';
@@ -99,7 +99,7 @@ const interactive = [
 ].join('\n');
 
 /** An interactive page, built, opened from its folder. */
-async function interactivePage(javaScriptEnabled = true) {
+async function interactivePage(javaScriptEnabled = true, protocol: 'file' | 'http' = 'file') {
   const dir = join(mkdtempSync(join(tmpdir(), 'foldkit-dash-')), 'site');
   for (const args of [
     ['new', dir],
@@ -144,9 +144,28 @@ async function interactivePage(javaScriptEnabled = true) {
       }).observe(document, { childList: true, subtree: true });
     }).observe(document, { childList: true, subtree: true });
   });
-  const url = `file://${join(dir, 'dist', 'sales.html')}`;
-  await page.goto(url);
-  return { page, errors, context, url };
+  const file = join(dir, 'dist', 'sales.html');
+  const server =
+    protocol === 'http'
+      ? Bun.serve({
+          hostname: '127.0.0.1',
+          port: 0,
+          fetch: (request) => {
+            const path = new URL(request.url).pathname;
+            if (path === '/sales.html') return new Response(Bun.file(file));
+            if (/^\/_dash\/client-[a-f0-9]{12}\.js$/.test(path))
+              return new Response(Bun.file(join(dir, 'dist', path.slice(1))));
+            return new Response(null, { status: 404 });
+          },
+        })
+      : undefined;
+  const url = server ? `http://127.0.0.1:${server.port}/sales.html` : `file://${file}`;
+  await page.goto(url).catch(async (error) => {
+    server?.stop(true);
+    await context.close();
+    throw error;
+  });
+  return { page, errors, context, url, server };
 }
 
 const barsShown = (page: Awaited<ReturnType<typeof interactivePage>>['page'], chart: number) =>
@@ -161,7 +180,9 @@ const labelOf = (page: Awaited<ReturnType<typeof interactivePage>>['page']) =>
 
 test('an interactive page hydrates the HTML it was built as, and every kind of input redraws', async () => {
   const { page, errors, context } = await interactivePage();
-  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  await page.waitForFunction(
+    () => document.querySelector('[data-dash-root][data-dash-ready]') !== null,
+  );
   // Hydration adopted the server's SVG rather than drawing a new one.
   expect(
     await page.evaluate(() => document.documentElement.dataset['svgReplaced']),
@@ -193,6 +214,41 @@ test('an interactive page hydrates the HTML it was built as, and every kind of i
   await context.close();
 });
 
+test('an HTTP page adopts the built chart and leaves it static with a mismatched bundle', async () => {
+  const { page, errors, context, url, server } = await interactivePage(true, 'http');
+  await using fixture = {
+    async [Symbol.asyncDispose]() {
+      server?.stop(true);
+      await context.close();
+    },
+  };
+  await page.locator('[data-dash-ready]').waitFor();
+  expect(await page.evaluate(() => document.documentElement.dataset.svgReplaced)).toBeUndefined();
+  await page.selectOption('select', { label: 'north' });
+  await page.waitForFunction(() => new URL(location.href).searchParams.get('region') === 'north');
+  await page.waitForFunction(
+    () => document.querySelectorAll('figure.chart')[0]?.querySelectorAll('svg rect').length === 2,
+  );
+
+  const description = page.locator('figure.chart svg desc').first();
+  expect(await description.evaluate((element) => element.namespaceURI)).toBe(
+    'http://www.w3.org/2000/svg',
+  );
+
+  await page.route(url, async (route) => {
+    const response = await route.fetch();
+    const body = (await response.text()).replace(
+      /data-dash-build="[^"]+"/,
+      'data-dash-build="stale"',
+    );
+    await route.fulfill({ response, body });
+  });
+  await page.goto(url);
+  expect(await page.locator('[data-dash-ready]').count()).toBe(0);
+  expect(await barsShown(page, 0)).toBe(4);
+  expect(errors).toEqual([]);
+});
+
 test('without JavaScript the page shows its defaults, charts and inputs alike', async () => {
   const { page, errors, context } = await interactivePage(false);
   expect(await barsShown(page, 0)).toBe(4);
@@ -213,14 +269,16 @@ test('without JavaScript the page shows its defaults, charts and inputs alike', 
 
 test('clicking a bar chooses its category, and the address keeps the choice', async () => {
   const { page, errors, context, url } = await interactivePage();
-  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  await page.waitForFunction(
+    () => document.querySelector('[data-dash-root][data-dash-ready]') !== null,
+  );
   const regionBars = page.locator('figure.chart').nth(2).locator('svg rect');
   await regionBars.nth(1).click();
   await page.waitForFunction(() =>
     document.querySelector('figure.chart svg desc')?.textContent?.startsWith('Shows 2 bars'),
   );
   expect(await page.locator('select option:checked').textContent()).toBe('south');
-  expect(new URL(page.url()).search).toBe('?region=south');
+  await page.waitForFunction((search) => location.search === search, '?region=south');
   // The chosen bar stands out: the other is dimmed.
   const opacities = await regionBars.evaluateAll((rects) =>
     rects.map((rect) => Number(getComputedStyle(rect).opacity)),
@@ -231,7 +289,7 @@ test('clicking a bar chooses its category, and the address keeps the choice', as
   await page.waitForFunction(() =>
     document.querySelector('figure.chart svg desc')?.textContent?.startsWith('Shows 4 bars'),
   );
-  expect(new URL(page.url()).search).toBe('');
+  await page.waitForFunction((search) => location.search === search, '');
   // A shared address opens the page with its values; what it cannot take is ignored.
   await page.goto(`${url}?region=north&metric=revenue&floor=99`);
   await page.waitForFunction(() =>
@@ -275,7 +333,9 @@ const trend = [
 test('checkboxes filter to several values, and clicking a point chooses its series', async () => {
   const { page, errors, context, url } = await interactivePage();
   await page.goto(url.replace('sales.html', 'trend.html'));
-  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  await page.waitForFunction(
+    () => document.querySelector('[data-dash-root][data-dash-ready]') !== null,
+  );
   const descOf = (at: number) =>
     page.evaluate(
       (index) =>
@@ -287,7 +347,7 @@ test('checkboxes filter to several values, and clicking a point chooses its seri
   await page.waitForFunction(() =>
     document.querySelector('figure.chart desc')?.textContent?.startsWith('Shows 2 points'),
   );
-  expect(new URL(page.url()).search).toBe('?regions=north');
+  await page.waitForFunction((search) => location.search === search, '?regions=north');
   // A press on a north point chooses north for the select the chart names.
   // A grid line crosses the hollow dot's centre; the press lands on the chart either way.
   await page.locator('figure.chart').nth(0).locator('svg circle').first().click({ force: true });
@@ -298,7 +358,7 @@ test('checkboxes filter to several values, and clicking a point chooses its seri
       ?.textContent?.startsWith('Shows 2 bars'),
   );
   expect(await page.locator('select option:checked').textContent()).toBe('north');
-  expect(new URL(page.url()).search).toBe('?regions=north&focus=north');
+  await page.waitForFunction((search) => location.search === search, '?regions=north&focus=north');
   // The address carries both, the checkboxes as one parameter per ticked choice.
   await page.goto(
     `${url.replace('sales.html', 'trend.html')}?regions=south&regions=north&focus=south`,
@@ -319,7 +379,9 @@ test('checkboxes filter to several values, and clicking a point chooses its seri
 test('a read-out follows the pointer and the keys, and the legend chooses a series', async () => {
   const { page, errors, context, url } = await interactivePage();
   await page.goto(url.replace('sales.html', 'trend.html'));
-  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  await page.waitForFunction(
+    () => document.querySelector('[data-dash-root][data-dash-ready]') !== null,
+  );
   const readout = (at: number) =>
     page.evaluate(
       (index) =>
@@ -369,7 +431,7 @@ test('a read-out follows the pointer and the keys, and the legend chooses a seri
   await page.waitForFunction(
     () => document.querySelector('select option:checked')?.textContent === 'north',
   );
-  expect(new URL(page.url()).search).toBe('?focus=north');
+  await page.waitForFunction((search) => location.search === search, '?focus=north');
   // Hidden data tables do not lengthen the page.
   expect(
     await page.evaluate(
@@ -383,7 +445,9 @@ test('a read-out follows the pointer and the keys, and the legend chooses a seri
 test('a chosen line stands out and the others dim', async () => {
   const { page, errors, context, url } = await interactivePage();
   await page.goto(`${url.replace('sales.html', 'lines.html')}?focus=south`);
-  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  await page.waitForFunction(
+    () => document.querySelector('[data-dash-root][data-dash-ready]') !== null,
+  );
   await page.waitForFunction(
     () => document.querySelector('select option:checked')?.textContent === 'south',
   );
@@ -409,7 +473,9 @@ test('dragging across a chart sets a span, a click clears it, and the fields set
   const { page, errors, context, url } = await interactivePage();
   const spanUrl = url.replace('sales.html', 'span.html');
   await page.goto(spanUrl);
-  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  await page.waitForFunction(
+    () => document.querySelector('[data-dash-root][data-dash-ready]') !== null,
+  );
   const filtered = () =>
     page.evaluate(
       () => document.querySelectorAll('figure.chart')[1]?.querySelector('desc')?.textContent ?? '',
@@ -446,7 +512,7 @@ test('dragging across a chart sets a span, a click clears it, and the fields set
   );
   await page.locator('input[type=date]').nth(0).fill('2026-05-04');
   // What is typed applies when the field loses focus or Enter is pressed.
-  expect(new URL(page.url()).search).toBe('');
+  await page.waitForFunction((search) => location.search === search, '');
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => location.search === '?days=2026-05-04..2026-05-06');
   // While a year is typed, a date field reports whole dates such as 0202-05-05: they
@@ -461,7 +527,10 @@ test('dragging across a chart sets a span, a click clears it, and the fields set
   await page.evaluate(
     () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
   );
-  expect(new URL(page.url()).search).toBe('?days=2026-05-04..2026-05-06');
+  await page.waitForFunction(
+    (search) => location.search === search,
+    '?days=2026-05-04..2026-05-06',
+  );
   await toField.fill('2026-05-05');
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => location.search === '?days=2026-05-04..2026-05-05');
@@ -480,7 +549,9 @@ test('dragging across a chart sets a span, a click clears it, and the fields set
 test('a focused chart shows its keys, and Shift with Down moves to the next series', async () => {
   const { page, errors, context, url } = await interactivePage();
   await page.goto(url.replace('sales.html', 'span.html'));
-  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  await page.waitForFunction(
+    () => document.querySelector('[data-dash-root][data-dash-ready]') !== null,
+  );
   const readout = () =>
     page.evaluate(() => document.querySelector('figure.chart .readout')?.textContent ?? '');
   await page.locator('figure.chart').nth(0).focus();

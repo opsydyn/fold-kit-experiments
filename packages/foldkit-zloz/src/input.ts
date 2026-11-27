@@ -1,5 +1,5 @@
+import type { BrowserInput, ZlozPortAnchorSnapBypassModifier } from './browser-input';
 import { gridSpacing } from './geometry';
-import type { BrowserInput, ZlozPortAnchorSnapBypassModifier } from './input-message';
 import type { Endpoint, Point } from './types';
 
 const mouseReleaseGraceMs = 100;
@@ -625,7 +625,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       backgroundPressed = false;
     }
     if (!target) return;
-    if (target.closest('[data-flow-waypoint-remove]')) {
+    if (target.closest('[data-flow-waypoint-remove], [data-flow-context-close]')) {
       element.focus({ preventScroll: true });
       return;
     }
@@ -974,29 +974,38 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   const resize = new window.ResizeObserver((entries) =>
     entries.forEach((entry) => measure(entry.target)),
   );
+  const focusFirstControl = (panel: HTMLElement) => {
+    const controls = panel.querySelectorAll(
+      'button, select, input:not([type="hidden"]), textarea, a[href], [tabindex]',
+    );
+    for (const control of controls) {
+      if (
+        !(control instanceof window.HTMLElement) ||
+        control.tabIndex < 0 ||
+        control.matches(':disabled') ||
+        control.closest('[hidden], [inert]')
+      )
+        continue;
+      control.focus({ preventScroll: true });
+      if (window.document.activeElement === control) return;
+    }
+  };
   let focusedPanel: Element | null = null;
   const observe = () => {
     const panel = element.querySelector('[data-flow-context-panel]');
-    if (panel !== focusedPanel) {
-      focusedPanel = panel;
-      if (panel instanceof window.HTMLElement) {
-        const controls = panel.querySelectorAll(
-          'button, select, input:not([type="hidden"]), textarea, a[href], [tabindex]',
-        );
-        for (const control of controls) {
-          if (
-            !(control instanceof window.HTMLElement) ||
-            control.tabIndex < 0 ||
-            control.matches(':disabled') ||
-            control.closest('[hidden], [inert]')
-          )
-            continue;
-          control.focus();
-          if (window.document.activeElement === control) break;
-        }
-        if (!panel.contains(window.document.activeElement)) panel.focus({ preventScroll: true });
-      }
+    const needsFocus = panel !== focusedPanel || window.document.activeElement === panel;
+    focusedPanel = panel;
+    if (needsFocus && panel instanceof window.HTMLElement) {
+      focusFirstControl(panel);
+      if (!panel.contains(window.document.activeElement)) panel.focus({ preventScroll: true });
     }
+    const active = window.document.activeElement;
+    if (
+      active instanceof window.HTMLElement &&
+      active.matches('[data-flow-edge-toolbar]') &&
+      element.contains(active)
+    )
+      focusFirstControl(active);
     const nodes = new Set(element.querySelectorAll('[data-flow-node]'));
     for (const node of observed)
       if (!nodes.has(node)) {

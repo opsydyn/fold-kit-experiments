@@ -1,17 +1,17 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Option, Stream } from 'effect';
-import { toHtml } from 'hast-util-to-html';
-
-import { highlightedTree } from '../../../packages/dataset-explorer/src/highlighting';
-import { createHighlighter } from '../../../packages/dataset-explorer/src/highlighting-engine';
+import { highlightedTree } from '@opsydyn/dataset-explorer/highlighting-core';
+import { createHighlighter } from '@opsydyn/dataset-explorer/highlighting-engine';
 import {
   parseSourceLine,
   sourceLineId,
   sourceLines,
-  sourceLineSubscriptions,
   linkedSourceTree,
-} from '../../../packages/dataset-explorer/src/source-lines';
+} from '@opsydyn/dataset-explorer/source-line-core';
+import { sourceLineChanges } from '@opsydyn/dataset-explorer/source-ui';
+import { Effect, Option, Stream } from 'effect';
+import { Window } from 'happy-dom';
+import { toHtml } from 'hast-util-to-html';
 
 const engine = await createHighlighter();
 const text = (node: import('hast').Root | import('hast').Element): string =>
@@ -63,7 +63,7 @@ test('opening a maintained source line selects the file and schedules native foc
   expect(result.model.activeFile).toBe('view.ts');
   expect(result.model.panel).toBe('controls');
   expect(result.commands?.[0]).toMatchObject({
-    name: 'FocusSourceLine',
+    name: 'FocusLineSourceLine',
     args: { name: 'view.ts', line: 2 },
   });
   expect(update(model, Message.NavigatedSourceLine({ name: '../../secret', line: 2 })).model).toBe(
@@ -74,24 +74,13 @@ test('opening a maintained source line selects the file and schedules native foc
   );
 });
 
-test('the subscription reads a linked file on initial runtime boot', async () => {
-  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
-  Object.defineProperty(globalThis, 'window', {
-    configurable: true,
-    value: { location: { hash: '#source-view.ts-L2' } },
-  });
-  // Browser-global setup is restored even if the stream assertion fails.
-  // oxlint-disable-next-line linteffect/no-try-catch
-  try {
-    const entries = sourceLineSubscriptions<unknown, { name: string; line: number }>(
-      (line) => line,
-    );
-    const result = await Effect.runPromise(
-      entries.sourceLine.dependenciesToStream({}).pipe(Stream.take(1), Stream.runCollect),
-    );
-    expect(result).toEqual([{ name: 'view.ts', line: 2 }]);
-  } finally {
-    if (descriptor) Object.defineProperty(globalThis, 'window', descriptor);
-    else Reflect.deleteProperty(globalThis, 'window');
-  }
+test('the native stream reads a linked file on mount', async () => {
+  const window = new Window({ url: 'https://demo.test/#source-view.ts-L2' });
+  // SAFETY: Happy DOM supplies the document and window APIs read by the stream.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+  const host = window.document.createElement('div') as unknown as HTMLElement;
+  const result = await Effect.runPromise(
+    sourceLineChanges(host).pipe(Stream.take(1), Stream.runCollect),
+  );
+  expect(result).toEqual([{ name: 'view.ts', line: 2 }]);
 });

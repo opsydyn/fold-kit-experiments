@@ -1,0 +1,55 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Gallery from '../../../../../../../packages/effect-three-samples/src/gallery/main';
+import Room from '../../../../../../../packages/effect-three-samples/src/room/main';
+import Workshop from '../../../../../../../packages/effect-three-samples/src/workshop/main';
+import Bars from '../../../../../../../packages/effect-three-samples/src/bars/main';
+import City from '../../../../../../../packages/effect-three-samples/src/city/main';
+import Curves from '../../../../../../../packages/effect-three-samples/src/curves/main';
+import Hero from '../../../../../../../packages/effect-three-samples/src/hero/main';
+import Marbles from '../../../../../../../packages/effect-three-samples/src/marbles/main';
+import Playground from '../../../../../../../packages/effect-three-samples/src/playground/main';
+import Sculpture from '../../../../../../../packages/effect-three-samples/src/sculpture/main';
+import Shared from '../../../../../../../packages/effect-three-samples/src/shared/main';
+import Studio from '../../../../../../../packages/effect-three-samples/src/studio/main';
+import Arrange from '../../../../../../../packages/effect-three-samples/src/arrange/main';
+import Radar from '../../../../../../../packages/effect-three-samples/src/radar/main';
+import Editor from '../../../../../../../packages/effect-three-samples/src/editor/main';
+import Tabletop from '../../../../../../../packages/effect-three-samples/src/tabletop/main';
+import Toybox from '../../../../../../../packages/effect-three-samples/src/toybox/main';
+import Bowling from '../../../../../../../packages/effect-three-samples/src/bowling/main';
+import '../../../../../../../packages/effect-three-samples/src/styles.css';
+
+export function getStaticPaths() {
+  return ['gallery', 'bowling', 'room', 'workshop', 'bars', 'city', 'curves', 'hero', 'marbles', 'playground', 'sculpture', 'studio', 'arrange', 'toybox', 'shared', 'tabletop', 'editor', 'radar', 'radar-default'].map((sample) => ({ params: { sample } }));
+}
+const { sample } = Astro.params;
+---
+<html lang="en">
+  <head><title>{sample}</title><ClientRouter /></head>
+  <body>
+    <main>
+      {sample === 'gallery' && <Gallery client:load />}
+      {sample === 'bowling' && <Bowling client:load />}
+      {sample === 'room' && <Room client:load />}
+      {sample === 'workshop' && <Workshop client:load />}
+      {sample === 'bars' && <Bars client:load />}
+      {sample === 'city' && <City client:load />}
+      {sample === 'curves' && <Curves client:load />}
+      {sample === 'hero' && <div style="margin-top: 140vh"><Hero client:visible /></div>}
+      {sample === 'marbles' && <Marbles client:load />}
+      {sample === 'playground' && <Playground client:load />}
+      {sample === 'sculpture' && <Sculpture client:load />}
+      {sample === 'studio' && <Studio client:load />}
+      {sample === 'arrange' && <Arrange client:load />}
+      {sample === 'shared' && <Shared client:load />}
+      {sample === 'radar' && <Radar client:load link={{ entry: 'foldkit', view: 'entry', edition: '2025-10-14', theme: 'paper' }} />}
+      {sample === 'radar-default' && <Radar client:load />}
+      {sample === 'editor' && <Editor client:load />}
+      {sample === 'tabletop' && <Tabletop client:load />}
+      {sample === 'toybox' && <Toybox client:load />}
+      {sample === 'gallery' && <a href="/three-scenes/bowling/">Bowling</a>}
+      <a href="/away/">Away</a>
+    </main>
+  </body>
+</html>

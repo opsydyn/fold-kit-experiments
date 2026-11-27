@@ -1,16 +1,14 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Html } from '@effect/ui/html';
 import { Window } from 'happy-dom';
 
 import { createEditor } from '../src/editor';
-import { zlozView } from '../src/foldkit';
 import { edgeGeometry } from '../src/geometry';
 import { resolveEdgeGeometry, type ZlozEdgeGeometryPolicy } from '../src/index';
 import type { EditorEvent } from '../src/types';
 import type { ZlozEdge } from '../src/types';
+import { renderCanvas } from './render-effect-ui';
 
 const edge: ZlozEdge = {
   id: 'ab',
@@ -98,40 +96,22 @@ test('custom geometry receives collapsed-group boundary anchors and rejects inva
 
 async function renderPolicy(customDecoration: boolean, readOnly = false) {
   const state = { ...createEditor(graph, { readOnly }), selectedEdges: ['ab'] };
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Edge geometry',
-          body: zlozView(h, model, {
-            id: 'geometry',
-            label: 'Geometry',
-            onEvent: (event) => event,
-            edgeToolbar: true,
-            edgeGeometry: () => ({
-              path: 'M100,40 Q140,-60 300,140',
-              labelPosition: { x: 170, y: 15 },
-            }),
-            edgeAppearance: () => ({ hitWidth: 26 }),
-            renderEdge: (context, builder) => {
-              if (!customDecoration) return undefined;
-              return builder.path(
-                [
-                  builder.D(context.path),
-                  builder.DataAttribute('custom-decoration', ''),
-                  builder.Stroke('purple'),
-                ],
-                [],
-              );
-            },
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const result = await renderCanvas(state, {
+    edgeEditing: { onEdit: ({ type }) => type, toolbar: true },
+    edgeGeometry: () => ({
+      path: 'M100,40 Q140,-60 300,140',
+      labelPosition: { x: 170, y: 15 },
+    }),
+    edgeAppearance: () => ({ hitWidth: 26 }),
+    renderEdge: (context) =>
+      customDecoration
+        ? new Html.Element<string>('path')
+            .attr('d', context.path)
+            .attr('data-custom-decoration', '')
+            .attr('stroke', 'purple')
+            .children()
+        : undefined,
+  });
   const window = new Window();
   window.document.body.innerHTML = result.html;
   return window.document;
@@ -148,10 +128,10 @@ test('custom and built-in decoration share the resolved selection path and label
     const label = document.querySelector(
       '[aria-label="Edit edge label Dependency for a:out → b:in"]',
     )?.parentElement;
-    expect(label?.getAttribute('style')).toContain('left: 170px');
-    expect(label?.getAttribute('style')).toContain('top: 15px');
+    expect(label?.getAttribute('style')).toContain('left:170px');
+    expect(label?.getAttribute('style')).toContain('top:15px');
     const toolbar = document.querySelector('[aria-label="Selected edge actions"]');
-    expect(toolbar?.getAttribute('style')).toContain('42px');
+    expect(toolbar?.getAttribute('style')).toContain('41px');
   }
   const readOnly = await renderPolicy(true, true);
   expect(readOnly.querySelector('[aria-label="Selected edge actions"]')).toBeNull();

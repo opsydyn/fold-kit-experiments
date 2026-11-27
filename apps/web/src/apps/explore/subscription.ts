@@ -1,11 +1,10 @@
+import { Mount } from '@effect/ui';
 import { pointerToPlot } from '@opsydyn/foldkit-viz/plot';
 import { Stream } from 'effect';
-import { Subscription } from 'foldkit';
 
 import { HISTOGRAM, SCATTER } from './charts';
 import { Message } from './message';
 import type { Surface } from './message';
-import type { Model } from './model';
 
 /** Where a pointer event landed: which chart, and the plot pixel under it. */
 interface PointerTarget {
@@ -15,13 +14,14 @@ interface PointerTarget {
 }
 
 /** The chart under a pointer event, and the drawing surface inside it to measure. */
-const surfaceOf = (event: PointerEvent): PointerTarget => {
+const surfaceOf = (root: HTMLElement, event: PointerEvent): PointerTarget => {
   const host = event.target instanceof Element ? event.target.closest('[data-explore]') : null;
   const name = host?.getAttribute('data-explore');
   const drawn = host?.querySelector('canvas, svg');
   if (
     host === null ||
     host === undefined ||
+    !root.contains(host) ||
     drawn === null ||
     drawn === undefined ||
     (name !== 'scatter' && name !== 'histogram')
@@ -36,30 +36,31 @@ const surfaceOf = (event: PointerEvent): PointerTarget => {
   return { surface: name, ...point };
 };
 
-/**
- * Pointer input for both charts. foldkit-viz installs no listeners, so the app
- * streams document pointer events and converts them to plot pixels here.
- */
-const moves: Stream.Stream<Message> = Stream.fromEventListener<PointerEvent>(
-  document,
-  'pointermove',
-).pipe(Stream.map((event) => Message.MovedPointer(surfaceOf(event))));
-const presses: Stream.Stream<Message> = Stream.fromEventListener<PointerEvent>(
-  document,
-  'pointerdown',
-).pipe(
-  Stream.map((event) => {
-    const { surface, x } = surfaceOf(event);
-    return Message.PressedPointer({ surface, x });
-  }),
+/** The island handles only its own surfaces, including release outside its bounds. */
+export const TrackPointer = Mount.makeStream(
+  'TrackExplorePointer',
+  { args: {} },
+  (root: HTMLElement) => {
+    const document = root.ownerDocument;
+    const moves: Stream.Stream<Message> = Stream.fromEventListener<PointerEvent>(
+      document,
+      'pointermove',
+    ).pipe(Stream.map((event) => Message.MovedPointer(surfaceOf(root, event))));
+    const presses: Stream.Stream<Message> = Stream.fromEventListener<PointerEvent>(
+      root,
+      'pointerdown',
+    ).pipe(
+      Stream.map((event) => {
+        const { surface, x } = surfaceOf(root, event);
+        return Message.PressedPointer({ surface, x });
+      }),
+    );
+    const releases = Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
+      Stream.map(() => Message.ReleasedPointer()),
+    );
+    const cancellations = Stream.fromEventListener<PointerEvent>(document, 'pointercancel').pipe(
+      Stream.map(() => Message.ReleasedPointer()),
+    );
+    return Stream.mergeAll([moves, presses, releases, cancellations], { concurrency: 'unbounded' });
+  },
 );
-const releases: Stream.Stream<Message> = Stream.fromEventListener<PointerEvent>(
-  document,
-  'pointerup',
-).pipe(Stream.map(() => Message.ReleasedPointer()));
-
-export const subscriptions = Subscription.make<Model, Message>()((_entry) => ({
-  pointer: Subscription.persistentEntry(
-    Stream.mergeAll([moves, presses, releases], { concurrency: 'unbounded' }),
-  ),
-}));

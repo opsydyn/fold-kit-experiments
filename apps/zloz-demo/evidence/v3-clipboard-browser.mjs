@@ -6,11 +6,14 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { resolve, sep, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
-const directory = new URL('./v3-clipboard/', import.meta.url);
+const evidenceRoot = process.env.ZLOZ_GROUP_EVIDENCE_DIR;
+const directory = evidenceRoot
+  ? pathToFileURL(evidenceRoot + '/clipboard/')
+  : new URL('./v3-clipboard/', import.meta.url);
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url, 'http://127.0.0.1');
@@ -83,6 +86,7 @@ async function capture(file) {
 }
 try {
   assert.equal((await page.goto(`${base}/groups/`))?.status(), 200);
+  await page.locator('astro-island:not([ssr])').waitFor({ state: 'attached' });
   await page.locator('[data-flow-surface]').waitFor();
   await page.locator('[data-flow-owner="orders"][data-flow-port="api"]').focus();
   await page.keyboard.press('Enter');

@@ -1,14 +1,18 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { Component } from '@effect/ui';
 import { Schema } from 'effect';
-import { Runtime } from 'foldkit';
 import { assert, expect, it, onTestFinished, vi } from 'vitest';
 
 import { Workbench } from '../../stories/comparison.stories';
-import type { FoldkitAppConfig } from '../../stories/mount';
 import { linkedDots } from '../../ui/plot-panel/highlights.test-helper';
-import * as config from './main';
+import app from './app';
+import { init, Model } from './workbench-state';
+
+it('uses a native Effect UI component for the Astro workbench', () => {
+  expect(Component.isComponent(app)).toBe(true);
+});
 
 function required<T>(value: T | null | undefined): T {
   assert(value !== null && value !== undefined);
@@ -22,34 +26,23 @@ function names(host: HTMLElement) {
   );
 }
 
-it('initialises deterministic settings instead of interpreting Astro props as settings', () => {
-  for (const props of [undefined, {}, { panels: [], nextPanelId: 99, linkInspections: false }]) {
-    const { model } = config.init(props);
-    expect(model.panels.map(({ id, _tag }) => ({ id, _tag }))).toEqual([
-      { id: 1, _tag: 'Scatter' },
-      { id: 2, _tag: 'Histogram' },
-    ]);
-    expect(model.nextPanelId).toBe(3);
-    expect(model.linking._tag).toBe('Linked');
-    expect(Schema.is(config.Model)(model)).toBe(true);
-  }
+it('initialises deterministic settings with a portable hydration model', () => {
+  const model = init();
+  expect(model.panels.map(({ id, _tag }) => ({ id, _tag }))).toEqual([
+    { id: 1, _tag: 'Scatter' },
+    { id: 2, _tag: 'Histogram' },
+  ]);
+  expect(model.nextPanelId).toBe(3);
+  expect(model.linking._tag).toBe('Linked');
+  const json = Schema.toCodecJson(Model);
+  const wire = JSON.parse(JSON.stringify(Schema.encodeSync(json)(model)));
+  expect(Schema.decodeUnknownSync(json)(wire)).toEqual(model);
 });
 
 it('hosts keyed inspection, caps additions, preserves order and stops updates on disposal', async () => {
-  const host = document.createElement('div');
-  const container = document.createElement('div');
-  container.id = 'comparison-host-test';
-  host.append(container);
+  const host = Workbench.render();
   document.body.append(host);
-  const update = vi.fn(config.update);
-  const hostConfig: FoldkitAppConfig = { ...config, update };
-  const handle = Runtime.embed(
-    Runtime.makeApplication({ ...hostConfig, container, devTools: false }),
-  );
-  onTestFinished(() => {
-    handle.dispose();
-    host.remove();
-  });
+  onTestFinished(() => host.remove());
   const button = (name: string) =>
     required(host.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`));
   await vi.waitFor(() => expect(names(host)).toEqual(['Scatter 1', 'Histogram 2']));
@@ -99,11 +92,10 @@ it('hosts keyed inspection, caps additions, preserves order and stops updates on
 
   const chart = required(host.querySelector('.plot-panel'));
   const removed = vi.spyOn(chart, 'removeEventListener');
-  handle.dispose();
+  host.remove();
   await vi.waitFor(() =>
     expect(removed.mock.calls.some(([type]) => type === 'pointermove')).toBe(true),
   );
-  const calls = update.mock.calls.length;
   const disposedHtml = host.innerHTML;
   addScatter.click();
   chart.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
@@ -111,7 +103,6 @@ it('hosts keyed inspection, caps additions, preserves order and stops updates on
   window.dispatchEvent(new Event('resize'));
   // Cross one event-loop task after exercising disposed targets; cleanup was already observed.
   await new Promise((resolve) => setTimeout(resolve, 0));
-  expect(update).toHaveBeenCalledTimes(calls);
   expect(host.innerHTML).toBe(disposedHtml);
 });
 
@@ -136,6 +127,4 @@ it('registers one client-loaded comparison island under Layout and links from Ch
   // Charts lists its explorations as data, each rendered as a card linking to its href.
   expect(charts).toMatch(/href:\s*'\/comparison',\s*kind:\s*'[^']+',\s*name:\s*'Chart comparison'/);
   expect(charts).toMatch(/<a\b[^>]*href=\{exploration\.href\}/);
-  const app = readFileSync(resolve(import.meta.dirname, './app.ts'), 'utf8');
-  expect(app).toContain("lazyApp(() => import('./main'))");
 });

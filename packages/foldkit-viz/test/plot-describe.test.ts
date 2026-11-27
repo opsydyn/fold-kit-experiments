@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { plotChart } from '../src/foldkit/plot';
+import { plotChart } from '../src/effect-ui/plot';
 import { compilePlot, describePlot, plotTable, plotTables } from '../src/plot';
 import type { PlotSpec } from '../src/plot';
 import { renderChart } from './render-chart';
@@ -147,7 +147,7 @@ describe('rendering', () => {
       [['250']],
     ]);
     expect(tables[0]?.headers).toEqual(['minute', 'Latency (ms) (high)', 'Latency (ms) (low)']);
-    const html = await renderChart<never>((h) => plotChart(h, geometry, { tables }));
+    const html = await renderChart((h) => plotChart(h, geometry, { tables }));
     expect(html.match(/<caption>/g)).toHaveLength(3);
     expect(html).toContain('Reference rule');
     expect(html).toContain('>250</th>');
@@ -184,7 +184,7 @@ describe('rendering', () => {
   });
 
   it('adds the summary to the description and the table, hidden, beside the chart', async () => {
-    const html = await renderChart<never>((h) =>
+    const html = await renderChart((h) =>
       plotChart(h, compilePlot(sales), { summary: true, table: plotTable(sales) }),
     );
     expect(html).toContain('<desc>Shows 3 bars.');
@@ -194,7 +194,7 @@ describe('rendering', () => {
   });
 
   it("prints a continuous legend's ends as readable numbers", async () => {
-    const html = await renderChart<never>((h) =>
+    const html = await renderChart((h) =>
       plotChart(
         h,
         compilePlot({
@@ -216,7 +216,7 @@ describe('rendering', () => {
   });
 
   it('leaves both out unless asked', async () => {
-    const html = await renderChart<never>((h) => plotChart(h, compilePlot(sales)));
+    const html = await renderChart((h) => plotChart(h, compilePlot(sales)));
     expect(html).not.toContain('<desc>');
     expect(html).not.toContain('plot-data');
   });

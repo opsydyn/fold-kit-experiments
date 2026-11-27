@@ -98,7 +98,7 @@ import type {
 
 /**
  * Compiles a plot spec (ADR 0037) into positioned geometry. Pure and
- * framework-free: render the result with `foldkit/plot`, or any renderer.
+ * framework-free: render the result with `effect-ui/plot`, or any renderer.
  *
  * Every rejection is a RangeError whose message starts with the spec path.
  */

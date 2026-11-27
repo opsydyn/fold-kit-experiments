@@ -1,276 +1,301 @@
-import type { EditorEvent } from '@opsydyn/foldkit-zloz';
-import { zlozView, zlozPort, type ZlozViewLayoutParts } from '@opsydyn/foldkit-zloz/foldkit';
+import type { Html } from '@effect/ui/html';
+import { resolveConnectionCreation } from '@opsydyn/foldkit-zloz';
+import { graphSurface } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import { workbenchThemes } from '../editor/theme';
 import {
   ColorScheme,
   PortDesign,
   Session,
   Message,
   connectionPolicy,
+  decodeBrowserInput,
   editorFor,
   type Model,
+  type WorkbenchEvent,
 } from './state';
 
-export function view(model: Model, h: HtmlBuilder<Message>): Document {
+type Tags = Html.H<Message>;
+type Observe = (event: WorkbenchEvent) => Message;
+
+const decodeSession = Schema.decodeUnknownSync(Session);
+const decodeDesign = Schema.decodeUnknownSync(PortDesign);
+const decodeScheme = Schema.decodeUnknownSync(ColorScheme);
+
+function action(h: Tags, label: string, message: Message, disabled = false) {
+  return h.button.attr('type', 'button').disabled(disabled).on('click', message).children(label);
+}
+
+function choiceOptions<T extends string>(
+  h: Tags,
+  values: readonly T[],
+  current: T | undefined,
+  label: (value: T) => string,
+) {
+  return values.map((value) =>
+    h.option
+      .attr('value', value)
+      .selected(current === value)
+      .children(label(value)),
+  );
+}
+
+type EndpointChoice = Readonly<{
+  value: string;
+  label: string;
+  current: boolean;
+  reason: string | null;
+  event: WorkbenchEvent;
+}>;
+
+function endpointField(
+  h: Tags,
+  label: string,
+  entries: readonly EndpointChoice[],
+  observe: Observe,
+  options: Readonly<{
+    disabled?: boolean;
+    placeholder?: string;
+    hint?: string | null;
+  }> = {},
+) {
+  const { disabled = false, placeholder, hint } = options;
+  const description = `connection-hint-${label.toLowerCase().replaceAll(' ', '-')}`;
+  return h.div.class('connection-endpoint').children(
+    h.label.class('workbench-field').children(
+      label,
+      h.select
+        .attr('aria-label', label)
+        .attr('aria-describedby', hint ? description : undefined)
+        .disabled(disabled)
+        .on('keydown', ({ key }) =>
+          key === 'Escape' ? observe({ type: 'GestureCancelled' }) : undefined,
+        )
+        .on('change', ({ value }) => {
+          const entry = entries.find((item) => item.value === value && item.reason === null);
+          return entry ? observe(entry.event) : undefined;
+        })
+        .children(
+          ...(placeholder
+            ? [
+                h.option
+                  .attr('value', '')
+                  .selected(!entries.some(({ current }) => current))
+                  .disabled(true)
+                  .children(placeholder),
+              ]
+            : []),
+          ...entries.map(({ value, label, current, reason }) =>
+            h.option
+              .key(value)
+              .attr('value', value)
+              .selected(current)
+              .disabled(reason !== null && !current)
+              .attr('title', reason ?? undefined)
+              .children(label),
+          ),
+        ),
+    ),
+    ...(hint ? [h.p.id(description).children(hint)] : []),
+  );
+}
+
+export function view(h: Tags, model: Model) {
   const editor = editorFor(model);
-  const observe = (event: EditorEvent) => Message.ObservedInput({ session: model.session, event });
+  const observe: Observe = (event) => Message.ObservedInput({ session: model.session, event });
   const busy = editor.gesture.type !== 'idle';
-  const action = (
-    label: string,
-    type: 'UndoPressed' | 'RedoPressed' | 'FitViewClicked',
-    disabled = false,
-  ) => h.button([h.Type('button'), h.Disabled(disabled), h.OnClick(observe({ type }))], [label]);
-  const field = (label: string, content: Html) =>
-    h.label([h.Class('workbench-field')], [label, content]);
-  const options = <T extends string>(
-    values: readonly T[],
-    current: T,
-    label: (value: T) => string,
-  ) =>
-    values.map((value) =>
-      h.option([h.Value(value), h.Selected(current === value)], [label(value)]),
-    );
-  const layout = (parts: ZlozViewLayoutParts): Html =>
-    h.div(
-      [h.Class('workbench-layout')],
-      [
-        h.aside(
-          [h.Class('workbench-sidebar'), h.AriaLabel('Connection controls')],
-          [
-            h.a(
-              [h.Class('workbench-skip'), h.Href('#connections-' + model.session + '-surface')],
-              ['Skip to canvas'],
-            ),
-            h.div(
-              [h.Class('workbench-sidebar-heading')],
-              [
+  const policy = connectionPolicy(model);
+  const creation = resolveConnectionCreation(editor, policy);
+  const id = `connections-${model.session}`;
+  const label = model.session === 'strict' ? 'Strict connection canvas' : 'Loose connection canvas';
+
+  return h.div
+    .class('connection-lab')
+    .attr('data-flow-workbench-color-scheme', model.scheme)
+    .children(
+      h.div.class('workbench-layout').children(
+        h.aside
+          .class('workbench-sidebar')
+          .attr('aria-label', 'Connection controls')
+          .children(
+            h.a.class('workbench-skip').attr('href', `#${id}-surface`).children('Skip to canvas'),
+            h.div
+              .class('workbench-sidebar-heading')
+              .children(
                 h.div(
-                  [],
-                  [
-                    h.p([h.Class('workbench-eyebrow')], ['COMPOSE. CONNECT.']),
-                    h.h1([], ['Connections, your way.']),
-                  ],
+                  h.p.class('workbench-eyebrow').children('COMPOSE. CONNECT.'),
+                  h.h1('Connections, your way.'),
                 ),
-              ],
-            ),
-            h.div(
-              [h.Class('workbench-sidebar-scroll')],
-              [
-                h.p(
-                  [],
-                  ['Two independent sessions. Switch freely; each keeps its graph and Undo.'],
-                ),
-                field(
-                  'Session',
-                  h.select(
-                    [
-                      h.AriaLabel('Session'),
-                      h.Disabled(busy),
-                      h.Value(model.session),
-                      h.OnChange((value) =>
-                        Message.SelectedSession({
-                          session: Schema.decodeUnknownSync(Session)(value),
-                        }),
-                      ),
-                    ],
-                    options(['strict', 'loose'], model.session, (value) =>
+              ),
+            h.div.class('workbench-sidebar-scroll').children(
+              h.p('Two independent sessions. Switch freely; each keeps its graph and Undo.'),
+              h.label.class('workbench-field').children(
+                'Session',
+                h.select
+                  .attr('aria-label', 'Session')
+                  .disabled(busy)
+                  .on('change', ({ value }) =>
+                    Message.SelectedSession({ session: decodeSession(value) }),
+                  )
+                  .children(
+                    ...choiceOptions(h, Session.literals, model.session, (value) =>
                       value === 'strict'
                         ? 'Strict · output → input'
                         : 'Loose · any port → any port',
                     ),
                   ),
-                ),
-                field(
-                  'Port design',
-                  h.select(
-                    [
-                      h.AriaLabel('Port design'),
-                      h.Disabled(busy),
-                      h.Value(model.design),
-                      h.OnChange((value) =>
-                        Message.SelectedDesign({
-                          design: Schema.decodeUnknownSync(PortDesign)(value),
-                        }),
-                      ),
-                    ],
-                    options(['native', 'custom'], model.design, (value) =>
+              ),
+              h.label.class('workbench-field').children(
+                'Port design',
+                h.select
+                  .attr('aria-label', 'Port design')
+                  .disabled(busy)
+                  .on('change', ({ value }) =>
+                    Message.SelectedDesign({ design: decodeDesign(value) }),
+                  )
+                  .children(
+                    ...choiceOptions(h, PortDesign.literals, model.design, (value) =>
                       value === 'native' ? 'Native circles' : 'Custom intent badges',
                     ),
                   ),
-                ),
-                field(
-                  'Theme',
-                  h.select(
-                    [
-                      h.AriaLabel('Theme'),
-                      h.Value(model.scheme),
-                      h.OnChange((value) =>
-                        Message.SelectedScheme({
-                          scheme: Schema.decodeUnknownSync(ColorScheme)(value),
-                        }),
-                      ),
-                    ],
-                    options(['light', 'dark'], model.scheme, (value) =>
+              ),
+              h.label.class('workbench-field').children(
+                'Theme',
+                h.select
+                  .attr('aria-label', 'Theme')
+                  .on('change', ({ value }) =>
+                    Message.SelectedScheme({ scheme: decodeScheme(value) }),
+                  )
+                  .children(
+                    ...choiceOptions(h, ColorScheme.literals, model.scheme, (value) =>
                       value === 'light' ? 'Light' : 'Dark',
                     ),
                   ),
-                ),
-                field(
+              ),
+              h.label
+                .class('workbench-field')
+                .children(
                   'Protect Audit input',
-                  h.input([
-                    h.Type('checkbox'),
-                    h.Checked(model.protectedPort),
-                    h.OnClick(Message.ClickedProtection()),
-                  ]),
+                  h.input
+                    .attr('type', 'checkbox')
+                    .checked(model.protectedPort)
+                    .on('click', Message.ClickedProtection()),
                 ),
-                h.p(
-                  [],
-                  [
-                    'Audit input requires approval while protection is on. Port kind and protection are independent.',
-                  ],
-                ),
-                field(
+              h.p(
+                'Audit input requires approval while protection is on. Port kind and protection are independent.',
+              ),
+              h.label
+                .class('workbench-field')
+                .children(
                   'Read-only',
-                  h.input([
-                    h.Type('checkbox'),
-                    h.Checked(model.readOnly),
-                    h.OnClick(Message.ClickedReadOnly()),
-                  ]),
+                  h.input
+                    .attr('type', 'checkbox')
+                    .checked(model.readOnly)
+                    .on('click', Message.ClickedReadOnly()),
                 ),
-                h.div(
-                  [
-                    h.Class('connection-lab-actions'),
-                    h.Role('group'),
-                    h.AriaLabel('Session history'),
-                  ],
-                  [
-                    action(
-                      'Undo',
-                      'UndoPressed',
-                      busy || editor.readOnly || editor.past.length === 0,
-                    ),
-                    action(
-                      'Redo',
-                      'RedoPressed',
-                      busy || editor.readOnly || editor.future.length === 0,
-                    ),
-                    action('Fit', 'FitViewClicked', busy || editor.surface === null),
-                  ],
+              h.div
+                .class('connection-lab-actions')
+                .attr('role', 'group')
+                .attr('aria-label', 'Session history')
+                .children(
+                  action(
+                    h,
+                    'Undo',
+                    observe({ type: 'UndoPressed' }),
+                    busy || editor.readOnly || editor.past.length === 0,
+                  ),
+                  action(
+                    h,
+                    'Redo',
+                    observe({ type: 'RedoPressed' }),
+                    busy || editor.readOnly || editor.future.length === 0,
+                  ),
+                  action(
+                    h,
+                    'Fit',
+                    observe({ type: 'FitViewClicked' }),
+                    busy || editor.surface === null,
+                  ),
                 ),
-                h.p(
-                  [
-                    h.Role('status'),
-                    h.AriaLive('polite'),
-                    h.DataAttribute('connection-feedback', ''),
-                  ],
-                  [
-                    editor.notice ??
-                      (model.session === 'strict'
-                        ? 'Strict session: choose an output, then an input.'
-                        : 'Loose session: choose any source port, then any target.'),
-                  ],
+              h.p
+                .attr('role', 'status')
+                .attr('data-connection-feedback', '')
+                .children(
+                  editor.notice ??
+                    (model.session === 'strict'
+                      ? 'Strict session: choose an output, then an input.'
+                      : 'Loose session: choose any source port, then any target.'),
                 ),
-                h.p(
-                  [],
-                  [
-                    'Use Enter or Space on ports, or drag between them. Escape cancels. In loose mode Input and Output are retained as authored labels.',
-                  ],
+              h.p
+                .id('connection-gestures')
+                .children(
+                  'Use Enter or Space on ports, or drag between them. Escape cancels. In loose mode Input and Output are retained as authored labels.',
                 ),
-                ...(parts.creation ? [parts.creation] : []),
-                h.h2([], ['Connections']),
-                parts.connections,
-                h.p([], ['Select a connection to change either end. Each edit is one Undo.']),
-                h.p(
-                  [],
-                  [
-                    'This connection workbench uses v2 documents. Architecture editions and portable adapters retain their existing formats.',
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-        h.div([h.Class('workbench-canvas')], [parts.help, parts.canvas]),
-      ],
-    );
-  return {
-    title: 'Connection workbench | ZLOZ',
-    body: h.div(
-      [h.Class('connection-lab'), h.DataAttribute('flow-workbench-color-scheme', model.scheme)],
-      [
-        zlozView(h, editor, {
-          id: 'connections-' + model.session,
-          label:
-            model.session === 'strict' ? 'Strict connection canvas' : 'Loose connection canvas',
-          onEvent: observe,
-          theme: workbenchThemes[model.scheme],
-          height: 'fill',
-          diagnostics: {
-            measurements: false,
-            alignmentGuides: false,
-            zoomLevel: false,
-            status: false,
-            instructions: false,
-            overview: false,
-            connectionList: true,
-          },
-          resizeHandles: false,
-          connectionCreation: true,
-          edgeToolbar: true,
-          edgeReconnection: true,
-          connectionDropRadius: 32,
-          reconnectionDropRadius: 32,
-          pinchZoom: true,
-          wheelNavigation: 'zoom',
-          ...connectionPolicy(model),
-          renderNode: (node, builder) =>
-            builder.p(
-              [
-                builder.Style({
-                  color: 'var(--flow-node-color)',
-                  padding: '0 56px',
-                  'font-size': '12px',
-                }),
-              ],
-              [node.id === 'audit' ? 'Policies stay live.' : 'Choose a port.'],
-            ),
-          renderPort: (context, builder) =>
-            model.design === 'native'
-              ? undefined
-              : zlozPort(
-                  builder,
-                  context,
-                  context.port,
-                  [
-                    builder.Class('connection-intent-port'),
-                    builder.DataAttribute('custom-intent', context.connectionEnd),
-                    builder.Style({
-                      background: context.target
-                        ? 'var(--flow-selection)'
-                        : 'var(--flow-node-background)',
-                      color: 'var(--flow-node-color)',
-                      border: '2px solid var(--flow-selection)',
-                      'border-radius': '16px',
-                      padding: '5px 8px',
-                      'font-size': '10px',
-                      'white-space': 'nowrap',
-                      'box-shadow': context.active
-                        ? '0 0 0 4px var(--flow-selection-background)'
-                        : 'none',
+              h.div
+                .attr('role', 'group')
+                .attr('aria-label', 'Create a connection')
+                .children(
+                  ...[creation.source, creation.target].map((field) =>
+                    endpointField(h, field.label, field.entries, observe, {
+                      disabled: field.reason !== null,
+                      placeholder: field.placeholder,
+                      hint: field.reason ?? field.hint,
                     }),
-                  ],
-                  [
-                    context.disabledReason
-                      ? 'Protected'
-                      : `${context.port.kind} · ${context.connectionEnd}`,
-                  ],
+                  ),
+                  action(
+                    h,
+                    'Cancel connection',
+                    observe(creation.cancel.event),
+                    creation.cancel.reason !== null,
+                  ),
                 ),
-          renderLayout: layout,
-        }),
-      ],
-    ),
-  };
+              h.h2('Connections'),
+              h.div
+                .attr('role', 'group')
+                .attr('aria-label', 'Connections')
+                .children(
+                  ...editor.graph.edges.map(({ id, label, source, target }) =>
+                    h.button
+                      .key(id)
+                      .attr('type', 'button')
+                      .attr('aria-pressed', String(editor.selectedEdges.includes(id)))
+                      .on('click', observe({ type: 'EdgeSelected', id, additive: false }))
+                      .children(
+                        label ?? `${source.node}:${source.port} → ${target.node}:${target.port}`,
+                      ),
+                  ),
+                ),
+              h.p('Select a connection to change either end. Each edit is one Undo.'),
+              h.p(
+                'This connection workbench uses v2 documents. Architecture editions and portable adapters retain their existing formats.',
+              ),
+            ),
+          ),
+        h.div.class('workbench-canvas').children(
+          graphSurface(h, editor, {
+            id,
+            label,
+            descriptionId: 'connection-gestures',
+            policy,
+            dropRadius: 32,
+            reconnect: true,
+            edgeEditing: { toolbar: true, onEdit: observe, reconnection: { onEvent: observe } },
+            wheelNavigation: 'zoom',
+            renderPort: ({ port, connectionEnd, disabledReason }) =>
+              model.design === 'native'
+                ? undefined
+                : {
+                    className: 'zloz-ui-port-custom',
+                    content: disabledReason
+                      ? editor.readOnly
+                        ? 'Read-only'
+                        : 'Protected'
+                      : `${port.kind} · ${connectionEnd}`,
+                  },
+            onInput: (event) => observe(decodeBrowserInput(event)),
+            nodeNote: (node) => (node.id === 'audit' ? 'Policies stay live.' : 'Choose a port.'),
+          }),
+        ),
+      ),
+    );
 }

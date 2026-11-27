@@ -1,27 +1,22 @@
-import { HighlightedSource } from '@opsydyn/dataset-explorer/highlighting';
-import { SourceLine } from '@opsydyn/dataset-explorer/source-lines';
+import { UiSchema } from '@effect/ui';
+import { HighlightedSource } from '@opsydyn/dataset-explorer/highlighting-core';
+import { SourceLine } from '@opsydyn/dataset-explorer/source-line-core';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
-import type * as Comparison from '../../../../web/src/apps/comparison/main';
+import * as Workbench from '../../../../web/src/apps/comparison/workbench-state';
+import { Action } from './model';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
+  MountedSourceViewer: {},
   NavigatedSourceLine: SourceLine.fields,
   CompletedSourceLineFocus: {},
-  AcquiredHighlighter: {},
-  FailedHighlighter: {},
-  ReleasedHighlighter: {},
   SettledHighlightedSource: { highlightedSource: HighlightedSource },
-  // oxlint-disable-next-line foldkit/got-prefix-requires-submodel-payload
-  GotWorkbenchMessage: { message: Schema.Unknown },
+  ReceivedWorkbenchMessage: { message: Workbench.Message },
   SelectedFile: { name: Schema.String },
   ClickedCopy: {},
   ClickedDownload: {},
   ClickedPlayground: {},
-  SucceededAction: { action: Schema.Literals(['copy', 'download', 'playground']) },
+  SucceededAction: { action: Action },
   FailedAction: { error: Schema.String },
 });
-export type GotWorkbenchMessage = Omit<typeof Message.GotWorkbenchMessage.Type, 'message'> & {
-  readonly message: Comparison.Message;
-};
 export type Message = typeof Message.Type;

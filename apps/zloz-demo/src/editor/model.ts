@@ -24,7 +24,7 @@ import {
   type ZlozColorScheme,
   type ZlozDiagnostics,
   type ZlozPortPositionDraft,
-} from '@opsydyn/foldkit-zloz/foldkit';
+} from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
 
 import { createAlchemyReview, type AlchemyReviewState } from './alchemy-state';

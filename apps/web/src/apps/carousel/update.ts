@@ -1,75 +1,65 @@
-import { Option, Result } from 'effect';
-import { revalidateOrLoad, settle } from 'foldkit/asyncData';
-import { combine, foldChild, refresh } from 'foldkit/update';
-import type { Return, Step } from 'foldkit/update';
-
-import * as Carousel from '../../ui/carousel';
-import { LoadSlides } from './command';
 import { Message } from './message';
-import type { Model, Slide } from './model';
+import { Drag, Model, type Loaded } from './model';
 
-type AppReturn = Return<Model, Message>;
+const settle = (fromIndex: number, targetIndex: number, fromDeltaX: number, duration: number) =>
+  Drag.Settling({ fromIndex, targetIndex, fromDeltaX, elapsed: 0, duration });
 
-// Revalidates the slides cache: Idle/Failure → Loading, Success/Stale → Refreshing.
-// Data-last so it can be used as a Step in combine() or called directly from init.
-export const loadSlidesOnEntry: Step<Model, Message> = refresh<
-  Model,
-  Message,
-  ReadonlyArray<Slide>,
-  string
->({
-  read: (model) => Option.some(model.slides),
-  revalidate: revalidateOrLoad,
-  write: (model, slides) => ({ ...model, slides }),
-  load: LoadSlides(),
-});
+const settleDuration = (from: number, to: number) => 280 + Math.abs(to - from) * 60;
 
-// Syncs carousel.slideCount to match the loaded slide array length.
-const syncSlideCount =
-  (slides: ReadonlyArray<Slide>): Step<Model, Message> =>
-  (model) => ({ model: { ...model, carousel: { ...model.carousel, slideCount: slides.length } } });
+const loopIndex = (index: number, count: number) => ((index % count) + count) % count;
 
-// The application is the terminal parent for the carousel, so it consumes the
-// child notification explicitly instead of dropping the outMessage field.
-const foldCarousel = foldChild({
-  update: Carousel.update,
-  read: (model: Model) => Option.some(model.carousel),
-  write: (model, nextCarousel) => ({ ...model, carousel: nextCarousel }),
-  toParentMessage: (carouselMessage) =>
-    Message.ReceivedCarouselMessage({ message: carouselMessage }),
-  foldOutMessage: (outMessage) =>
-    Carousel.OutMessage.match<Step<Model, Message>>(outMessage, {
-      ChangedSlide: () => (model) => ({ model }),
+function navigate(model: Loaded, index: number): Loaded {
+  if (index === model.activeIndex || index < 0 || index >= model.slides.length) return model;
+  return {
+    ...model,
+    activeIndex: index,
+    drag: settle(model.activeIndex, index, 0, settleDuration(model.activeIndex, index)),
+  };
+}
+
+function move(model: Loaded, step: number) {
+  return navigate(model, loopIndex(model.activeIndex + step, model.slides.length));
+}
+
+export function update(model: Model, message: Message): Model {
+  if (message._tag === 'LoadedSlides') {
+    return Model.Loaded({ slides: message.slides, activeIndex: 0, drag: Drag.Idle() });
+  }
+  if (model._tag !== 'Loaded' || model.slides.length === 0) return model;
+  const { drag } = model;
+  return Message.match(message, {
+    LoadedSlides: () => model,
+    PressedSlide: () => ({
+      ...model,
+      drag: Drag.Dragging({ originIndex: model.activeIndex, deltaX: 0 }),
     }),
-});
-
-type SlidesResult = Result.Result<ReadonlyArray<Slide>, string>;
-
-/** Once slides load, keep the carousel's slide count in step; a failure needs nothing more. */
-const afterSettled = (result: SlidesResult): ReadonlyArray<Step<Model, Message>> =>
-  Result.match(result, {
-    onSuccess: (slides) => [syncSlideCount(slides)],
-    onFailure: () => [],
-  });
-
-const settleSlides = (model: Model, result: SlidesResult): AppReturn =>
-  combine(model, [
-    (m) => ({ model: { ...m, slides: settle(m.slides, result) } }),
-    ...afterSettled(result),
-  ]);
-
-export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    ReceivedCarouselMessage: ({ message: carouselMessage }) => {
-      // SAFETY: The app model and message contracts establish this value before the assertion.
-      // oxlint-disable-next-line linteffect/no-model-overlay-cast
-      return foldCarousel(model, carouselMessage as Carousel.Message);
+    MovedDragPointer: ({ deltaX }) =>
+      drag._tag === 'Dragging' ? { ...model, drag: { ...drag, deltaX } } : model,
+    ReleasedDragPointer: ({ deltaX, velocityX, trackWidth }) => {
+      if (drag._tag !== 'Dragging') return model;
+      const { originIndex } = drag;
+      const fraction = trackWidth > 0 ? (deltaX + velocityX * 120) / trackWidth : 0;
+      const steps =
+        Math.abs(fraction) >= 0.25 || Math.abs(velocityX) >= 0.2 ? Math.round(fraction) : 0;
+      const target = loopIndex(originIndex - steps, model.slides.length);
+      return {
+        ...model,
+        activeIndex: target,
+        drag: settle(originIndex, target, deltaX, settleDuration(originIndex, target)),
+      };
     },
-
-    SettledSlides: ({ result: rawResult }) => {
-      // SAFETY: The app model and message contracts establish this value before the assertion.
-      // oxlint-disable-next-line linteffect/no-model-overlay-cast
-      const result = rawResult as Result.Result<ReadonlyArray<Slide>, string>;
-      return settleSlides(model, result);
+    CancelledDrag: () =>
+      drag._tag === 'Dragging'
+        ? { ...model, drag: settle(drag.originIndex, drag.originIndex, drag.deltaX, 200) }
+        : model,
+    TickedSettle: ({ deltaTimeMs }) => {
+      if (drag._tag !== 'Settling') return model;
+      const elapsed = drag.elapsed + deltaTimeMs;
+      return { ...model, drag: elapsed >= drag.duration ? Drag.Idle() : { ...drag, elapsed } };
     },
+    ClickedPrevious: () => move(model, -1),
+    ClickedNext: () => move(model, 1),
+    ClickedDot: ({ index }) => navigate(model, index),
+    PressedNavigationKey: ({ key }) => move(model, key === 'ArrowRight' ? 1 : -1),
   });
+}

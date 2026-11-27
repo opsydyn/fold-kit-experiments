@@ -1,5 +1,5 @@
+import { UiSchema } from '@effect/ui';
 import { Optic, Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
 
 export const HealthData = Schema.Struct({
   status: Schema.String,
@@ -9,7 +9,7 @@ export const HealthData = Schema.Struct({
 });
 export type HealthData = typeof HealthData.Type;
 
-export const Model = defineTaggedUnion({
+export const Model = UiSchema.TaggedEnum({
   Loading: {},
   Failed: { error: Schema.String },
   Loaded: {
@@ -19,7 +19,7 @@ export const Model = defineTaggedUnion({
   },
 });
 export type Model = typeof Model.Type;
-export type Loaded = typeof Model.Loaded.Type;
+export type Loaded = typeof Model.cases.Loaded.Type;
 
 export const init: Model = Model.Loading();
 

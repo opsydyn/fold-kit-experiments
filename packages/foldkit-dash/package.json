@@ -36,10 +36,11 @@
   },
   "dependencies": {
     "@effect/platform-bun": "catalog:",
+    "@effect/ui": "catalog:",
     "@modelcontextprotocol/sdk": "catalog:",
     "@opsydyn/foldkit-viz": "workspace:*",
     "effect": "catalog:",
-    "foldkit": "catalog:"
+    "parse5": "8.0.1"
   },
   "devDependencies": {
     "bun-types": "catalog:",

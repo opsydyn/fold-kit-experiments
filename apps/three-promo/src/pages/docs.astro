@@ -30,14 +30,14 @@ import {
   </section>
   <div class="docs-layout">
     <nav class="docs-nav" aria-label="On this page">
-      <a href="#installation">Installation</a><a href="#first-scene">Your first scene</a><a href="#foldkit">Using Foldkit</a><a href="#identity">Keys and identity</a><a href="#resources">Resources</a><a href="#animation">Animation</a><a href="#controls">Controls</a><a href="#physics">Physics</a><a href="#text">Text and labels</a><a href="#staging">Staging</a><a href="#renderers">Renderers</a><a href="#xr">XR</a><a href="#runtime">Without Foldkit</a><a href="#testing">Testing</a><a href="#previews">Previews</a><a href="#agents">Agents</a><a href="#architecture">Architecture</a>
+      <a href="#installation">Installation</a><a href="#first-scene">Your first scene</a><a href="#foldkit">Using Effect UI</a><a href="#identity">Keys and identity</a><a href="#resources">Resources</a><a href="#animation">Animation</a><a href="#controls">Controls</a><a href="#physics">Physics</a><a href="#text">Text and labels</a><a href="#staging">Staging</a><a href="#renderers">Renderers</a><a href="#xr">XR</a><a href="#runtime">Using the runtime</a><a href="#testing">Testing</a><a href="#previews">Previews</a><a href="#agents">Agents</a><a href="#architecture">Architecture</a>
     </nav>
     <article class="docs-content">
       <section id="installation">
         <h2>Install the packages.</h2>
-        <p>The core works anywhere Effect does. The Foldkit adapter adds the browser pieces: the renderers (WebGL, or WebGPU with <code>webgpuRendererFactory</code>), the animation-frame loop and the scene element.</p>
+        <p>The core works anywhere Effect does. The Effect UI adapter adds the browser pieces: the renderers (WebGL, or WebGPU with <code>webgpuRendererFactory</code>), the animation-frame loop and the scene element.</p>
         <div class="code-panel"><SourceCode code={installation} lang="sh" sourceId="installation.sh" /></div>
-        <p>Add <code>@opsydyn/effect-three-rapier</code> for physics and <code>@opsydyn/effect-three-troika</code> for labels when a scene needs them. The four packages are released together at one version, and the adapters take the core as a peer at exactly that version, so install matching versions. They are <code>0.x</code>: the public surface is what the API reports in each package's <code>etc/</code> record, and a change that breaks it bumps the minor version.</p>
+        <p>Add <code>@opsydyn/effect-three-rapier</code> for physics and <code>@opsydyn/effect-three-troika</code> for labels when a scene needs them. The four packages are released together at one version, and the adapters take the core as a peer at exactly that version, so install matching versions. The public API reports are in each package’s <code>etc/</code> folder.</p>
       </section>
       <section id="first-scene">
         <h2>Describe a scene.</h2>
@@ -47,16 +47,16 @@ import {
         <p>Meshes are built from <code>box</code>, <code>sphere</code>, <code>plane</code>, <code>cylinder</code>, <code>cone</code>, <code>capsule</code>, <code>torus</code>, <code>ring</code>, <code>circle</code> or <code>text</code>, with Drei's <code>roundedBox</code> and <code>backdrop</code> for product shots; <code>line</code> draws Drei's fat lines, pixels or scene units wide and dashed if you like, through points of your own or along a curve (<code>catmullRomPoints</code>, <code>cubicBezierPoints</code>, <code>quadraticBezierPoints</code>), and outlines a mesh's edges with <code>{"edges: edges()"}</code>; <code>points</code>, <code>sparkles</code> and <code>stars</code> are Drei's, seeded so they are the same every time, and <code>trail()</code> leaves a ribbon behind anything that moves; <code>instances</code> draws thousands of copies of one in a single call. A group with <code>{"detail: detailed({ distances: [0, 10, 20] })"}</code> shows one child at a time by the camera's distance, as Drei's <code>Detailed</code>.</p>
       </section>
       <section id="foldkit">
-        <h2>Render it with Foldkit.</h2>
+        <h2>Render it with Effect UI.</h2>
         <p>Create one environment for the application, then render scenes from your view. Pointer interaction comes back as your own typed Messages: clicks, double-clicks, context menus, hover and movement, the wheel, and misses for clearing a selection. Only the handlers you pass are bound.</p>
         <div class="code-panel"><SourceCode code={entry} lang="ts" sourceId="entry.ts" /></div>
         <div class="code-panel"><SourceCode code={view} lang="ts" sourceId="view.ts" /></div>
-        <p>Unmounting the element releases its renderer, WebGL context, GPU resources, listeners and frame subscription. While Foldkit DevTools time-travels, the scene shows the historical state and ignores pointer input.</p>
+        <p>Unmounting the element releases its renderer, WebGL context, GPU resources, listeners and frame subscription. Pass <code>live: false</code> to keep the scene visible while pausing input.</p>
         <a class="text-link" href={sitePath('/examples/playground/')}>Try the playground <span aria-hidden="true">→</span></a>
       </section>
       <section id="identity">
         <h2>Keys keep objects alive.</h2>
-        <p>Keys are unique across the whole scene. A node keeps its Three.js object while its key and kind stay the same, including when it moves to another group. A structurally equal scene costs no host changes at all, which matters because Foldkit sends a fresh scene on every render.</p>
+        <p>Keys are unique across the whole scene. A node keeps its Three.js object while its key and kind stay the same, including when it moves to another group. A structurally equal scene costs no host changes at all.</p>
         <p>Updating 1,000 meshes takes under 100 µs, whether nothing changed or one property did; then exactly one operation is applied.</p>
       </section>
       <section id="resources">
@@ -69,7 +69,7 @@ import {
       </section>
       <section id="animation">
         <h2>Animate without update.</h2>
-        <p>Behaviours run in the frame loop, outside Foldkit's update, so a spinning scene never causes a Model update. Scenes pause their frames when off screen.</p>
+        <p>Behaviours run in the frame loop, outside the component’s update, so a spinning scene never causes a Model update. Scenes pause their frames when off screen.</p>
         <p>Transitions ease <code>position</code> and <code>scale</code> to whatever the Model says next. A new target mid-flight starts from the pose on screen, and a node moving to another group keeps its place in the world while it travels.</p>
         <div class="code-panel"><SourceCode code={transitions} lang="ts" sourceId="transitions.ts" /></div>
         <p><code>rotation: billboard()</code> keeps a node facing the camera, as Drei's <code>Billboard</code>, and a camera's <code>{"shake: cameraShake({ decay: true })"}</code> shakes it once, as Drei's <code>CameraShake</code>: seeded noise, so the same moment shakes the same way.</p>
@@ -81,7 +81,7 @@ import {
         <p>With <code>{"scene({ gestures: 'scene' })"}</code> the scene claims drags, the wheel and pinches, and reports each as a <code>Gesture</code> Message. <code>orbit(model.camera, gesture)</code> returns the next camera, as three.js's <code>OrbitControls</code> would move it, zooming toward the pointer if you ask. <code>orbitKey</code> handles arrow keys, and <code>fitCamera</code> frames a box the scene measured for you, as Drei's <code>Bounds</code> does.</p>
         <p>A camera's <code>damping</code> eases the rendered camera to the Model's, views included. <code>autoRotate</code> turns it round its target by itself until someone touches it; before that gesture, an <code>AutoRotated</code> Message says where it got to, so the Model keeps it and the orbit carries on from there.</p>
         <div class="code-panel"><SourceCode code={autoRotate} lang="ts" sourceId="camera.ts" /></div>
-        <p>Objects move the same way. A transform gizmo is three's <code>TransformControls</code> as data: <code>gizmoNodes</code> draws its arrows, planes and rings from the Model, and <code>pressGizmo</code> and <code>dragGizmo</code> turn the press and drag rays into the next placement, as three's controls would, snaps and local axes included. The Foldkit adapter's <code>TransformGizmo</code> wraps it as a submodel that reports <code>Moved</code> and <code>Finished</code>, so the page keeps every placement and undo is a list. Box select is three's <code>SelectionBox</code> the same way: <code>boxSelect</code> returns the keys inside a box on the canvas, and the adapter's <code>BoxSelect</code> draws it from shift-drags, ending on the scene's <code>GestureEnd</code>. The axes in the corner are Drei's <code>GizmoHelper</code>: <code>viewportGizmoNodes</code> in the scene's <code>hud</code>, which draws nodes over everything with a camera of its own, and <code>cameraAlong</code> turns the camera to look from the axis pressed. Drei's <code>PivotControls</code> are there too, every handle at once: <code>pivotNodes</code>, <code>pressPivot</code> and <code>dragPivot</code>, and the adapter's <code>PivotControls</code>. A measuring tape is built the same way: <code>placeTapeEnd</code> and <code>pointTape</code> return the next tape, and the adapter's <code>MeasuringTape</code> labels its length.</p>
+        <p>Objects move the same way. A transform gizmo is three's <code>TransformControls</code> as data: <code>gizmoNodes</code> draws its arrows, planes and rings from the Model, and <code>pressGizmo</code> and <code>dragGizmo</code> turn the press and drag rays into the next placement, as three's controls would, snaps and local axes included. The Effect UI adapter's <code>TransformGizmo</code> wraps it as a submodel that reports <code>Moved</code> and <code>Finished</code>, so the page keeps every placement and undo is a list. Box select is three's <code>SelectionBox</code> the same way: <code>boxSelect</code> returns the keys inside a box on the canvas, and the adapter's <code>BoxSelect</code> draws it from shift-drags, ending on the scene's <code>GestureEnd</code>. The axes in the corner are Drei's <code>GizmoHelper</code>: <code>viewportGizmoNodes</code> in the scene's <code>hud</code>, which draws nodes over everything with a camera of its own, and <code>cameraAlong</code> turns the camera to look from the axis pressed. Drei's <code>PivotControls</code> are there too, every handle at once: <code>pivotNodes</code>, <code>pressPivot</code> and <code>dragPivot</code>, and the adapter's <code>PivotControls</code>. A measuring tape is built the same way: <code>placeTapeEnd</code> and <code>pointTape</code> return the next tape, and the adapter's <code>MeasuringTape</code> labels its length.</p>
         <p>Because a scene is data with a schema, the tools an editor needs come from it. <code>SceneFile.save</code> and <code>SceneFile.read</code> write and read scenes as JSON in a versioned envelope. <code>History</code> keeps every Model value as a tree, so undoing and then changing something starts a branch instead of losing what you undid. <code>sceneChanges</code> says what changed between two scenes, line by line, for review. <code>Inspector.fields</code> reads any value's fields from its schema, and <code>Inspector.edit</code> checks each change with that schema, so the adapter's <code>inspectorView</code> is a form that can never put an invalid value in your Model.</p>
         <a class="text-link" href={sitePath('/examples/studio/')}>Orbit the studio <span aria-hidden="true">→</span></a>
         <a class="text-link" href={sitePath('/examples/arrange/')}>Move, turn and scale <span aria-hidden="true">→</span></a>
@@ -124,7 +124,7 @@ import {
       </section>
       <section id="runtime">
         <h2>Use the runtime directly.</h2>
-        <p>Outside Foldkit, start a scene inside a Scope. Startup is atomic: if the description is invalid, the renderer can't be created, or startup is interrupted, nothing is left behind.</p>
+        <p>To use the runtime directly, start a scene inside a Scope. Startup is atomic: if the description is invalid, the renderer can't be created, or startup is interrupted, nothing is left behind.</p>
         <div class="code-panel"><SourceCode code={runtime} lang="ts" sourceId="runtime.ts" /></div>
       </section>
       <section id="testing">
@@ -143,7 +143,7 @@ import {
       </section>
       <section id="agents">
         <h2>Let an agent arrange it.</h2>
-        <p>Every change to a scene is a Schema-typed Message, so an assistant can make changes through the same door a click does. Export <code>devTools</code> with your <code>Message</code> schema, add <code>@foldkit/devtools-mcp</code> to your agent, and in development it can read the Model, list what happened, and dispatch Messages. Each one is decoded first: a malformed one is refused, and a valid one goes through <code>update</code> like any other, so it shows in DevTools history, where time travel can step back past it. With several pages open, name the page with <code>runtime_id</code>; in a monorepo, point <code>FOLDKIT_PROJECT_ROOT</code> at the app.</p>
+        <p>Every change to a scene is a Schema-typed Message, so an assistant can make changes through the same door a click does. Decode messages against the component's schema before dispatching them. The update handles them the same way it handles browser events.</p>
         <p>Give an assistant words rather than numbers. <code>describeScene</code> and <code>formatSummary</code> say what a scene holds in a few lines; <code>shotCamera</code> frames things from a named angle and <code>moodStaging</code> lights a scene by mood. The editor example offers them as Messages, <code>PlacedThing</code>, <code>FramedShot</code> and <code>ChoseMood</code>, that an agent dispatches like any click.</p>
         <p>Peers that run the same <code>update</code> stay in the same state if they apply the same inputs in the same order. <code>Lockstep</code> is that protocol as data: one packet per peer per turn, a turn applied when all are in, newcomers admitted in a turn and welcomed with the state. Bring any transport; the editor example uses a <code>BroadcastChannel</code>, so two tabs edit one scene with one shared history, or a WebSocket relay that hands every message on, so two machines do.</p>
         <p>Physics shares the same way once the Model keeps the clock. <code>physics(&#123; until &#125;)</code> steps the world to a step and stops there, reporting it with a checksum of every body; whatever the description changes while it waits lands at that step on every peer, however their frames fell. A <code>Timeline</code> holds inputs stamped with their step, and Rapier's deterministic build makes the result the same on every machine. The tabletop example throws balls at one tower from every window.</p>
@@ -156,7 +156,7 @@ import {
           {[
             [coreSource + '/src/kernel', 'Kernel', 'Plain TypeScript: descriptions, keyed diff, applier, resources and behaviours. It never imports Effect.', 'effect-three/kernel'],
             [coreSource + '/src/runtime', 'Runtime', 'Effect services, scopes and typed errors around the kernel.', 'effect-three'],
-            [adapterSource, 'Foldkit adapter', 'The scene element, WebGL and WebGPU renderers, frame loop, assets, XR sessions and DOM bridge.', 'effect-three-foldkit'],
+            [adapterSource, 'Effect UI adapter', 'The scene element, WebGL and WebGPU renderers, frame loop, assets, XR sessions and DOM bridge.', 'effect-three-foldkit'],
             [rapierSource, 'Rapier physics', 'The physics engine: bodies, colliders and joints described in scenes, simulated by Rapier.', 'effect-three-rapier'],
             [troikaSource, 'Troika labels', 'The label engine: distance-field text drawn by troika, with colour runs, curves, materials and measured layouts.', 'effect-three-troika'],
             [decisions, 'Decisions', 'The plan, architecture decision records and benchmark results.', 'docs/effect-three'],

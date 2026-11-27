@@ -1,12 +1,10 @@
-import { Array as Arr, Option } from 'effect';
-import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { Array as Arr, Match, Option, Struct } from 'effect';
 
-import { Message } from './message';
+import type { Message } from './message';
 import { type Block, type Model, shownBlocks } from './model';
 import { half } from './scene';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = { readonly model: Model };
 
 const clamp = (value: number): number => Math.max(-half, Math.min(half, Math.round(value)));
 
@@ -36,21 +34,24 @@ const place = (model: Model, key: string, x: number, z: number): Model => {
 };
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    ClickedSurface: ({ key, x, z }) => ({ model: place(model, key, x, z) }),
-    ClickedPaint: ({ paint }) => ({ model: modifyFields(model, { paint: () => paint }) }),
-    ClickedPiece: ({ piece }) => ({ model: modifyFields(model, { piece: () => piece }) }),
-    ChangedHistory: ({ shown }) => ({
-      model: modifyFields(model, {
-        shown: () => Math.max(0, Math.min(model.blocks.length, shown)),
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      ClickedSurface: ({ key, x, z }) => ({ model: place(model, key, x, z) }),
+      ClickedPaint: ({ paint }) => ({ model: Struct.evolve(model, { paint: () => paint }) }),
+      ClickedPiece: ({ piece }) => ({ model: Struct.evolve(model, { piece: () => piece }) }),
+      ChangedHistory: ({ shown }) => ({
+        model: Struct.evolve(model, {
+          shown: () => Math.max(0, Math.min(model.blocks.length, shown)),
+        }),
       }),
+      ClickedUndo: () => ({
+        model: Struct.evolve(model, { shown: (shown) => Math.max(0, shown - 1) }),
+      }),
+      ClickedRedo: () => ({
+        model: Struct.evolve(model, { shown: (shown) => Math.min(model.blocks.length, shown + 1) }),
+      }),
+      ClickedClear: () => ({ model: { ...model, blocks: [], shown: 0 } }),
+      ReceivedSceneLifecycle: () => ({ model }),
     }),
-    ClickedUndo: () => ({
-      model: modifyFields(model, { shown: (shown) => Math.max(0, shown - 1) }),
-    }),
-    ClickedRedo: () => ({
-      model: modifyFields(model, { shown: (shown) => Math.min(model.blocks.length, shown + 1) }),
-    }),
-    ClickedClear: () => ({ model: { ...model, blocks: [], shown: 0 } }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  );

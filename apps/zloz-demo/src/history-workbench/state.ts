@@ -1,3 +1,4 @@
+import { Command } from '@effect/ui';
 import {
   appendEditionV2,
   captureConnectionDocument,
@@ -19,6 +20,8 @@ import {
   serializeModelDocumentV2,
   type EditorState,
   type EditorEvent,
+  type ZlozPlacement,
+  type ZlozPlacementInput,
   type ZlozEditionV2,
   type ZlozModelDocumentV2,
   type ZlozHistoryReviewV2,
@@ -30,35 +33,41 @@ import {
   type ZlozHistoryGhostVisibility,
 } from '@opsydyn/foldkit-zloz';
 import { Schema } from 'effect';
-import type { Return } from 'foldkit/update';
 
 import { ReadHistoryFile, DownloadHistory, byteLimit } from './command';
 import { Message, Theme } from './message';
 import { nativeInitial, nativeHandlers, type NativeState } from './native-authoring';
 import { CreateNativeSession } from './native-command';
+import {
+  newHistoryPlacement,
+  reconcileHistoryPlacement,
+  updateHistoryPlacement,
+} from './placement';
 export { Message };
 export const Model = Schema.Struct({
   section: Schema.Literals(['files', 'review', 'playback', 'restore', 'authoring', 'evidence']),
-  native: Schema.Unknown,
-  editor: Schema.Unknown,
-  identity: Schema.Unknown,
-  editions: Schema.Unknown,
+  native: Schema.fromJsonString(Schema.Unknown),
+  editor: Schema.fromJsonString(Schema.Unknown),
+  placement: Schema.fromJsonString(Schema.Unknown),
+  placementProtected: Schema.Boolean,
+  identity: Schema.fromJsonString(Schema.Unknown),
+  editions: Schema.fromJsonString(Schema.Unknown),
   selectedId: Schema.String,
   baselineId: Schema.String,
   side: Schema.Literals(['baseline', 'selected']),
-  review: Schema.Unknown,
-  playback: Schema.Unknown,
-  cursor: Schema.Unknown,
-  filters: Schema.Unknown,
-  ghosts: Schema.Unknown,
+  review: Schema.fromJsonString(Schema.Unknown),
+  playback: Schema.fromJsonString(Schema.Unknown),
+  cursor: Schema.fromJsonString(Schema.Unknown),
+  filters: Schema.fromJsonString(Schema.Unknown),
+  ghosts: Schema.fromJsonString(Schema.Unknown),
   name: Schema.String,
   minimal: Schema.Boolean,
   minimap: Schema.Boolean,
   protectedRestore: Schema.Boolean,
-  preview: Schema.Unknown,
-  reading: Schema.Unknown,
-  conflict: Schema.Unknown,
-  previousSession: Schema.Unknown,
+  preview: Schema.fromJsonString(Schema.Unknown),
+  reading: Schema.fromJsonString(Schema.Unknown),
+  conflict: Schema.fromJsonString(Schema.Unknown),
+  previousSession: Schema.fromJsonString(Schema.Unknown),
   epoch: Schema.Number,
   run: Schema.Number,
   sequence: Schema.Number,
@@ -77,6 +86,8 @@ export type Model = Readonly<{
   native: NativeState;
   previousSession: Session | null;
   editor: EditorState;
+  placement: ZlozPlacement;
+  placementProtected: boolean;
   identity: Pick<ZlozModelDocumentV2, 'id' | 'name' | 'origin'>;
   editions: readonly ZlozEditionV2[];
   selectedId: string;
@@ -149,15 +160,28 @@ export function initialDocument(): ZlozModelDocumentV2 {
     ],
   });
 }
-export function init(): Return<Model, Message> {
+type Transition = Readonly<{
+  model: Model;
+  commands?: readonly Command.Command<Message>[];
+}>;
+
+const editorOptions = {
+  portAnchorSnapDistance: 0.05,
+  portAnchorCornerSnapDistance: 0.1,
+  portAnchorMidpointSnapDistance: 0.08,
+};
+
+export function init(): Transition {
   const document = initialDocument();
   return {
-    commands: [CreateNativeSession()],
+    commands: [CreateNativeSession.make({})],
     model: {
       section: 'review',
       native: nativeInitial(),
       previousSession: null,
-      editor: createModelEditorV2(document),
+      editor: createModelEditorV2(document, editorOptions),
+      placement: newHistoryPlacement(0),
+      placementProtected: false,
       identity: { id: document.id, name: document.name, origin: document.origin },
       editions: document.editions,
       selectedId: 'loose-evolved',
@@ -229,7 +253,7 @@ function loaded(model: Model, document: ZlozModelDocumentV2): Model {
   return {
     ...model,
     previousSession: { editor: model.editor, identity: model.identity, editions: model.editions },
-    editor: createModelEditorV2(document),
+    editor: createModelEditorV2(document, editorOptions),
     identity: { id: document.id, name: document.name, origin: document.origin },
     editions: document.editions,
     selectedId: document.editions.at(-1)?.id ?? '',
@@ -286,11 +310,18 @@ function focus(model: Model, request: ZlozHistoryChangeFocusRequestV2): Model {
     notice: 'Revealed change on the chosen side.',
   };
 }
-export function update(model: Model, message: Message): Return<Model, Message> {
+export function update(model: Model, message: Message): Transition {
+  const next = transition(model, message);
+  const settled = reconcileHistoryPlacement(model, next.model);
+  return settled === next.model ? next : { ...next, model: settled };
+}
+
+function transition(model: Model, message: Message): Transition {
   if (
     (model.native.inspection || model.native.pending) &&
     ![
       'ObservedEditor',
+      'ObservedPlacement',
       'SelectedSection',
       'ClickedMinimal',
       'ClickedMinimap',
@@ -319,6 +350,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     };
   return Message.match(message, {
     ...nativeHandlers(model),
+    ObservedPlacement: ({ input }) => ({
+      // SAFETY: the scoped placement host and palette emit the domain placement input union.
+      model: updateHistoryPlacement(model, input as ZlozPlacementInput),
+    }),
+    ClickedPlacementProtection: () => ({
+      model: { ...model, placementProtected: !model.placementProtected },
+    }),
     ObservedEditor: ({ epoch, event: raw }) => {
       // SAFETY: the scoped native canvas emits EditorEvent; epoch/read guards reject obsolete bindings.
       const event = raw as EditorEvent;
@@ -594,10 +632,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           preview: null,
           notice: 'Reading a v2 file; current model remains active until validation succeeds.',
         },
-        commands: [ReadHistoryFile({ token, kind, file })],
+        commands: [ReadHistoryFile.make({ token, kind, file })],
       };
     },
     ClickedCancelRead: () => ({
+      commands: model.reading
+        ? [Command.interrupt(ReadHistoryFile, { token: model.reading.token })]
+        : [],
       model: {
         ...model,
         reading: null,
@@ -676,7 +717,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           : serializeEditionsV2(model.editions);
       return new TextEncoder().encode(json).byteLength > byteLimit
         ? { model: { ...model, notice: 'Download exceeds the 5 MiB reopening limit.' } }
-        : { model, commands: [DownloadHistory({ kind, json })] };
+        : { model, commands: [DownloadHistory.make({ kind, json })] };
     },
     CompletedDownload: () => ({ model: { ...model, notice: 'Validated v2 file downloaded.' } }),
     FailedDownload: () => ({

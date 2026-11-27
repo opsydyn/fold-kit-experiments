@@ -1,5 +1,5 @@
+import { UiSchema } from '@effect/ui';
 import { Option, Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
 
 import { SourceSnapshot, validSourceSnapshot } from './quality';
 
@@ -26,9 +26,9 @@ export const EventDataset = Schema.Struct({
   snapshot: SourceSnapshot,
 });
 export type EventDataset = typeof EventDataset.Type;
-export const EventInspection = defineTaggedUnion({ None: {}, Selected: { key: Schema.String } });
+export const EventInspection = UiSchema.TaggedEnum({ None: {}, Selected: { key: Schema.String } });
 export type EventInspection = typeof EventInspection.Type;
-export const EventFeed = defineTaggedUnion({
+export const EventFeed = UiSchema.TaggedEnum({
   NotSupplied: {},
   Invalid: { error: Schema.String },
   Ready: {

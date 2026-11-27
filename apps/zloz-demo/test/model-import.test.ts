@@ -36,7 +36,7 @@ test('model import opens a separate session with exact identity/origin/editions 
   const pending = update(source, Message.ChoseModelDocumentFiles({ files: [file()] })).model;
   expect(pending.editor).toBe(source.editor);
   const result = await Effect.runPromise(
-    ImportZlozModel({ id: pending.modelImport!.id, file: file() }).effect,
+    ImportZlozModel.make({ id: pending.modelImport!.id, file: file() }).effect,
   );
   const imported = update(pending, result).model;
   expect(workbenchDocument(imported)).toEqual(document);
@@ -79,7 +79,7 @@ test('cancelled, stale, malformed and newly protected reads do not publish impor
     new File([new Uint8Array([255])], 'bad'),
     new File([' '.repeat(5 * 1024 * 1024), serializeModelDocument(document)], 'large'),
   ]) {
-    expect((await Effect.runPromise(ImportZlozModel({ id, file: bad }).effect))._tag).toBe(
+    expect((await Effect.runPromise(ImportZlozModel.make({ id, file: bad }).effect))._tag).toBe(
       'FailedModelDocumentImport',
     );
   }

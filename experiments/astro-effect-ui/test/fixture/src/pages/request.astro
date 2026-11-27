@@ -1,0 +1,11 @@
+---
+import { Greeting } from '../Greeting';
+
+export const prerender = false;
+
+const name = Astro.url.searchParams.get('name') ?? 'reader';
+---
+<html lang="en">
+  <head><title>Request greeting</title></head>
+  <body><Greeting {name} client:load /></body>
+</html>

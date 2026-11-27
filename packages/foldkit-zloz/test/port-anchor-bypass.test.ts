@@ -1,12 +1,9 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozView } from '../src/foldkit';
 import { createEditor, updateEditor, type EditorEvent } from '../src/index';
+import { renderCanvas } from './render-effect-ui';
 
 const initial = () =>
   createEditor(
@@ -107,31 +104,19 @@ test('bypass feedback is composable and keeps the configured mapping separate fr
   point.x = 100;
   const free = updateEditor(preview, bypass(true));
   expect(free.graph.nodes[0]?.ports[0]?.anchor?.x).toBe(0.035);
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: free }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Bypass',
-          body: zlozView(h, model, {
-            id: 'bypass',
-            label: 'Bypass',
-            onEvent: (event) => event,
-            portAnchorHandles: true,
-            portAnchorSnapBypassModifier: 'Control',
-            renderPortAnchorHandle: (context) => {
-              expect(context.snapBypassed).toBe(true);
-              expect(context.snapBypassModifier).toBe('Alt');
-              expect(context.snappedSide).toBeNull();
-              return undefined;
-            },
-          }),
-        }),
+  const result = await renderCanvas(free, {
+    id: 'bypass',
+    label: 'Bypass',
+    portAnchors: {
+      snapBypass: 'Control',
+      renderHandle: (context) => {
+        expect(context.snapBypassed).toBe(true);
+        expect(context.snapBypassModifier).toBe('Alt');
+        expect(context.snappedSide).toBeNull();
+        return undefined;
       },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+    },
+  });
   const window = new Window();
   window.document.body.innerHTML = result.html;
   const handle = window.document.querySelector('[data-flow-anchor-port]');
@@ -143,5 +128,5 @@ test('bypass feedback is composable and keeps the configured mapping separate fr
   expect(handle?.getAttribute('data-flow-anchor-bypassed')).toBe('true');
   expect(handle?.getAttribute('data-flow-anchor-snapped')).toBeNull();
   expect(handle?.getAttribute('title')).toContain('Release Alt to restore snapping');
-  expect(handle?.getAttribute('style')).toContain('2px dashed');
+  expect(handle?.classList.contains('zloz-ui-anchor-handle')).toBe(true);
 });

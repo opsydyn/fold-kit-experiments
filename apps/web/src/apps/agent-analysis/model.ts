@@ -1,10 +1,10 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
 
 import { Filter, RunRequest, Scenario, Wire } from './contract';
 import type { Service } from './contract';
 
-export const Session = defineTaggedUnion({
+export const Session = UiSchema.TaggedEnum({
   Idle: {},
   Connecting: { request: RunRequest },
   AwaitingSnapshot: { request: RunRequest },
@@ -13,7 +13,7 @@ export const Session = defineTaggedUnion({
   Cancelled: { runId: Schema.String, cause: Schema.Literals(['User', 'RouteExit']) },
   Failed: {
     runId: Schema.String,
-    failure: defineTaggedUnion({
+    failure: UiSchema.TaggedEnum({
       Protocol: { reason: Schema.String },
       Transport: { reason: Schema.String },
     }),

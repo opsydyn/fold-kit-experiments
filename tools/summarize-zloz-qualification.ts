@@ -61,7 +61,7 @@ const sources = git([
   '--others',
   '--exclude-standard',
   'packages/foldkit-zloz/src',
-  'packages/astro-foldkit/src',
+  'packages/astro-effect-ui/src',
   'apps/zloz-demo/src',
   'apps/web/e2e/zloz-native-release.spec.ts',
   'apps/web/playwright.zloz.config.ts',

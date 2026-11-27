@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseModelDocument } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,8 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1100 },
@@ -48,6 +49,9 @@ async function run() {
       .getByRole('navigation', { name: 'Workbench sections', exact: true })
       .getByRole('button', { name, exact: true })
       .click();
+  const panel = page.locator('[data-architecture-effect-ui="causal-relationships"]');
+  const relationshipStatus = panel.getByRole('status', { name: 'Causal relationship status' });
+  const report = panel.getByRole('list', { name: 'Causal relationship report', exact: true });
   const document = async () => {
     await section('History');
     const [file] = await Promise.all([
@@ -60,7 +64,26 @@ async function run() {
     return { path, value };
   };
   await page.goto(`http://127.0.0.1:${server.address().port}`);
+  const caption = page.locator('[data-architecture-effect-ui="diagram-caption"]');
+  await button('Open C4 system context').click();
+  await expect(caption.getByRole('heading')).toHaveText('Order platform · system context');
+  await button('Open C4 container view').click();
+  await expect(caption.getByRole('heading')).toHaveText('Order platform · container view');
+  await button('Open DDD Order aggregate').click();
+  await expect(caption.getByRole('heading')).toHaveText('Ordering · domain model');
+  await expect(caption.getByRole('list', { name: 'DDD role legend' })).toBeVisible();
+  await button('Open DDD context map').click();
+  await expect(caption.getByRole('heading')).toHaveText('Context map · strategic relationships');
+  await section('Appearance');
+  await page.getByRole('checkbox', { name: 'Context-map presentation', exact: true }).uncheck();
+  await section('Diagram');
+  await expect(
+    caption.getByText('Context-map presentation is disabled.', { exact: false }),
+  ).toBeVisible();
   await button('Open event-storming example').click();
+  await expect(
+    panel.getByRole('group', { name: 'Event-storming relationships', exact: true }),
+  ).toBeVisible();
   const base = await document();
   expect(base.value.snapshot.graph.nodes).toHaveLength(6);
   expect(base.value.snapshot.graph.edges.map((edge) => edge.architecture.role)).toEqual([
@@ -82,6 +105,7 @@ async function run() {
     .getByRole('checkbox', { name: 'Enable custom Delegates convention', exact: true })
     .check();
   await button('Add delegated command connection').click();
+  await expect(report).toContainText('Delegates (typed)');
   const custom = await document();
   expect(custom.value.snapshot.graph.edges.at(-1).architecture).toEqual({
     family: 'event-storming',
@@ -105,6 +129,7 @@ async function run() {
   await page
     .getByRole('checkbox', { name: 'Validate DDD and causal relationships', exact: true })
     .uncheck();
+  await expect(type().locator('option[value="emits"]')).toHaveJSProperty('disabled', false);
   await type().selectOption('emits');
   await expect(
     page.getByRole('list', { name: 'Causal relationship report', exact: true }),
@@ -119,9 +144,11 @@ async function run() {
   await expect(
     page.getByRole('list', { name: 'Causal relationship report', exact: true }),
   ).toContainText('inferred');
-  await button('Apply inferred relationship').click();
+  await button('Apply inferred relationship').press('Enter');
+  await expect(relationshipStatus).toContainText('Typed: Issues');
   expect((await document()).value.snapshot.graph.edges[0].architecture.role).toBe('issues');
   await button('Add delegated command connection').click();
+  await expect(report).toContainText('Delegates (typed)');
   const exported = await document();
   const customId = exported.value.snapshot.graph.edges.at(-1).id;
   await inspect().selectOption(customId);
@@ -175,27 +202,32 @@ async function run() {
   await expect(page.getByRole('group', { name: 'Selected edge actions', exact: true })).toHaveCount(
     0,
   );
-  for (const theme of ['Light', 'Dark']) {
-    await page
-      .getByRole('combobox', { name: 'Theme', exact: true })
-      .selectOption(theme.toLowerCase());
-    await page
-      .getByRole('group', { name: 'Causal relationship controls', exact: true })
-      .scrollIntoViewIfNeeded();
-    await page.screenshot({
-      path: fileURLToPath(
-        new URL(`./relationship-controls-${theme.toLowerCase()}.png`, import.meta.url),
-      ),
-    });
+  for (const theme of ['light', 'dark']) {
+    await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption(theme);
+    await expect(page.locator('.flow-workbench')).toHaveAttribute(
+      'data-flow-workbench-color-scheme',
+      theme,
+    );
+    if (process.env.ZLOZ_RELATIONSHIP_SCREENSHOTS) {
+      await panel
+        .getByRole('group', { name: 'Causal relationship controls', exact: true })
+        .scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: resolve(
+          process.env.ZLOZ_RELATIONSHIP_SCREENSHOTS,
+          `relationship-controls-${theme}.png`,
+        ),
+      });
+    }
   }
   expect(errors).toEqual([]);
   console.log(
     JSON.stringify(
       {
         result: 'passed',
-        browser: browser.version(),
+        browser: engine + ' ' + browser.version(),
         checks: [
-          'package controls with custom selector, inference and status rendering',
+          'native C4 and DDD captions plus causal relationship controls',
           'unfamiliar stored keys remain selected without clearing metadata',
           'custom catalogue restoration enables explicit inference',
           'repeated inference is disabled without new Undo entries',
@@ -209,7 +241,7 @@ async function run() {
           'inferred legacy meaning can be explicitly applied',
           'exported model retains builtin and named custom descriptors',
           'sidebar inspector keeps the canvas clear; connection tools remain available in Ports',
-          'light/dark visual captures',
+          'light/dark workbench theme',
         ],
         pageErrors: errors,
       },

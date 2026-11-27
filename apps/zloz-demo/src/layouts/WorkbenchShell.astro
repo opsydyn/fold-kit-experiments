@@ -1,5 +1,5 @@
 ---
-import { themePreferenceStorageKey } from '../editor/theme';
+import { themePreferenceStorageKey } from '../editor/theme-preference';
 import '@fontsource-variable/inter/wght.css';
 import zlozMark from '../../../../docs/assets/zloz/final/mark.svg?raw';
 interface Props { title?: string; heading?: string; mainLabel?: string; connections?: boolean; history?: boolean }
@@ -13,7 +13,7 @@ const { title = 'Architecture workbench | ZLOZ', heading = 'Architecture workben
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script is:inline define:vars={{ themePreferenceStorageKey }}>
-      // Set the shell color before the FoldKit island starts.
+      // Set the shell color before the island starts.
       function readStoredTheme() {
         // oxlint-disable-next-line linteffect/no-try-catch -- This inline browser script runs before the Effect runtime loads.
         try {
@@ -107,13 +107,24 @@ button, input, select { font: inherit; }
 .workbench-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 0 12px 12px; border-bottom: 1px solid var(--rule); }
 .workbench-sections button { padding: 9px 8px; min-height: 40px; border: 1px solid transparent; border-radius: 7px; text-align: left; color: var(--muted); background: transparent; cursor: pointer; font-size: 13px; }
 .workbench-sections button[aria-pressed='true'] { color: var(--accent); background: var(--paper); border-color: var(--rule); font-weight: 650; }
+.workbench-sidebar-scroll .workbench-custom-palette-entry { border: 2px dashed var(--flow-selection); border-radius: 16px; padding: 14px; }
+.workbench-custom-palette-entry span { display: block; }
+.workbench-custom-palette-entry strong { display: block; margin-bottom: 4px; }
 .workbench-sidebar-scroll { position: relative; flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 16px; font-size: 13px; line-height: 1.45; }
 .workbench-sidebar-scroll h2 { font-size: 16px; margin: 0 0 14px; }
 .workbench-sidebar-scroll p { color: var(--muted); }
 .workbench-sidebar-scroll button { border: 1px solid var(--rule); border-radius: 6px; min-height: 36px; color: var(--ink); background: var(--paper); cursor: pointer; max-width: 100%; white-space: normal; }
 .workbench-sidebar-scroll button:disabled { cursor: default; opacity: 0.55; }
+.workbench-sidebar-scroll .native-export-custom-download { background: var(--blue); color: var(--paper); padding: 12px; border: 0; border-radius: 8px; }
+.svg-finding-card { border: 1px solid var(--rule); padding: 10px; border-radius: 8px; margin-bottom: 8px; list-style: none; }
 .workbench-sidebar-scroll input, .workbench-sidebar-scroll select { max-width: 100%; box-sizing: border-box; }
 .workbench-sidebar-scroll select { min-width: 0; width: 100%; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+.workbench-connection-creation, .workbench-endpoint-field { border: 1px solid var(--flow-node-border, #cbd5e1); border-radius: 10px; background: var(--flow-node-background, #fff); padding: 10px; margin-block: 6px; }
+.workbench-connection-creation { padding: 14px; margin-block: 12px; }
+.workbench-connection-creation-header { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.workbench-connection-creation-header button { padding-inline: 12px; }
+.workbench-connection-creation-fields { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+.workbench-connection-creation-fields > * { flex: 1 1 220px; min-width: 0; }
 .workbench-field { display: grid; gap: 6px; margin: 16px 0; }
 .workbench-field:has(input[type='checkbox']) { display: flex; align-items: flex-start; gap: 8px; }
 .workbench-field input[type='checkbox'] { margin-top: 3px; flex: 0 0 auto; }
@@ -238,13 +249,294 @@ button, input, select { font: inherit; }
   .workbench-sidebar-scroll { padding: 10px; }
   .workbench-canvas { padding: 6px; }
 }
+
+  .receipt-canvas > [data-architecture-detached-review] {
+    flex: 1;
+    min-height: 0;
+    --zloz-ui-height: 100%;
+  }
+
+  .zloz-ui-resize-readout:has(.labeled-resize-readout) {
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  .labeled-resize-readout {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 5px 7px;
+    border-radius: 9px;
+    background: #431407;
+    color: #fff;
+    font-size: 12px;
+  }
+  .labeled-resize-readout[data-resize-phase='resizing'] { background: #9a3412; }
+  .architecture-resize-dimension {
+    display: inline-flex;
+    gap: 4px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: light-dark(#fff7ed, #462d1e);
+    color: light-dark(#7c2d12, #ffd9ba);
+  }
+
+  .alchemy-native-measurement-scope { height: 100%; }
+  .alchemy-native-relation-badge,
+  .alchemy-native-group-heading {
+    box-sizing: border-box;
+    border: 1px solid var(--flow-node-border, #64748b);
+    background: var(--flow-node-background, #fff);
+    color: var(--flow-node-color, #172033);
+  }
+  .alchemy-native-relation-badge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    font-size: 12px;
+    white-space: nowrap;
+    line-height: 18px;
+  }
+  .alchemy-native-relation-badge[data-label-detail='expanded'] { padding: 10px 14px; font-size: 14px; }
+  .alchemy-native-relation-badge span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .alchemy-native-relation-badge span:last-child {
+    font-size: 10px;
+    font-weight: 650;
+    padding-inline: 4px;
+    border-radius: 3px;
+    background: var(--flow-group-background, #e2e8f0);
+  }
+  .alchemy-native-group-heading {
+    display: block;
+    text-align: left;
+    padding: 12px 16px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .alchemy-native-group-heading > * { display: block; font-size: 13px; line-height: 22px; }
+  .alchemy-native-group-heading > :first-child { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .alchemy-native-group-heading > strong { font-size: 22px; line-height: 30px; }
+  .alchemy-native-group-heading > :nth-child(4) { font-size: 12px; }
+
+  [data-architecture-effect-ui='working-canvas'] {
+    width: 100%;
+    min-width: 0;
+    --zloz-ui-height: 100%;
+  }
+  .architecture-native-card-controls input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .architecture-native-card-controls input[type='text'] {
+    margin-top: 8px;
+    min-height: 30px;
+  }
+  .architecture-native-orbit.zloz-ui-node {
+    border-radius: 50%;
+    background: transparent;
+    outline: 0;
+  }
+  .architecture-native-orbit-group.zloz-ui-node {
+    border: 2px dotted #38bdf8;
+    border-radius: 28px;
+  }
+  .architecture-native-hatched {
+    position: absolute;
+    inset: 0;
+    border-style: dashed;
+    border-color: var(--flow-valid-target, #0f766e);
+    background: repeating-linear-gradient(135deg, transparent 0 6px, rgb(15 118 110 / 15%) 6px 9px);
+  }
+  .architecture-native-zoom-area {
+    position: absolute;
+    inset: 0;
+    border: 2px dashed var(--flow-selection, #2563eb);
+    border-radius: 8px;
+    background: var(--flow-selection-background, rgb(37 99 235 / 0.12));
+    box-sizing: border-box;
+  }
+
+  .architecture-release-gate {
+    position: absolute;
+    z-index: 1;
+  }
+
+  .architecture-release-gate [data-release-gate-leader] {
+    position: absolute;
+    width: 2px;
+    height: 14px;
+    background: #376855;
+  }
+
+  .architecture-release-gate button {
+    display: grid;
+    gap: 4px;
+    width: 160px;
+    padding: 10px 12px;
+    transform: translate(-50%, -100%);
+    border: 1px solid #4f826e;
+    border-radius: 8px;
+    text-align: left;
+    background: #18392e;
+    color: #fff;
+    box-shadow: 0 3px 10px rgb(23 57 46 / 0.22);
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .architecture-release-gate button span {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: #b4ddcb;
+  }
+
+  .architecture-release-gate button strong {
+    font-size: 14px;
+  }
+
+  .workbench-canvas .zloz-ui-notation-badge {
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .workbench-canvas .zloz-ui-hotspot-status {
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-weight: 600;
+  }
+
+  .architecture-routing-studio .zloz-ui-waypoint-handle {
+    width: 32px;
+    height: 32px;
+    border: 2px dashed var(--flow-selection);
+    border-radius: 8px;
+    color: var(--flow-selection);
+  }
+
+  .architecture-routing-studio .zloz-ui-waypoint-readout {
+    top: 19px;
+  }
+
+  .architecture-routing-studio .zloz-ui-waypoint-actions {
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 2px solid var(--flow-selection);
+    border-radius: 12px;
+  }
+
+  .architecture-native-port-label {
+    padding: 3px 7px;
+    border: 1px solid var(--flow-canvas-border, #94a3b8);
+    border-radius: 6px;
+    background: var(--flow-node-background, #fff);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .architecture-native-socket.zloz-ui-port {
+    width: 30px;
+    height: 26px;
+    overflow: visible;
+    padding: 3px;
+    border: 2px solid var(--flow-node-color, #172033);
+    border-radius: 7px;
+    z-index: 2;
+  }
+  .architecture-native-socket-reason {
+    position: absolute;
+    top: calc(100% + 4px);
+    width: 132px;
+    padding: 4px 6px;
+    border: 1px solid var(--flow-node-border, #64748b);
+    border-radius: 5px;
+    background: var(--flow-node-background, #fff);
+    color: var(--flow-node-color, #172033);
+    font-size: 10px;
+    line-height: 1.25;
+    pointer-events: none;
+  }
+  .architecture-native-orbit-socket.zloz-ui-port {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 2px solid #172554;
+    border-radius: 6px;
+    color: #172554;
+    font-weight: 700;
+  }
+  .orbit-node-caption {
+    position: absolute;
+    inset: 28px;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.3;
+    pointer-events: none;
+  }
+  .custom-edge-badge.zloz-ui-edge-label-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border: 1px solid #38bdf8;
+    border-radius: 999px;
+    background: light-dark(#f0f9ff, #152b3c);
+    color: light-dark(#0c4a6e, #bde7ff);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .custom-edge-badge.zloz-ui-edge-label-badge[data-selected='true'] {
+    background: #075985;
+    color: #fff;
+  }
+  .custom-edge-badge.zloz-ui-edge-label-badge > span:last-child {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .custom-edge-editor.zloz-ui-edge-label-editor {
+    width: max-content;
+    flex-wrap: nowrap;
+    padding: 6px;
+    border: 2px solid #38bdf8;
+    border-radius: 12px;
+    background: light-dark(#f0f9ff, #152b3c);
+    box-shadow: 0 4px 12px #0c4a6e33;
+  }
+  .custom-edge-editor.zloz-ui-edge-label-editor input {
+    width: 145px;
+    padding: 6px 8px;
+    border: 1px solid #7dd3fc;
+    border-radius: 6px;
+  }
+  .custom-edge-editor.zloz-ui-edge-label-editor button[type='submit'] {
+    border: 0;
+    background: #075985;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0 10px;
+  }
 </style>
 
 <style is:global>
-.connection-lab { height: 100%; min-height: 0; }
+.connection-lab { position: absolute; inset: 0; min-height: 0; }
 .connection-lab-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .connection-lab [data-connection-feedback] { border-left: 3px solid var(--accent); padding-left: 10px; color: var(--ink); }
 .connection-lab .workbench-canvas { display: flex; min-width: 0; min-height: 0; }
-.connection-lab .workbench-canvas > div { width: 100%; }
-.connection-intent-port:disabled { opacity: .6; }
+.connection-lab .zloz-ui-surface {
+  --zloz-ui-height: 100%;
+  --zloz-ui-paper: var(--paper);
+  --zloz-ui-rule: var(--rule);
+  --zloz-ui-panel: var(--panel);
+  --zloz-ui-ink: var(--ink);
+  min-height: 0;
+}
+.connection-endpoint p { margin-block: 0 8px; font-size: 12px; }
 </style>

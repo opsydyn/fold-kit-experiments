@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseModelDocument } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,16 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const capturePath = (file) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${file}`)
+    : fileURLToPath(new URL(file, import.meta.url));
+async function toggleCheckbox(control, checked = true) {
+  if ((await control.isChecked()) !== checked) await control.click();
+  await expect(control).toBeChecked({ checked });
+}
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1100 },
@@ -72,12 +81,12 @@ async function run() {
     .getByRole('textbox', { name: 'New model name', exact: true })
     .fill('Alternative ordering');
   const protect = page.getByRole('checkbox', { name: 'Protect edition forking', exact: true });
-  await protect.check();
+  await toggleCheckbox(protect);
   await expect(button('Fork edition')).toBeDisabled();
   await expect(
     page.getByText('Edition forking is protected in this workspace.', { exact: true }),
   ).toBeVisible();
-  await protect.uncheck();
+  await toggleCheckbox(protect, false);
   await button('Fork edition').click();
   const fork = await document();
   expect(fork.id).not.toBe(original.id);
@@ -124,7 +133,7 @@ async function run() {
       element.scrollTop = 0;
     });
     await page.screenshot({
-      path: fileURLToPath(new URL(`model-forks-${preference}.png`, import.meta.url)),
+      path: capturePath(`model-forks-${preference}.png`),
     });
   }
   expect(errors).toEqual([]);

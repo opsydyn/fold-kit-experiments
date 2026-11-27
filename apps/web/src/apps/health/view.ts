@@ -1,4 +1,4 @@
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
 
 import type { Message } from './message';
 import { Model, type Model as ModelType } from './model';
@@ -15,106 +15,78 @@ const formatUptime = (uptimeSeconds: number): string => {
   return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
 };
 
-const skeleton = (h: HtmlBuilder<Message>): Document => {
-  const { div, Class } = h;
-  return {
-    title: 'Health — Astro + FoldKit',
-    body: div(
-      [Class(styles.grid)],
-      [
-        div(
-          [Class(styles.card)],
-          [div([Class(styles.skeletonLabel)], []), div([Class(styles.skeletonValueLg)], [])],
+const skeleton = (h: Html.H<Message>) =>
+  h.div
+    .class(styles.grid)
+    .attr('aria-busy', 'true')
+    .children(
+      h.div
+        .class(styles.card)
+        .children(h.div.class(styles.skeletonLabel), h.div.class(styles.skeletonValueLg)),
+      h.div
+        .class(styles.card)
+        .children(
+          h.div.class(styles.skeletonLabel),
+          h.div.class(styles.skeletonValueLg),
+          h.div.class(styles.skeletonSub),
         ),
-        div(
-          [Class(styles.card)],
-          [
-            div([Class(styles.skeletonLabel)], []),
-            div([Class(styles.skeletonValueLg)], []),
-            div([Class(styles.skeletonSub)], []),
-          ],
+      h.div
+        .class(styles.card)
+        .children(
+          h.div.class(styles.skeletonLabel),
+          h.div.class(styles.skeletonValueMd),
+          h.div.class(styles.skeletonSub),
         ),
-        div(
-          [Class(styles.card)],
-          [
-            div([Class(styles.skeletonLabel)], []),
-            div([Class(styles.skeletonValueMd)], []),
-            div([Class(styles.skeletonSub)], []),
-          ],
-        ),
-      ],
-    ),
-  };
-};
+    );
 
-export const view = (model: ModelType, h: HtmlBuilder<Message>): Document => {
-  const { div, Class } = h;
-  return Model.match(model, {
+export const view = (h: Html.H<Message>, model: ModelType) =>
+  Model.match(model, {
     Loading: () => skeleton(h),
-    Failed: ({ error }) => ({
-      title: 'Health — Astro + FoldKit',
-      body: div(
-        [Class(styles.grid)],
-        [
-          div(
-            [Class(styles.card)],
-            [
-              div([Class(styles.cardLabel)], ['Status']),
-              div([Class(`${styles.cardValue} ${styles.cardValueError}`)], ['error']),
-              div([Class(styles.cardSub)], [error]),
-            ],
-          ),
-        ],
-      ),
-    }),
+    Failed: ({ error }) =>
+      h.div
+        .class(styles.grid)
+        .attr('role', 'alert')
+        .children(
+          h.div
+            .class(styles.card)
+            .children(
+              h.div.class(styles.cardLabel).children('Status'),
+              h.div.class(styles.cardValue, styles.cardValueError).children('error'),
+              h.div.class(styles.cardSub).children(error),
+            ),
+        ),
     Loaded: ({ data, elapsedMs, sinceLabel }) => {
       const { status, uptimeSeconds, timestamp } = data;
       const liveUptimeSeconds = uptimeSeconds + elapsedMs / 1000;
       const liveServerTime = new Date(new Date(timestamp).getTime() + elapsedMs);
 
-      return {
-        title: 'Health — Astro + FoldKit',
-        body: div(
-          [Class(styles.grid)],
-          [
-            div(
-              [Class(styles.card)],
-              [
-                div([Class(styles.cardLabel)], ['Status']),
-                div(
-                  [
-                    Class(
-                      status === 'ok'
-                        ? `${styles.cardValue} ${styles.cardValueOk}`
-                        : styles.cardValue,
-                    ),
-                  ],
-                  [status],
-                ),
-              ],
+      return h.div
+        .class(styles.grid)
+        .children(
+          h.div
+            .class(styles.card)
+            .children(
+              h.div.class(styles.cardLabel).children('Status'),
+              h.div
+                .class(styles.cardValue, status === 'ok' ? styles.cardValueOk : '')
+                .children(status),
             ),
-            div(
-              [Class(styles.card)],
-              [
-                div([Class(styles.cardLabel)], ['Uptime']),
-                div([Class(styles.cardValue)], [formatUptime(liveUptimeSeconds)]),
-                div([Class(styles.cardSub)], [`since ${sinceLabel}`]),
-              ],
+          h.div
+            .class(styles.card)
+            .children(
+              h.div.class(styles.cardLabel).children('Uptime'),
+              h.div.class(styles.cardValue).children(formatUptime(liveUptimeSeconds)),
+              h.div.class(styles.cardSub).children(`since ${sinceLabel}`),
             ),
-            div(
-              [Class(styles.card)],
-              [
-                div([Class(styles.cardLabel)], ['Server time']),
-                div(
-                  [Class(`${styles.cardValue} ${styles.cardValueSmall}`)],
-                  [timeFormat.format(liveServerTime)],
-                ),
-                div([Class(styles.cardSub)], [dateFormat.format(liveServerTime)]),
-              ],
+          h.div
+            .class(styles.card)
+            .children(
+              h.div.class(styles.cardLabel).children('Server time'),
+              h.div
+                .class(styles.cardValue, styles.cardValueSmall)
+                .children(timeFormat.format(liveServerTime)),
+              h.div.class(styles.cardSub).children(dateFormat.format(liveServerTime)),
             ),
-          ],
-        ),
-      };
+        );
     },
   });
-};

@@ -5,11 +5,10 @@ import {
   SceneSchema,
   type Vec3,
 } from '@opsydyn/effect-three';
-import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit';
+import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three/browser';
 import { Option, Schema } from 'effect';
 
 import { nodeOf, placed } from './document';
-import { NameTab } from './session';
 import { Relay, Session } from './wire';
 
 const Nodes = Schema.Array(SceneSchema.SceneNode);
@@ -80,6 +79,4 @@ export const init = () => ({
     relay: Option.none(),
     issue: Option.none(),
   } satisfies Model,
-  // A name for this tab, then a session with any other editor tabs open (or through a relay).
-  commands: [NameTab()],
 });

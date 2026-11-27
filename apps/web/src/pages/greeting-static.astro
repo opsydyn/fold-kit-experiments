@@ -3,29 +3,24 @@ export const prerender = true;
 
 import { Schema } from 'effect';
 
-import { resolvePageDocument } from '@opsydyn/astro-foldkit/server';
-
-import GreetingPage from '../apps/greeting/page';
+import GreetingPage from '../apps/greeting/app';
+import { localeFromUrl, presentationFor } from '../apps/greeting/presentation';
 import { Name } from '../apps/greeting/model';
 import Layout from '../layouts/Layout.astro';
 import * as layoutStyles from '../layouts/layout.css';
 
 const name = Schema.decodeSync(Name)('static astronaut');
-const document = await resolvePageDocument(GreetingPage, {
-  request: Astro.request,
-  url: Astro.url,
-  params: Astro.params,
-  props: { name },
-});
+const locale = localeFromUrl(Astro.url);
+const metadata = presentationFor({ name, locale });
 ---
 
 <Layout
-  title={document.title}
-  lang={document.lang}
-  dir={document.dir}
-  canonical={document.canonical}
-  ogUrl={document.ogUrl}
+  title={metadata.title}
+  lang={metadata.lang}
+  dir={metadata.dir}
+  canonical={metadata.canonical}
+  ogUrl={metadata.ogUrl}
 >
   <h1 class={layoutStyles.heading}>Greeting</h1>
-  <GreetingPage client:load name={name} />
+  <GreetingPage client:load name={name} locale={locale} />
 </Layout>

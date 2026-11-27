@@ -3,10 +3,8 @@
  * filtering, reloading and leaving the page, with the cancellations between. Its app on
  * `/request-diagnostics` reports each message live.
  */
-import { Command } from 'foldkit';
-
 import { diagnosticsMachine } from '../../request-diagnostics/machine';
-import { Message } from '../../request-diagnostics/message';
+import { CancellationOutcome, Message } from '../../request-diagnostics/message';
 import { samplePoints } from '../../request-diagnostics/model';
 import { defineSpecimen } from '../specimen';
 
@@ -30,7 +28,7 @@ export const diagnosticsExamples = {
     previousPath: '/',
   }),
   cancelled: Message.CompletedCancelFetchMetrics({
-    outcome: Command.Interruptible.Outcome.Interrupted(),
+    outcome: CancellationOutcome.Interrupted(),
   }),
 } as const;
 
@@ -52,8 +50,8 @@ export const diagnosticsSpecimen = defineSpecimen({
     Message.ChangedSelection({ domain: [45, 350] }),
     Message.ClearedSelection(),
     Message.ClickedReload(),
-    Message.CompletedCancelFetchMetrics({ outcome: Command.Interruptible.Outcome.NotFound() }),
+    Message.CompletedCancelFetchMetrics({ outcome: CancellationOutcome.NotFound() }),
     Message.Navigated({ phase: 'exited', path: '/request-diagnostics', previousPath: '/' }),
-    Message.CompletedCancelFetchMetrics({ outcome: Command.Interruptible.Outcome.NotFound() }),
+    Message.CompletedCancelFetchMetrics({ outcome: CancellationOutcome.NotFound() }),
   ],
 });

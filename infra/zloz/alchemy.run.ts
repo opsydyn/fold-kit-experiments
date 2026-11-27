@@ -31,7 +31,7 @@ export default Alchemy.Stack(
           'package.json',
           'tsconfig.json',
           '../../packages/foldkit-zloz*/**',
-          '../../packages/astro-foldkit/**',
+          '../../packages/astro-effect-ui/**',
           '../../packages/foldkit-viz/**',
           '../../docs/assets/zloz/final/*.svg',
           '../../package.json',

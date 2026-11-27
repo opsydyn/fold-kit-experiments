@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "foldkit-devtools": {
-      "command": "bunx",
-      "args": ["foldkit-devtools-mcp"]
+    "effect-ui": {
+      "type": "http",
+      "url": "http://127.0.0.1:4774/mcp"
     },
     "effect-three-scenes": {
       "command": "bun",

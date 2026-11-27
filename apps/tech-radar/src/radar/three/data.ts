@@ -68,7 +68,7 @@ const Edition = Schema.Struct({
   rings: Schema.Record(Schema.String, Ring),
   absent: Schema.Array(Schema.String),
 });
-const Dataset = Schema.Struct({
+export const Dataset = Schema.Struct({
   authoredOn: Schema.String,
   entries: Schema.Array(Entry),
   relationships: Schema.optionalKey(Schema.Array(Relationship)),
@@ -79,9 +79,11 @@ export type RadarEntry = typeof Entry.Type;
 export type RadarRelationship = typeof Relationship.Type;
 export type RadarEdition = typeof Edition.Type;
 export type RadarDataset = typeof Dataset.Type;
-export type RadarData =
-  | Readonly<{ _tag: 'Ready'; dataset: RadarDataset }>
-  | Readonly<{ _tag: 'Failure'; reason: string }>;
+export const RadarData = Schema.TaggedUnion({
+  Ready: { dataset: Dataset },
+  Failure: { reason: Schema.String },
+});
+export type RadarData = typeof RadarData.Type;
 
 export function decodeRadarDataset(input: unknown): RadarData {
   const decoded = Schema.decodeUnknownOption(Dataset)(input);

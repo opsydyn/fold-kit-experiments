@@ -1,8 +1,8 @@
+import { UiSchema, type View } from '@effect/ui';
+import { Html } from '@effect/ui/html';
 import { Schema } from 'effect';
-import type { HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
 
-import { clientPaths } from './client-paths';
+import { baseArt } from './client-paths';
 import {
   LedgerRevision,
   partyEntryFor,
@@ -12,7 +12,7 @@ import {
 } from './contracts';
 import { partyEntryCard } from './party-ledger';
 
-export const LedgerMessage = defineMessageUnion({
+export const LedgerMessage = UiSchema.TaggedEnum({
   ClickedLedgerRefresh: {},
   ClickedCaptureRoom: { roomId: LedgerRevision, expectedBackdrop: LedgerRevision },
   ClickedLedgerEntry: { id: LedgerRevision },
@@ -275,10 +275,14 @@ export function settleLedger(
   return { ...idle, feedback };
 }
 
+export const partyPublicationHeading = Html.ref('party-publication-heading', 'h3');
+export const partyPreviewHeading = Html.ref('party-preview-heading', 'h3');
+export const partyTitleInput = Html.ref('party-entry-title', 'input');
 export function ledgerView<Parent>(
-  h: HtmlBuilder<Parent>,
+  h: Html.H<Parent>,
   model: LedgerModel,
   room: Backdrop,
+  authoringUrl: string,
   toParent: (message: typeof LedgerMessage.Type) => Parent,
 ) {
   const editor = model.editor;
@@ -293,29 +297,29 @@ export function ledgerView<Parent>(
     disabled: boolean,
     style = 'secondary',
   ) =>
-    h.button(
-      [h.Type('button'), h.Class(style), h.Disabled(disabled), h.OnClick(toParent(message))],
-      [label],
-    );
+    h.button
+      .attr('type', 'button')
+      .class(style)
+      .disabled(disabled)
+      .on('click', toParent(message))
+      .children(label);
 
-  return h.section(
-    [
-      h.Id('librarians-ledger'),
-      h.Tabindex(-1),
-      h.Class('sprite-panel ledger-panel'),
-      h.AriaLabelledBy('ledger-heading'),
-    ],
-    [
-      h.header(
-        [h.Class('ledger-heading')],
-        [
-          h.div(
-            [],
-            [h.h2([h.Id('ledger-heading')], ['Librarian’s Ledger']), h.p([], ['DM workspace'])],
+  return h.section
+    .id('librarians-ledger')
+    .attr('tabindex', String(-1))
+    .class('sprite-panel ledger-panel')
+    .attr('aria-labelledby', 'ledger-heading')
+    .children(
+      h.header
+        .class('ledger-heading')
+        .children(
+          h.div.children(
+            h.h2.id('ledger-heading').children('Librarian’s Ledger'),
+            h.p.children('DM workspace'),
           ),
-          h.div(
-            [h.Class('ledger-actions')],
-            [
+          h.div
+            .class('ledger-actions')
+            .children(
               button(
                 existing ? 'Open current room entry' : 'Save room to Ledger',
                 LedgerMessage.ClickedCaptureRoom({ roomId, expectedBackdrop: room.revision }),
@@ -323,13 +327,12 @@ export function ledgerView<Parent>(
                 'primary',
               ),
               button('Refresh Ledger', LedgerMessage.ClickedLedgerRefresh(), blocked),
-            ],
-          ),
-        ],
-      ),
-      h.p(
-        [h.Role('status'), h.Class('ledger-status')],
-        [
+            ),
+        ),
+      h.p
+        .attr('role', 'status')
+        .class('ledger-status')
+        .children(
           model.phase === 'loading'
             ? 'Loading entries…'
             : model.phase === 'capturing'
@@ -343,183 +346,188 @@ export function ledgerView<Parent>(
                     : dirty
                       ? 'Unsaved edits'
                       : '',
-        ],
-      ),
-      ...(model.feedback?.error ? [h.p([h.Role('alert')], [model.feedback.text])] : []),
+        ),
+      ...(model.feedback?.error ? [h.p.attr('role', 'alert').children(model.feedback.text)] : []),
       ...(model.entries.length > 0
         ? [
-            h.ul(
-              [h.Class('ledger-entries'), h.AriaLabel('Saved rooms')],
-              model.entries.map((entry) =>
-                h.li(
-                  [h.Key(String(entry.id))],
-                  [
-                    h.button(
-                      [
-                        h.Type('button'),
-                        h.Class('ledger-entry'),
-                        h.AriaPressed(String(editor?.base.id === entry.id)),
-                        h.Disabled(blocked),
-                        h.OnClick(toParent(LedgerMessage.ClickedLedgerEntry({ id: entry.id }))),
-                      ],
-                      [entry.title],
-                    ),
-                  ],
+            h.ul
+              .class('ledger-entries')
+              .attr('aria-label', 'Saved rooms')
+              .children(
+                model.entries.map((entry) =>
+                  h.li.key(String(entry.id)).children(
+                    h.button
+                      .attr('type', 'button')
+                      .class('ledger-entry')
+                      .attr('aria-pressed', String(editor?.base.id === entry.id))
+                      .disabled(blocked)
+                      .on('click', toParent(LedgerMessage.ClickedLedgerEntry({ id: entry.id })))
+                      .children(entry.title),
+                  ),
                 ),
               ),
-            ),
           ]
         : []),
       ...(editor
         ? [
-            h.div(
-              [h.Class('ledger-editor'), h.Key('entry-' + editor.base.id)],
-              [
-                h.div(
-                  [h.Class('ledger-capture')],
-                  [
+            h.div
+              .class('ledger-editor')
+              .key('entry-' + editor.base.id)
+              .children(
+                h.div
+                  .class('ledger-capture')
+                  .children(
                     editor.base.room.style !== 'plain'
-                      ? h.img([
-                          h.Src(
+                      ? h.img
+                          .attr(
+                            'src',
                             editor.base.room.style === 'original'
-                              ? clientPaths().baseArt + 'aurora-gate.jpg'
-                              : clientPaths().authoringUrl + 'ledger-art/' + editor.base.id,
-                          ),
-                          h.Alt('Captured backdrop for ' + editor.base.room.title),
-                        ])
-                      : h.div([h.Class('plain-backdrop ledger-plain'), h.AriaHidden(true)], []),
-                    h.p(
-                      [],
-                      [
-                        'Captured room: ' + editor.base.room.title,
-                        ...(editor.base.room.style === 'plain' ? [' · Plain board'] : []),
-                      ],
+                              ? baseArt + 'aurora-gate.jpg'
+                              : authoringUrl + 'ledger-art/' + editor.base.id,
+                          )
+                          .attr('alt', 'Captured backdrop for ' + editor.base.room.title)
+                      : h.div
+                          .class('plain-backdrop ledger-plain')
+                          .attr('aria-hidden', 'true')
+                          .children(),
+                    h.p.children(
+                      'Captured room: ' + editor.base.room.title,
+                      ...(editor.base.room.style === 'plain' ? [' · Plain board'] : []),
                     ),
-                  ],
-                ),
-                h.div(
-                  [h.Class('ledger-form')],
-                  [
-                    h.label([h.For('ledger-entry-title')], ['Entry title']),
-                    h.input([
-                      h.Id('ledger-entry-title'),
-                      h.Type('text'),
-                      h.Maxlength(72),
-                      h.Value(editor.title),
-                      h.Disabled(busy || !!model.partyDraft),
-                      h.OnInput((title) => toParent(LedgerMessage.ChangedEntryTitle({ title }))),
-                    ]),
-                    h.label([h.For('ledger-entry-notes')], ['Session notes · DM only']),
-                    h.textarea([
-                      h.Id('ledger-entry-notes'),
-                      h.Rows(4),
-                      h.Maxlength(1500),
-                      h.Value(editor.notes),
-                      h.Placeholder('What happened in this room?'),
-                      h.Disabled(busy || !!model.partyDraft),
-                      h.OnInput((notes) => toParent(LedgerMessage.ChangedEntryNotes({ notes }))),
-                    ]),
-                    ...(editor.conflict
-                      ? [
-                          h.div(
-                            [h.Class('ledger-conflict')],
-                            [
-                              h.h3([], ['Saved in the other tab']),
-                              h.strong([], [editor.conflict.title]),
-                              h.p([], [editor.conflict.notes || 'This version has no notes.']),
-                              h.div(
-                                [h.Class('ledger-actions')],
-                                [
+                  ),
+                h.div.class('ledger-form').children(
+                  h.label.attr('for', 'ledger-entry-title').children('Entry title'),
+                  h.input
+                    .id('ledger-entry-title')
+                    .attr('type', 'text')
+                    .attr('maxlength', String(72))
+                    .value(editor.title)
+                    .disabled(busy || !!model.partyDraft)
+                    .on('input', ({ value: title }) =>
+                      toParent(LedgerMessage.ChangedEntryTitle({ title })),
+                    ),
+                  h.label.attr('for', 'ledger-entry-notes').children('Session notes · DM only'),
+                  h.textarea
+                    .id('ledger-entry-notes')
+                    .attr('rows', String(4))
+                    .attr('maxlength', String(1500))
+                    .value(editor.notes)
+                    .attr('placeholder', 'What happened in this room?')
+                    .disabled(busy || !!model.partyDraft)
+                    .on('input', ({ value: notes }) =>
+                      toParent(LedgerMessage.ChangedEntryNotes({ notes })),
+                    ),
+                  ...(editor.conflict
+                    ? [
+                        h.div
+                          .class('ledger-conflict')
+                          .children(
+                            h.h3.children('Saved in the other tab'),
+                            h.strong.children(editor.conflict.title),
+                            h.p.children(editor.conflict.notes || 'This version has no notes.'),
+                            h.div
+                              .class('ledger-actions')
+                              .children(
+                                button(
+                                  'Use saved version',
+                                  LedgerMessage.ClickedUseSavedEntry(),
+                                  busy,
+                                ),
+                                button(
+                                  'Keep my edits',
+                                  LedgerMessage.ClickedKeepEntryEdits(),
+                                  busy,
+                                ),
+                              ),
+                          ),
+                      ]
+                    : [
+                        h.div
+                          .class('ledger-actions')
+                          .children(
+                            button(
+                              'Save entry',
+                              LedgerMessage.ClickedSaveEntry(),
+                              busy || !!model.partyDraft || !canSave(editor),
+                              'primary',
+                            ),
+                            ...(dirty
+                              ? [
                                   button(
-                                    'Use saved version',
+                                    'Discard edits',
                                     LedgerMessage.ClickedUseSavedEntry(),
                                     busy,
                                   ),
-                                  button(
-                                    'Keep my edits',
-                                    LedgerMessage.ClickedKeepEntryEdits(),
-                                    busy,
-                                  ),
-                                ],
-                              ),
-                            ],
+                                ]
+                              : []),
                           ),
-                        ]
-                      : [
-                          h.div(
-                            [h.Class('ledger-actions')],
-                            [
-                              button(
-                                'Save entry',
-                                LedgerMessage.ClickedSaveEntry(),
-                                busy || !!model.partyDraft || !canSave(editor),
-                                'primary',
-                              ),
-                              ...(dirty
-                                ? [
-                                    button(
-                                      'Discard edits',
-                                      LedgerMessage.ClickedUseSavedEntry(),
-                                      busy,
-                                    ),
-                                  ]
-                                : []),
-                            ],
-                          ),
-                        ]),
-                  ],
+                      ]),
                 ),
-              ],
+              ),
+            partyEditorView(
+              h,
+              editor.base,
+              model.partyDraft,
+              busy,
+              dirty,
+              authoringUrl,
+              toParent,
+              button,
             ),
-            partyEditorView(h, editor.base, model.partyDraft, busy, dirty, toParent, button),
           ]
         : model.phase === 'idle' && !model.feedback?.error
-          ? [h.p([], ['Save the room on the board to start your session notes.'])]
+          ? [h.p.children('Save the room on the board to start your session notes.')]
           : []),
-    ],
-  );
+    );
 }
 
 function partyEditorView<Parent>(
-  h: HtmlBuilder<Parent>,
+  h: Html.H<Parent>,
   entry: LedgerEntry,
   draft: PartyDraft | null,
   busy: boolean,
   privateEditsPending: boolean,
+  authoringUrl: string,
   toParent: (message: typeof LedgerMessage.Type) => Parent,
   button: (
     label: string,
     message: typeof LedgerMessage.Type,
     disabled: boolean,
     style?: string,
-  ) => ReturnType<HtmlBuilder<Parent>['button']>,
+  ) => View.Input<Parent>,
 ) {
   if (!draft)
-    return h.section(
-      [h.Class('party-editor'), h.AriaLabel('Party publication')],
-      [
-        h.h3([h.Id('party-publication-heading'), h.Tabindex(-1)], ['Party entry']),
-        h.p(
-          [],
-          [
-            entry.published
-              ? 'The party can read the published version.'
-              : 'Only you can see this entry.',
-          ],
+    return h.section
+      .class('party-editor')
+      .attr('aria-label', 'Party publication')
+      .children(
+        h.h3
+          .ref(partyPublicationHeading)
+          .id('party-publication-heading')
+          .attr('tabindex', String(-1))
+          .children('Party entry'),
+        h.p.children(
+          entry.published
+            ? 'The party can read the published version.'
+            : 'Only you can see this entry.',
         ),
         button(
           entry.published ? 'Edit party entry' : 'Prepare party entry',
           LedgerMessage.ClickedEditPartyEntry(),
           busy || privateEditsPending,
         ),
-      ],
-    );
+      );
 
   if (draft.stage === 'previewing')
-    return h.section(
-      [h.Class('party-editor'), h.AriaLabel('Party preview')],
-      [
-        h.h3([h.Id('party-preview-heading'), h.Tabindex(-1)], ['Party preview']),
+    return h.section
+      .class('party-editor')
+      .attr('aria-label', 'Party preview')
+      .children(
+        h.h3
+          .ref(partyPreviewHeading)
+          .id('party-preview-heading')
+          .attr('tabindex', String(-1))
+          .children('Party preview'),
         partyEntryCard(
           h,
           partyEntryFor(entry, {
@@ -527,58 +535,55 @@ function partyEditorView<Parent>(
             recap: draft.recap,
             version: draft.expectedVersion,
           }),
-          clientPaths().authoringUrl + 'ledger-art/' + entry.id,
+          authoringUrl + 'ledger-art/' + entry.id,
         ),
-        h.div(
-          [h.Class('ledger-actions')],
-          [
+        h.div
+          .class('ledger-actions')
+          .children(
             button('Publish to party', LedgerMessage.ClickedPublishPartyEntry(), busy, 'primary'),
             button('Back to party draft', LedgerMessage.ClickedBackToPartyDraft(), busy),
-          ],
-        ),
-      ],
-    );
+          ),
+      );
 
-  return h.section(
-    [h.Class('party-editor'), h.AriaLabel('Party draft')],
-    [
-      h.h3([], ['Party draft']),
-      h.p([], ['The party will see this title, recap, and captured room.']),
+  return h.section
+    .class('party-editor')
+    .attr('aria-label', 'Party draft')
+    .children(
+      h.h3.children('Party draft'),
+      h.p.children('The party will see this title, recap, and captured room.'),
       ...(entry.published
         ? [
-            h.details(
-              [h.Class('party-current')],
-              [
-                h.summary([], ['Currently published']),
+            h.details
+              .class('party-current')
+              .children(
+                h.summary.children('Currently published'),
                 partyEntryCard(
                   h,
                   partyEntryFor(entry, entry.published),
-                  clientPaths().authoringUrl + 'ledger-art/' + entry.id,
+                  authoringUrl + 'ledger-art/' + entry.id,
                 ),
-              ],
-            ),
+              ),
           ]
         : []),
-      h.label([h.For('party-entry-title')], ['Party title']),
-      h.input([
-        h.Id('party-entry-title'),
-        h.Type('text'),
-        h.Maxlength(72),
-        h.Value(draft.title),
-        h.OnInput((title) => toParent(LedgerMessage.ChangedPartyTitle({ title }))),
-      ]),
-      h.label([h.For('party-entry-recap')], ['Party recap']),
-      h.textarea([
-        h.Id('party-entry-recap'),
-        h.Rows(3),
-        h.Maxlength(1500),
-        h.Value(draft.recap),
-        h.Placeholder('What should the party remember?'),
-        h.OnInput((recap) => toParent(LedgerMessage.ChangedPartyRecap({ recap }))),
-      ]),
-      h.div(
-        [h.Class('ledger-actions')],
-        [
+      h.label.attr('for', 'party-entry-title').children('Party title'),
+      h.input
+        .ref(partyTitleInput)
+        .id('party-entry-title')
+        .attr('type', 'text')
+        .attr('maxlength', String(72))
+        .value(draft.title)
+        .on('input', ({ value: title }) => toParent(LedgerMessage.ChangedPartyTitle({ title }))),
+      h.label.attr('for', 'party-entry-recap').children('Party recap'),
+      h.textarea
+        .id('party-entry-recap')
+        .attr('rows', String(3))
+        .attr('maxlength', String(1500))
+        .value(draft.recap)
+        .attr('placeholder', 'What should the party remember?')
+        .on('input', ({ value: recap }) => toParent(LedgerMessage.ChangedPartyRecap({ recap }))),
+      h.div
+        .class('ledger-actions')
+        .children(
           button(
             'Preview party entry',
             LedgerMessage.ClickedPreviewPartyEntry(),
@@ -586,8 +591,6 @@ function partyEditorView<Parent>(
             'primary',
           ),
           button('Cancel party draft', LedgerMessage.ClickedCancelPartyDraft(), false),
-        ],
-      ),
-    ],
-  );
+        ),
+    );
 }

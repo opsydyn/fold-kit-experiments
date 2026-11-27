@@ -20,7 +20,7 @@ upgrade: rebase it first. See `docs/releases/alchemy-beta-85.md`.
 `Website.Astro` resolves Alchemy's Worker entry point
 (`@alchemy.run/frontend-frameworks/astro/entrypoints/server`) from the app it builds, so
 `apps/tech-radar` lists `@alchemy.run/frontend-frameworks` as a dev dependency. In the app it
-resolves Effect 4.1.0, like everything else there, and the entry point bundled into the
+resolves the workspace’s Effect 4.1.6, and the entry point bundled into the
 Worker imports only Astro.
 
 ## Use

@@ -1,4 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-// DuckDB-Wasm runs in a Web Worker in the browser, so this island renders on the client only.
-export default lazyApp(() => import('./main'));
+import { DuckDB } from './main';
+
+export default astroComponent(DuckDB);

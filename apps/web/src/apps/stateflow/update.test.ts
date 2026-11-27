@@ -30,7 +30,10 @@ describe('stateflow replay update', () => {
 
     expect(result.model.cursor).toBe(1);
     expect(stateTagOf(result.model)).toBe('Ready');
-    expect(result.commands?.map((command) => command.name)).toEqual(['ReportTransition']);
+    expect(result.commands?.map((command) => command.name)).toEqual([
+      'ReportTransition',
+      'HighlightSource',
+    ]);
   });
 
   it('scrubs back and forth by replaying the machine, without reporting', () => {
@@ -38,7 +41,7 @@ describe('stateflow replay update', () => {
     const back = update(forward.model, Message.ClickedStepBack());
 
     expect(stateTagOf(forward.model)).toBe('Cancelling');
-    expect(forward.commands).toBeUndefined();
+    expect(forward.commands?.map(({ name }) => name)).toEqual(['HighlightSource']);
     expect(forward.model.selectedSequence).toBe(5);
     expect(stateTagOf(back.model)).toBe('Ready');
     expect(traceOf(back.model)).toHaveLength(4);
@@ -86,7 +89,10 @@ describe('stateflow replay update', () => {
       messageTag: 'ClickedReload',
       commandNames: ['FetchMetrics.Interrupt'],
     });
-    expect(second.commands?.map((command) => command.name)).toEqual(['ReportTransition']);
+    expect(second.commands?.map((command) => command.name)).toEqual([
+      'ReportTransition',
+      'HighlightSource',
+    ]);
   });
 
   it('records ignored events without moving the machine', () => {

@@ -1,5 +1,7 @@
 import { Option, Schema } from 'effect';
 
+import { Theme } from '../pageTheme';
+
 /** The three series, back row to front row. */
 export const Series = Schema.Literals(['search', 'social', 'direct']);
 export type Series = typeof Series.Type;
@@ -16,8 +18,7 @@ export type Month = typeof Month.Type;
 export const months: ReadonlyArray<Month> = Month.literals;
 
 /** The page theme, so series colours match the validated step for its surface. */
-export const Theme = Schema.Literals(['light', 'dark']);
-export type Theme = typeof Theme.Type;
+export { Theme } from '../pageTheme';
 
 /** Months in calendar order, or by the total of the visible series, largest first. */
 export const Order = Schema.Literals(['calendar', 'total']);

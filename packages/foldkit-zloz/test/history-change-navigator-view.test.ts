@@ -1,20 +1,18 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import {
-  zlozHistoryChangeNavigator,
-  zlozHistoryChangeButton,
+  historyChangeNavigator,
+  historyChangeButton,
   type ZlozHistoryChangeNavigatorViewOptions,
-} from '../src/foldkit';
+} from '../src/effect-ui';
 import {
   captureEdition,
   compareEditions,
   resolveHistoryChangeNavigator,
-  type ZlozHistoryChangeFocusRequest,
   type ZlozNode,
 } from '../src/index';
 const first: ZlozNode = {
@@ -39,26 +37,23 @@ const after = captureEdition({
 const context = resolveHistoryChangeNavigator(compareEditions(before, after), {
   focusReason: () => 'Camera protected',
 });
-type Message = ZlozHistoryChangeFocusRequest | string;
-async function render(options: ZlozHistoryChangeNavigatorViewOptions<Message> = {}) {
-  const output = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: context }),
-        view: (model, h: HtmlBuilder<Message>) => ({
-          title: 'Changes',
-          body: zlozHistoryChangeNavigator(
-            h,
-            model,
-            { onFilter: (kind) => kind, onFocus: (request) => request },
-            options,
-          ),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+async function render(options: ZlozHistoryChangeNavigatorViewOptions<string> = {}) {
+  const TestView = Html.component({
+    name: 'HistoryTest',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) =>
+      historyChangeNavigator(
+        h,
+        context,
+        { onFilter: (kind) => kind, onFocus: (request) => request.id },
+        options,
+      ),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(TestView, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = output.html;
   return window.document;
@@ -85,14 +80,11 @@ test('nullable slots, ordered subsets, custom entries and layout reuse native pr
     renderReason: () => null,
     renderEntry: (entry, h, onFocus) =>
       h.li(
-        [],
-        [
-          zlozHistoryChangeButton(h, entry, onFocus, [], ['Custom badge'], {
-            label: 'Inspect change',
-          }),
-        ],
+        historyChangeButton(h, entry, onFocus, undefined, ['Custom badge'], {
+          label: 'Inspect change',
+        }),
       ),
-    renderLayout: (parts, _context, h) => [...parts.filters, h.ul([], parts.entries)],
+    renderLayout: (parts, _context, h) => [...parts.filters, h.ul(parts.entries)],
   });
   expect(document.querySelectorAll('input')).toHaveLength(1);
   expect(document.querySelector('[role="status"]')).toBeNull();

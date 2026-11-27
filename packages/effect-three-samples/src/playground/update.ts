@@ -1,12 +1,10 @@
-import { Array as Arr, Option } from 'effect';
-import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { Array as Arr, Match, Option, Struct } from 'effect';
 
 import { nextPaint } from '../palette';
-import { Message } from './message';
+import type { Message } from './message';
 import { type Cube, cubeNumbered, type Model } from './model';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = { readonly model: Model };
 
 const repainted = (cube: Cube): Cube => ({ ...cube, paint: nextPaint(cube.paint) });
 
@@ -39,8 +37,8 @@ const dropLast = (cubes: ReadonlyArray<Cube>): ReadonlyArray<Cube> => cubes.slic
 /** Removes the last cube of the right shelf, or of the left once the right is empty. */
 const removeOne = (model: Model): Model =>
   Option.match(Arr.last(model.right), {
-    onSome: () => modifyFields(model, { right: dropLast }),
-    onNone: () => modifyFields(model, { left: dropLast }),
+    onSome: () => Struct.evolve(model, { right: dropLast }),
+    onNone: () => Struct.evolve(model, { left: dropLast }),
   });
 
 /** Moves the last cube of the left shelf to the front. */
@@ -51,27 +49,32 @@ const rotate = (cubes: ReadonlyArray<Cube>): ReadonlyArray<Cube> =>
   });
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    ClickedAdd: () => ({
-      model: modifyFields(model, {
-        left: (left) => [...left, cubeNumbered(model.nextId)],
-        nextId: (id) => id + 1,
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      ClickedAdd: () => ({
+        model: Struct.evolve(model, {
+          left: (left) => [...left, cubeNumbered(model.nextId)],
+          nextId: (id) => id + 1,
+        }),
       }),
-    }),
-    ClickedMoveAcross: () => ({ model: moveAcross(model) }),
-    ClickedRotate: () => ({ model: modifyFields(model, { left: rotate }) }),
-    ClickedRemove: () => ({ model: removeOne(model) }),
-    ClickedCube: ({ key }) => ({
-      model: modifyFields(model, { left: recolour(key), right: recolour(key) }),
-    }),
-    HoveredCube: ({ key }) => ({ model: modifyFields(model, { hovered: () => Option.some(key) }) }),
-    LeftCube: ({ key }) => ({
-      model: modifyFields(model, {
-        hovered: (hovered) => Option.filter(hovered, (current) => current !== key),
+      ClickedMoveAcross: () => ({ model: moveAcross(model) }),
+      ClickedRotate: () => ({ model: Struct.evolve(model, { left: rotate }) }),
+      ClickedRemove: () => ({ model: removeOne(model) }),
+      ClickedCube: ({ key }) => ({
+        model: Struct.evolve(model, { left: recolour(key), right: recolour(key) }),
       }),
+      HoveredCube: ({ key }) => ({
+        model: Struct.evolve(model, { hovered: () => Option.some(key) }),
+      }),
+      LeftCube: ({ key }) => ({
+        model: Struct.evolve(model, {
+          hovered: (hovered) => Option.filter(hovered, (current) => current !== key),
+        }),
+      }),
+      ReceivedReconciled: ({ detail }) => ({
+        model: Struct.evolve(model, { last: () => Option.some(detail) }),
+      }),
+      ReceivedSceneLifecycle: () => ({ model }),
     }),
-    ReceivedReconciled: ({ detail }) => ({
-      model: modifyFields(model, { last: () => Option.some(detail) }),
-    }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  );

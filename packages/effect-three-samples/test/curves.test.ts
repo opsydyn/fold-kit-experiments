@@ -1,13 +1,8 @@
-import { expect, mock, test } from 'bun:test';
+import { expect, test } from 'bun:test';
 
 import { createPose } from '@opsydyn/effect-three';
 import { Option } from 'effect';
 
-// The view uses the page's environment; the update logic and scene under test never do.
-await mock.module('../src/curves/environment', () => ({
-  environment: {},
-  sceneMount: () => undefined,
-}));
 const { Message } = await import('../src/curves/message');
 const { init, startControls } = await import('../src/curves/model');
 const { handleKey, update } = await import('../src/curves/update');

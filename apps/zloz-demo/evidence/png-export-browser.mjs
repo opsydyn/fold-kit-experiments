@@ -49,7 +49,10 @@ async function run() {
   });
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  const evidence = (file) => fileURLToPath(new URL(file, import.meta.url));
+  const evidence = (file) =>
+    process.env.ZLOZ_CAPTURE_DIR
+      ? resolve(process.env.ZLOZ_CAPTURE_DIR, file)
+      : fileURLToPath(new URL(file, import.meta.url));
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('[data-flow-node="review"]').waitFor();
   await page
@@ -60,11 +63,15 @@ async function run() {
   const accept = () =>
     page.getByRole('checkbox', { name: 'Accept the reported PNG losses', exact: true });
   const preview = () => page.getByRole('img', { name: 'PNG export preview' });
+  const acceptLosses = async () => {
+    if (!(await accept().isChecked())) await accept().click();
+    await expect(accept()).toBeChecked();
+  };
   await expect(action('render')).toBeDisabled();
   await expect(action('download')).toBeDisabled();
   await expect(page.getByRole('list', { name: 'PNG findings' })).toContainText('flattens');
   const render = async () => {
-    await accept().check();
+    await acceptLosses();
     await action('render').click();
     await expect(preview()).toBeVisible();
     await expect(action('download')).toBeEnabled();
@@ -81,6 +88,34 @@ async function run() {
     if (file) await writeFile(evidence(file), bytes);
     return { bytes, png: PNG.sync.read(bytes) };
   };
+  // Hold only the next rasterizer decode so Cancel must interrupt its live command.
+  await page.evaluate(() => {
+    const decode = HTMLImageElement.prototype.decode;
+    HTMLImageElement.prototype.decode = function () {
+      if (!this.src.startsWith('blob:')) return decode.call(this);
+      HTMLImageElement.prototype.decode = decode;
+      const url = this.src;
+      const revoke = URL.revokeObjectURL;
+      URL.revokeObjectURL = (released) => {
+        revoke(released);
+        if (released === url) {
+          URL.revokeObjectURL = revoke;
+          document.documentElement.dataset.pngTestReleased = 'true';
+        }
+      };
+      document.documentElement.dataset.pngTestDecoding = 'true';
+      return new Promise(() => {});
+    };
+  });
+  await acceptLosses();
+  await action('render').click();
+  await expect(page.locator('html')).toHaveAttribute('data-png-test-decoding', 'true');
+  await action('cancel').click();
+  await expect(page.locator('html')).toHaveAttribute('data-png-test-released', 'true', {
+    timeout: 3000,
+  });
+  await expect(preview()).toHaveCount(0);
+  await expect(action('download')).toBeDisabled();
   await render();
   const light = await download('png-export-model.png');
   expect(light.png.data[3]).toBe(255);
@@ -300,6 +335,7 @@ async function run() {
     model: { width: light.png.width, height: light.png.height, bytes: light.bytes.length },
     viewport: { width: crop.png.width, height: crop.png.height, bytes: crop.bytes.length },
     previewDownloadEqual: true,
+    cancelledRenderReleasedObjectUrl: true,
     cleanup: { urls: native.urls, canvases: native.canvases },
     nativeOutcomes: Object.fromEntries(
       Object.entries(native.results).map(([key, value]) => [

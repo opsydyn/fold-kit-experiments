@@ -1,22 +1,20 @@
+import { UiSchema } from '@effect/ui';
 import { Option, Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
-import type { Return } from 'foldkit/update';
 
 import { Props, SignalRecord, SourceSnapshot, SignalThreshold, validSignalProps } from './quality';
 export { Props } from './quality';
 export type { Props as SignalProps } from './quality';
 import { Baseline } from './baseline';
 import { EventFeed, normaliseEventFeed } from './events';
-import type { Message } from './message';
 export const ChartRole = Schema.Literals(['overview', 'latency', 'errors']);
 export type ChartRole = typeof ChartRole.Type;
 const Domain = Schema.Tuple([Schema.Number, Schema.Number]);
-const Selection = defineTaggedUnion({
+const Selection = UiSchema.TaggedEnum({
   None: {},
   Interval: { axis: Schema.Literals(['x', 'y']), domain: Domain },
   Keys: { keys: Schema.Array(Schema.String) },
 });
-export const Inspection = defineTaggedUnion({
+export const Inspection = UiSchema.TaggedEnum({
   Following: { key: Schema.NullOr(Schema.String) },
   Pinned: { key: Schema.String },
 });
@@ -29,9 +27,9 @@ const active = {
   startSelection: Selection,
   currentTime: Schema.Number,
 };
-export const Gesture = defineTaggedUnion({ Idle: {}, Brushing: active, Panning: active });
+export const Gesture = UiSchema.TaggedEnum({ Idle: {}, Brushing: active, Panning: active });
 const Status = Schema.Literals(['Ready', 'Unavailable']);
-export const Model = defineTaggedUnion({
+export const Model = UiSchema.TaggedEnum({
   Empty: { records: Schema.Array(SignalRecord) },
   Invalid: { error: Schema.String },
   Ready: {
@@ -57,7 +55,10 @@ export const Model = defineTaggedUnion({
 });
 export type Model = typeof Model.Type;
 export type ReadyModel = Extract<Model, { _tag: 'Ready' }>;
-export const init = (props: Props): Return<Model, Message> =>
+type SignalInit = Readonly<{ model: Model }>;
+
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Initialization schema-decodes incoming or replacement props before using them.
+export const init = (props: unknown): SignalInit =>
   Option.match(Schema.decodeUnknownOption(Props)(props), {
     onNone: () => ({ model: Model.Invalid({ error: 'Provide a valid observation array.' }) }),
     onSome: (props) => {

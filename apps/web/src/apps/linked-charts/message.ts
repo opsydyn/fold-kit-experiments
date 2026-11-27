@@ -1,20 +1,11 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
-import type { Message as PlotPanelMessage } from '../../ui/plot-panel';
+import { Message as PlotPanelMessage } from '../../ui/plot-panel/core';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ChangedMinimumExperience: { years: Schema.Number },
-  ReceivedScatterMessage: { message: Schema.Unknown },
-  ReceivedHistogramMessage: { message: Schema.Unknown },
+  ReceivedScatterMessage: { message: PlotPanelMessage },
+  ReceivedHistogramMessage: { message: PlotPanelMessage },
 });
-export type ReceivedScatterMessage = Omit<typeof Message.ReceivedScatterMessage.Type, 'message'> & {
-  readonly message: PlotPanelMessage;
-};
-export type ReceivedHistogramMessage = Omit<
-  typeof Message.ReceivedHistogramMessage.Type,
-  'message'
-> & {
-  readonly message: PlotPanelMessage;
-};
 export type Message = typeof Message.Type;

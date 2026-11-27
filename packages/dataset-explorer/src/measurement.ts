@@ -1,13 +1,14 @@
+import { Mount } from '@effect/ui';
 import { Effect, Queue, Stream } from 'effect';
-import { Mount } from 'foldkit';
 
 import { Message } from './message';
 
 // ResizeObserver belongs to Mount's scope. Widths enter the Model as facts;
 // the observer never writes chart attributes or holds application state.
-export const MeasureDatasetChart = Mount.defineStream('MeasureDatasetChart', {
-  messages: [Message.RecordedChartWidth],
-  execute: ({ element }) =>
+export const MeasureDatasetChart = Mount.makeStream(
+  'MeasureDatasetChart',
+  { args: {} },
+  (element: HTMLElement) =>
     Stream.callback<number>(
       (queue) =>
         Effect.acquireRelease(
@@ -31,4 +32,4 @@ export const MeasureDatasetChart = Mount.defineStream('MeasureDatasetChart', {
       Stream.changes,
       Stream.map((width) => Message.RecordedChartWidth({ width })),
     ),
-});
+);

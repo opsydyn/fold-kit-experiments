@@ -1,9 +1,7 @@
+import { Command, Component, Subscription, UiSchema } from '@effect/ui';
+import { Html } from '@effect/ui/html';
 import { BoardTitle, Role } from '@opsydyn/zloz-server/src/team-contract';
 import { Effect, Schema } from 'effect';
-import { Command, Dom, Render, Subscription } from 'foldkit';
-import type { Document, HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
-import type { Return } from 'foldkit/update';
 
 import { pathFor } from '../editor/protocol';
 import { publishTitle, titleChanges } from './channel';
@@ -28,7 +26,8 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 type Model = typeof Model.Type;
-export const Message = defineMessageUnion({
+type Update = Readonly<{ model: Model; commands?: readonly Command.Command<Message>[] }>;
+export const Message = UiSchema.TaggedEnum({
   StartedBoardSettings: {},
   ChangedName: { text: Schema.String },
   SubmittedName: {},
@@ -39,26 +38,23 @@ export const Message = defineMessageUnion({
   DiscardedDraft: {},
 });
 type Message = typeof Message.Type;
-const StartBoardSettings = Command.define('StartBoardSettings', {
-  messages: [Message.StartedBoardSettings],
-  execute: Effect.sync(Message.StartedBoardSettings),
-});
-export const init = (props: Props): Return<Model, Message> => ({
+const StartBoardSettings = Command.make('StartBoardSettings', { args: {} }, () =>
+  Effect.sync(Message.StartedBoardSettings),
+);
+export const init = (props: Props): Update => ({
   model: { ...props, active: false, draft: null, notice: '' },
-  commands: [StartBoardSettings()],
+  commands: [StartBoardSettings.make({})],
 });
-const FocusBoardName = Command.define('FocusBoardName', {
-  messages: [Message.CompletedFocus],
-  execute: Render.afterCommit.pipe(
-    Effect.andThen(Dom.focus('#board-name')),
-    Effect.catchTag('ElementNotFound', () => Effect.void),
-    Effect.map(Message.CompletedFocus),
-  ),
-});
-const RenameSharedBoard = Command.define('RenameSharedBoard', {
-  args: { path: Schema.String, name: Schema.String, expectedRevision: Schema.Number },
-  messages: [Message.ReceivedRename, Message.FailedRename],
-  execute: ({ path, name, expectedRevision }) =>
+const FocusBoardName = Command.make('FocusBoardName', { args: {} }, () =>
+  Effect.sync(() => {
+    document.getElementById('board-name')?.focus();
+    return Message.CompletedFocus();
+  }),
+);
+const RenameSharedBoard = Command.make(
+  'RenameSharedBoard',
+  { args: { path: Schema.String, name: Schema.String, expectedRevision: Schema.Number } },
+  ({ path, name, expectedRevision }) =>
     Effect.tryPromise(async (signal) => {
       const response = await fetch(path + '/name', {
         method: 'POST',
@@ -72,10 +68,10 @@ const RenameSharedBoard = Command.define('RenameSharedBoard', {
       publishTitle(title);
       return Message.ReceivedRename({ title, conflict: response.status === 409 });
     }).pipe(Effect.orElseSucceed(() => Message.FailedRename({ status: 0 }))),
-});
+);
 const latest = (model: Model, title: BoardTitle) =>
   title.nameRevision > model.confirmed.nameRevision ? title : model.confirmed;
-export const update = (model: Model, message: Message): Return<Model, Message> =>
+export const update = (model: Model, message: Message): Update =>
   Message.match(message, {
     StartedBoardSettings: () => ({ model: { ...model, active: true } }),
     ChangedName: ({ text }) =>
@@ -97,14 +93,19 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
       if (model.role === 'viewer' || !draft || draft.status === 'saving') return { model };
       const name = draft.text.trim();
       if (!name)
-        return { model: { ...model, notice: 'Enter a board name.' }, commands: [FocusBoardName()] };
+        return {
+          model: { ...model, notice: 'Enter a board name.' },
+          commands: [FocusBoardName.make({})],
+        };
       return {
         model: {
           ...model,
           notice: 'Saving board name…',
           draft: { ...draft, status: 'saving' as const },
         },
-        commands: [RenameSharedBoard({ path: pathFor(model), name, expectedRevision: draft.base })],
+        commands: [
+          RenameSharedBoard.make({ path: pathFor(model), name, expectedRevision: draft.base }),
+        ],
       };
     },
     ObservedTitle: ({ title }) => ({
@@ -137,95 +138,100 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
     CompletedFocus: () => ({ model }),
     DiscardedDraft: () => ({ model: { ...model, draft: null, notice: '' } }),
   });
-export const subscriptions = Subscription.make<Model, Message>()(() => ({
-  title: Subscription.persistentEntry(titleChanges((title) => Message.ObservedTitle({ title }))),
-}));
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+const ReflectBoardTitle = Command.make(
+  'ReflectBoardTitle',
+  { args: { name: Schema.String } },
+  ({ name }) =>
+    Effect.sync(() => {
+      document.title = name + ' | ZLOZ';
+      return Component.noop;
+    }),
+);
+
+function view(h: Html.H<Message>, model: Model) {
   const { name } = model.confirmed;
   const conflict = model.draft?.status === 'conflict';
-  return {
-    title: name + ' | ZLOZ',
-    body: h.div(
-      [],
-      [
-        h.nav(
-          [h.AriaLabel('Diagram')],
-          [
-            h.a([h.Href(model.back)], ['Back to team']),
-            h.button(
-              [h.Type('button'), h.Popovertarget('board-settings'), h.Disabled(!model.active)],
-              ['Board settings'],
+  const saving = model.draft?.status === 'saving';
+  const notice =
+    model.notice ||
+    (conflict
+      ? 'Someone renamed this board to “' + name + '”. Review it before applying your name.'
+      : '');
+
+  return h.div(
+    h.nav
+      .attr('aria-label', 'Diagram')
+      .children(
+        h.a.attr('href', model.back).children('Back to team'),
+        h.button
+          .attrs({ type: 'button', popovertarget: 'board-settings' })
+          .disabled(!model.active)
+          .children('Board settings'),
+      ),
+    h.section
+      .class('workspace-settings')
+      .attrs({ id: 'board-settings', popover: 'auto', 'aria-labelledby': 'board-settings-title' })
+      .children(
+        h.h2.id('board-settings-title').children(name),
+        h.p('Your board access: ' + model.role + '.'),
+        model.role === 'viewer'
+          ? null
+          : h.form.on('submit', Message.SubmittedName(), { preventDefault: true }).children(
+              h.label.attr('for', 'board-name').children('Board name'),
+              h.input
+                .attrs({ id: 'board-name', maxlength: '120' })
+                .value(model.draft?.text ?? name)
+                .disabled(saving)
+                .on('input', ({ value }) => Message.ChangedName({ text: value })),
+              h.p.attr('role', 'status').children(notice),
+              h.button
+                .attr('type', 'submit')
+                .disabled(!model.draft || saving)
+                .children(conflict ? 'Apply my name' : 'Save board name'),
+              model.draft && !saving
+                ? h.button
+                    .attr('type', 'button')
+                    .on('click', Message.DiscardedDraft())
+                    .children('Discard draft')
+                : null,
             ),
-          ],
-        ),
-        h.section(
-          [
-            h.Id('board-settings'),
-            h.Popover('auto'),
-            h.Class('workspace-settings'),
-            h.AriaLabelledBy('board-settings-title'),
-          ],
-          [
-            h.h2([h.Id('board-settings-title')], [name]),
-            h.p([], ['Your board access: ' + model.role + '.']),
-            ...(model.role === 'viewer'
-              ? []
-              : [
-                  h.form(
-                    [h.OnSubmit(Message.SubmittedName())],
-                    [
-                      h.label([h.For('board-name')], ['Board name']),
-                      h.input([
-                        h.Id('board-name'),
-                        h.Maxlength(120),
-                        h.Value(model.draft?.text ?? name),
-                        h.Disabled(model.draft?.status === 'saving'),
-                        h.OnInput((text) => Message.ChangedName({ text })),
-                      ]),
-                      h.p(
-                        [h.Role('status')],
-                        [
-                          model.notice ||
-                            (conflict
-                              ? 'Someone renamed this board to “' +
-                                name +
-                                '”. Review it before applying your name.'
-                              : ''),
-                        ],
-                      ),
-                      h.button(
-                        [
-                          h.Type('submit'),
-                          h.Disabled(!model.draft || model.draft.status === 'saving'),
-                        ],
-                        [conflict ? 'Apply my name' : 'Save board name'],
-                      ),
-                      ...(model.draft && model.draft.status !== 'saving'
-                        ? [
-                            h.button(
-                              [h.Type('button'), h.OnClick(Message.DiscardedDraft())],
-                              ['Discard draft'],
-                            ),
-                          ]
-                        : []),
-                    ],
-                  ),
-                ]),
-            ...(model.role === 'owner'
-              ? [
-                  h.p([], ['Restoring a backup changes this board for everyone.']),
-                  h.a(
-                    [h.Href('/app/' + model.teamId + '/diagrams/' + model.diagramId + '/recovery')],
-                    ['Backup and recovery'],
-                  ),
-                  h.span([], [' · ']),
-                  h.a([h.Href('/app/' + model.teamId + '?view=settings')], ['Team settings']),
-                ]
-              : [h.p([], ['Team owners manage access and recovery.'])]),
-          ],
-        ),
-        h.h1([h.Title(name)], [name]),
-      ],
+        ...(model.role === 'owner'
+          ? [
+              h.p('Restoring a backup changes this board for everyone.'),
+              h.a
+                .attr('href', '/app/' + model.teamId + '/diagrams/' + model.diagramId + '/recovery')
+                .children('Backup and recovery'),
+              h.span(' · '),
+              h.a.attr('href', '/app/' + model.teamId + '?view=settings').children('Team settings'),
+            ]
+          : [h.p('Team owners manage access and recovery.')]),
+      ),
+    h.h1.attr('title', name).children(name),
+  );
+}
+
+export const BoardSettings = Html.component({
+  name: 'TeamsBoardSettings',
+  model: Model,
+  message: Message,
+  props: Props,
+}).make({
+  init: ($) => {
+    const initial = init($.props);
+    return $.set(initial.model).run(...(initial.commands ?? []));
+  },
+  update: ($, message) => {
+    const result = update($.model, message);
+    const step = $.set(result.model).run(...(result.commands ?? []));
+    return result.model.confirmed.name === $.model.confirmed.name
+      ? step
+      : step.run(ReflectBoardTitle.make({ name: result.model.confirmed.name }));
+  },
+  subscriptions: () => [
+    Subscription.make(
+      'TeamsBoardTitle',
+      titleChanges((title) => Message.ObservedTitle({ title })),
     ),
-  };
-};
+  ],
+  view,
+});

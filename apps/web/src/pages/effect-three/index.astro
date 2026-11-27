@@ -12,7 +12,7 @@ const samples = [
   {
     href: '/effect-three/sculpture',
     title: 'Sculpture and time travel',
-    body: 'Stack blocks, balls and drums by clicking in 3D. The DevTools are in time-travel mode: pick any history row and the scene rewinds with the Model.',
+    body: 'Stack blocks, balls and drums by clicking in 3D. Use the build history slider to rewind and replay the sculpture.',
   },
   {
     href: '/effect-three/studio',
@@ -52,7 +52,7 @@ const samples = [
   {
     href: '/effect-three/room',
     title: 'XR room: anchors, planes and meshes',
-    body: 'Furnish a room with plants, or let an agent do it through the Foldkit DevTools MCP server. In VR, glide with the sticks while tips ride your left hand; in AR, plants are anchors and detected planes and meshes are drawn from Messages.',
+    body: 'Furnish a room with plants and see other players as avatars. In VR, glide with the sticks while tips ride your left hand; in AR, plants are anchors and detected planes and meshes are drawn from Messages.',
   },
   {
     href: '/effect-three/bars',
@@ -77,9 +77,9 @@ const samples = [
 ];
 ---
 
-<Layout title="effect-three samples — Astro + FoldKit">
+<Layout title="Effect Three samples">
   <h1 class={layoutStyles.heading}>effect-three</h1>
-  <p>Declarative Three.js scenes for Foldkit: the scene is plain data derived from the Model.</p>
+  <p>Declarative Three.js scenes derived from the Model.</p>
   {
     samples.map((sample) => (
       <a class={barStyles.card} href={sample.href} style="display:block;margin-bottom:1rem;color:inherit;text-decoration:none">

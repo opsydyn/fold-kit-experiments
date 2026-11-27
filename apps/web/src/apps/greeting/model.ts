@@ -12,13 +12,5 @@ export const Model = Schema.Struct({
 });
 export type Model = typeof Model.Type;
 
-export const Flags = Schema.Struct({
-  name: Name,
-  locale: Locale,
-});
-export type Flags = typeof Flags.Type;
-
-export const init = (flags: Flags) => {
-  const { name, locale } = Schema.decodeSync(Flags)(flags);
-  return { model: { name, locale } };
-};
+export const Props = Model;
+export type Props = typeof Props.Type;

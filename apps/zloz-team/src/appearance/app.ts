@@ -1,6 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-import type { Props } from './main';
-// The integration owns this intentional lazy hydration boundary.
-// oxlint-disable-next-line linteffect/prevent-dynamic-imports
-export default lazyApp<Props>(() => import('./main'));
+import { Appearance } from './main';
+
+export default astroComponent(Appearance);

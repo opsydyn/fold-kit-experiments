@@ -1,5 +1,4 @@
 import type { DiagramFrame } from '@opsydyn/foldkit-zloz-alchemy/session';
-import type { ReturnWithOutMessage } from 'foldkit/update';
 
 import { projectCoupling, type CouplingRow } from '../coupling-projection';
 import { Message, OutMessage } from './message';
@@ -68,10 +67,9 @@ export function observe(model: Model, frame: DiagramFrame | null): Model {
     removedPage: clamp(sameTarget ? next.removedPage : 0, projection.removed.length),
   };
 }
-export function update(
-  model: Model,
-  message: Message,
-): ReturnWithOutMessage<Model, Message, OutMessage> {
+type CouplingUpdate = Readonly<{ model: Model; outMessage?: OutMessage }>;
+
+export function update(model: Model, message: Message): CouplingUpdate {
   return Message.match(message, {
     SelectedCohort: ({ key }) => {
       if (

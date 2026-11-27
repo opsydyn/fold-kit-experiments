@@ -1,11 +1,20 @@
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
 
-import { chromium, expect } from '@playwright/test';
-
+const { chromium, expect } = createRequire(new URL('../../web/package.json', import.meta.url))(
+  '@playwright/test',
+);
+const root = new URL('../dist/', import.meta.url);
 const server = createServer(async (req, res) => {
-  const path = req.url === '/' ? '/index.html' : req.url;
-  await readFile('../zloz-demo/dist' + path)
+  const route = new URL(req.url, 'http://127.0.0.1').pathname;
+  const path = route === '/' ? '/index.html' : route;
+  const file = new URL('.' + path, root);
+  if (!file.href.startsWith(root.href)) {
+    res.writeHead(404).end();
+    return;
+  }
+  await readFile(file)
     .then((body) => {
       res.setHeader(
         'Content-Type',
@@ -81,7 +90,6 @@ async function qualify() {
         : port.y + port.height / 2 - node.y - border.y * scale;
     };
     const begin = async () => {
-      await inspector().scrollIntoViewIfNeeded();
       await handle().scrollIntoViewIfNeeded();
       const box = await handle().boundingBox();
       const dimensions = await frame().evaluate((element) => ({
@@ -109,6 +117,7 @@ async function qualify() {
       await page.mouse.up();
     };
     await page.goto('http://127.0.0.1:' + server.address().port);
+    await button('Ports').click();
     await select('review', 'Review', 'in');
     await page.getByRole('checkbox', { name: 'Drag port anchors', exact: true }).check();
     await page.getByRole('checkbox', { name: 'Port labels', exact: true }).check();
@@ -187,6 +196,7 @@ async function qualify() {
     await page.mouse.up();
     await expect(layer).toHaveCount(0);
     const saved = await center();
+    await button('Diagram').click();
     await button('Undo').click();
     await expectCenter(before);
     await button('Redo').click();
@@ -224,6 +234,7 @@ async function qualify() {
     await expect(handle()).toHaveAttribute('data-flow-anchor-midpoint', 'left');
     await cancel();
     await button('Minimal mode').click();
+    await button('Navigation').click();
     await button('Zoom out').click();
     await expect(page.locator('[data-flow-zoom-level]')).not.toHaveText('100%');
     const atZoom = await center();
@@ -248,6 +259,7 @@ async function qualify() {
     grab = await begin();
     await expect(layer).toHaveCount(0);
     await cancel();
+    await button('Inspect').click();
     await expect(button('source:out → review:in')).toBeVisible();
     expect(errors).toEqual([]);
     console.log(

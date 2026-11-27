@@ -1,13 +1,20 @@
+import { Component } from '@effect/ui';
+import { Html } from '@effect/ui/html';
+
 import { Message } from './message';
-import { init, Model } from './model';
-import { managedResources, subscriptions } from './session';
+import { fresh, Model } from './model';
+import { subscriptions, tabletopSessionLayer } from './session';
 import { update } from './update';
 import { view } from './view';
 
-export { init, managedResources, Message, Model, subscriptions, update, view };
+const Tabletop = Html.component({ name: 'ThreeTabletop', model: Model, message: Message }).make({
+  init: () => fresh,
+  update: ($, message) => {
+    const next = update($.model, message);
+    return $.set(next.model).run(...(next.commands ?? []));
+  },
+  subscriptions,
+  view,
+});
 
-/** For the Foldkit DevTools MCP server; the turn traffic is left out of its history. */
-export const devTools = {
-  Message,
-  excludeFromHistory: ['TickedTurn', 'HeardWire', 'CompletedSay', 'ReachedStep'],
-};
+export default Component.provide(Tabletop, tabletopSessionLayer(), { server: false, local: true });

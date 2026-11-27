@@ -1,6 +1,6 @@
+import type { Html } from '@effect/ui/html';
 import { layoutStateFlow, type StateFlowEdge } from '@opsydyn/foldkit-viz/stateflow';
 import type { ZlozNode } from '@opsydyn/foldkit-zloz';
-import type { HtmlBuilder } from 'foldkit/html';
 
 type Link = Readonly<{ id: string; label: string; target: ZlozNode }>;
 type Outgoing = (node: ZlozNode) => readonly Link[];
@@ -31,7 +31,7 @@ function neighbourhood(root: ZlozNode, outgoing: Outgoing) {
 }
 
 export function journeyOverview<M>(
-  h: HtmlBuilder<M>,
+  h: Html.H<M>,
   start: ZlozNode,
   steps: readonly Link[],
   outgoing: Outgoing,
@@ -62,86 +62,78 @@ export function journeyOverview<M>(
   const position = `Step ${steps.length + 1} · ${current.label}`;
   const describe = (edge: StateFlowEdge) =>
     `${notes.get(edge.source)?.label} ${edge.event.toLowerCase()} ${notes.get(edge.target)?.label}`;
-  return h.figure(
-    [h.Class('journey-overview')],
-    [
-      h.figcaption([], [position]),
-      h.svg(
-        [
-          h.ViewBox(`${x} ${y} ${width} ${height}`),
-          h.Width('100%'),
-          h.Height('160'),
-          h.Role('img'),
-          h.AriaLabel('Journey overview'),
-          h.AriaDescribedBy('journey-overview-description'),
-        ],
-        [
-          h.desc(
-            [h.Id('journey-overview-description')],
-            [[position, ...links.map(describe)].join('. ')],
-          ),
-          ...layout.edges.map((edge) => {
-            const dx = edge.x2 - edge.x1,
-              dy = edge.y2 - edge.y1;
-            const length = Math.hypot(dx, dy);
-            const ink = visited.has(edge.id) ? 'var(--team-accent)' : 'var(--team-edge)';
-            return h.g(
-              [
-                h.Key('link:' + edge.id),
-                h.Transform(
-                  `translate(${edge.x1} ${edge.y1}) rotate(${(Math.atan2(dy, dx) * 180) / Math.PI})`,
-                ),
-              ],
-              [
-                h.path(
-                  [
-                    h.D(`M 8 0 H ${length - 11} m -5 -3 5 3 -5 3`),
-                    h.Stroke(ink),
-                    h.StrokeWidth(visited.has(edge.id) ? '2.8' : '1.5'),
-                    h.Fill('none'),
-                  ],
-                  [],
-                ),
-              ],
+  return h.figure.class('journey-overview').children(
+    h.figcaption.children(position),
+    h
+      .el('svg')
+      .attr('viewBox', `${x} ${y} ${width} ${height}`)
+      .attr('width', '100%')
+      .attr('height', '160')
+      .attr('role', 'img')
+      .attr('aria-label', 'Journey overview')
+      .attr('aria-describedby', 'journey-overview-description')
+      .children(
+        h
+          .el('desc')
+          .attr('id', 'journey-overview-description')
+          .children([position, ...links.map(describe)].join('. ')),
+        ...layout.edges.map((edge) => {
+          const dx = edge.x2 - edge.x1,
+            dy = edge.y2 - edge.y1;
+          const length = Math.hypot(dx, dy);
+          const ink = visited.has(edge.id) ? 'var(--team-accent)' : 'var(--team-edge)';
+          return h
+            .el('g')
+            .key('link:' + edge.id)
+            .attr(
+              'transform',
+              `translate(${edge.x1} ${edge.y1}) rotate(${(Math.atan2(dy, dx) * 180) / Math.PI})`,
+            )
+            .children(
+              h
+                .el('path')
+                .attr('d', `M 8 0 H ${length - 11} m -5 -3 5 3 -5 3`)
+                .attr('stroke', ink)
+                .attr('stroke-width', visited.has(edge.id) ? '2.8' : '1.5')
+                .attr('fill', 'none')
+                .children(),
             );
-          }),
-          ...layout.nodes.map((node) => {
-            const here = node.id === current.id;
-            return h.g(
-              [h.Key('note:' + node.id), h.Transform(`translate(${node.x} ${node.y})`)],
-              [
-                h.title([], [node.label]),
-                ...(here
-                  ? [
-                      h.circle(
-                        [
-                          h.R('10'),
-                          h.Fill('none'),
-                          h.Stroke('var(--team-accent)'),
-                          h.StrokeWidth('2'),
-                        ],
-                        [],
-                      ),
-                    ]
-                  : []),
-                h.circle(
-                  [
-                    h.R('5'),
-                    h.Fill(here ? 'var(--team-accent)' : 'var(--team-panel)'),
-                    h.Stroke('currentColor'),
-                  ],
-                  [],
-                ),
-                h.text(
-                  [h.Y('22'), h.TextAnchor('middle'), h.FontSize('11'), h.Fill('currentColor')],
-                  [node.label.length > 13 ? node.label.slice(0, 12) + '…' : node.label],
-                ),
-              ],
+        }),
+        ...layout.nodes.map((node) => {
+          const here = node.id === current.id;
+          return h
+            .el('g')
+            .key('note:' + node.id)
+            .attr('transform', `translate(${node.x} ${node.y})`)
+            .children(
+              h.el('title').children(node.label),
+              ...(here
+                ? [
+                    h
+                      .el('circle')
+                      .attr('r', '10')
+                      .attr('fill', 'none')
+                      .attr('stroke', 'var(--team-accent)')
+                      .attr('stroke-width', '2')
+                      .children(),
+                  ]
+                : []),
+              h
+                .el('circle')
+                .attr('r', '5')
+                .attr('fill', here ? 'var(--team-accent)' : 'var(--team-panel)')
+                .attr('stroke', 'currentColor')
+                .children(),
+              h
+                .el('text')
+                .attr('y', '22')
+                .attr('text-anchor', 'middle')
+                .attr('font-size', '11')
+                .attr('fill', 'currentColor')
+                .children(node.label.length > 13 ? node.label.slice(0, 12) + '…' : node.label),
             );
-          }),
-        ],
+        }),
       ),
-      ...(partial || local ? [h.small([], [`Showing ${notes.size} nearby notes`])] : []),
-    ],
+    ...(partial || local ? [h.small.children(`Showing ${notes.size} nearby notes`)] : []),
   );
 }

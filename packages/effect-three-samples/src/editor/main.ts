@@ -1,25 +1,20 @@
+import { Component } from '@effect/ui';
+import { Html } from '@effect/ui/html';
+
 import { Message } from './message';
 import { init, Model } from './model';
-import { managedResources, subscriptions } from './session';
+import { editorSessionLayer, subscriptions } from './session';
 import { update } from './update';
 import { view } from './view';
 
-export { init, managedResources, Message, Model, subscriptions, update, view };
+const Editor = Html.component({ name: 'ThreeEditor', model: Model, message: Message }).make({
+  init: () => init().model,
+  update: ($, message) => {
+    const next = update($.model, message);
+    return $.set(next.model).run(...(next.commands ?? []));
+  },
+  subscriptions,
+  view,
+});
 
-/**
- * For the Foldkit DevTools MCP server: an agent can read the Model and dispatch
- * Messages, intents such as `PlacedThing`, `FramedShot` and `ChoseMood` among them, each
- * decoded by its schema first. Pointer moves are left out of the history it reads.
- */
-export const devTools = {
-  Message,
-  excludeFromHistory: [
-    'MadeGesture',
-    'DraggedScene',
-    'HoveredScene',
-    'LeftScene',
-    'TickedTurn',
-    'HeardWire',
-    'CompletedSay',
-  ],
-};
+export default Component.provide(Editor, editorSessionLayer(), { server: false, local: true });

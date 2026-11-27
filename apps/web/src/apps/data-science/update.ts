@@ -1,12 +1,8 @@
-import type { Return as UpdateReturn } from 'foldkit/update';
-
 import { Message } from './message';
 import type { Model } from './model';
 
-type Return = UpdateReturn<Model, Message>;
-
-export const update = (model: Model, message: Message): Return =>
+export const update = (model: Model, message: Message): Model =>
   Message.match(message, {
-    ChoseDownsampler: ({ downsampler }) => ({ model: { ...model, downsampler } }),
-    ChoseFit: ({ fit }) => ({ model: { ...model, fit } }),
+    ChoseDownsampler: ({ downsampler }) => ({ ...model, downsampler }),
+    ChoseFit: ({ fit }) => ({ ...model, fit }),
   });

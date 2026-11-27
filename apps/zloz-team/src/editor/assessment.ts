@@ -1,3 +1,6 @@
+import { Command, UiSchema } from '@effect/ui';
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { canonicalOperationValue } from '@opsydyn/foldkit-zloz';
 import {
   AssessmentRequestSchema,
@@ -12,13 +15,13 @@ import {
   type ZlozCouplingInput,
 } from '@opsydyn/foldkit-zloz/coupling';
 import { Effect, Option, Schema } from 'effect';
-import { Command } from 'foldkit';
-import type { Html, HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
-import type { Return } from 'foldkit/update';
 
 import { pathFor } from './protocol';
 
+type Return<State, Event> = Readonly<{
+  model: State;
+  commands?: readonly Command.Command<Event>[];
+}>;
 const Field = Schema.Literals(['integrationType', 'strength', 'distance', 'volatility']);
 type Field = typeof Field.Type;
 const Basis = Schema.Literals(['declared', 'observed', 'derived']);
@@ -58,7 +61,7 @@ export const Model = Schema.Union([
 ]);
 export type Model = typeof Model.Type;
 export const init = (): Model => ({ status: 'closed', notice: '' });
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   SelectedRelationship: { id: Schema.String },
   ChangedScope: { field: Schema.Literals(['abstraction', 'horizon']), text: Schema.String },
   ChangedValue: { field: Field, value: Schema.String },
@@ -177,10 +180,10 @@ export function authoredAssessment(draft: Draft): Option.Option<ZlozCouplingAsse
     },
   });
 }
-const AllocateAssessmentSave = Command.define('AllocateAssessmentSave', {
-  args: { draft: Draft },
-  messages: [Message.AllocatedSave, Message.FailedAllocation],
-  execute: ({ draft }) =>
+const AllocateAssessmentSave = Command.make(
+  'AllocateAssessmentSave',
+  { args: { draft: Draft } },
+  ({ draft }) =>
     Effect.try(() => {
       const assessment = authoredAssessment(draft);
       if (Option.isNone(assessment)) return Message.FailedAllocation();
@@ -193,19 +196,21 @@ const AllocateAssessmentSave = Command.define('AllocateAssessmentSave', {
         },
       });
     }).pipe(Effect.orElseSucceed(() => Message.FailedAllocation())),
-});
-const SubmitAssessmentSave = Command.define('SubmitAssessmentSave', {
-  args: {
-    room: Schema.Struct({
-      teamId: Schema.String,
-      diagramId: Schema.String,
-      actorId: Schema.String,
-      generation: Schema.String,
-    }),
-    request: AssessmentRequestSchema,
+);
+const SubmitAssessmentSave = Command.make(
+  'SubmitAssessmentSave',
+  {
+    args: {
+      room: Schema.Struct({
+        teamId: Schema.String,
+        diagramId: Schema.String,
+        actorId: Schema.String,
+        generation: Schema.String,
+      }),
+      request: AssessmentRequestSchema,
+    },
   },
-  messages: [Message.SettledSave],
-  execute: ({ room, request }) =>
+  ({ room, request }) =>
     Effect.tryPromise(async (signal) => {
       const response = await fetch(`${pathFor(room)}/assessments`, {
         method: 'POST',
@@ -226,7 +231,7 @@ const SubmitAssessmentSave = Command.define('SubmitAssessmentSave', {
         Message.SettledSave({ operationId: request.operationId, reply: null, status: 0 }),
       ),
     ),
-});
+);
 function settled(model: Model, reply: AssessmentReply, actorId: string): Model {
   if (model.status !== 'editing' || model.delivery.status === 'ready') return model;
   const request = model.delivery.request;
@@ -272,7 +277,7 @@ export function observe(model: Model, frame: DiagramFrame, actorId: string): Mod
 export function update(model: Model, message: Message, context: Context): Return<Model, Message> {
   const editable = context.editable && !context.graphPending;
   const ready = model.status === 'editing' && model.delivery.status === 'ready';
-  return Message.match<Return<Model, Message>>(message, {
+  return Message.match(message, {
     SelectedRelationship: ({ id }) => ({
       model: model.status === 'closed' && context.frame ? open(context.frame, id) : model,
     }),
@@ -359,9 +364,9 @@ export function update(model: Model, message: Message, context: Context): Return
           model.draft.expectedRevision
       )
         return { model };
-      return { model, commands: [AllocateAssessmentSave({ draft: model.draft })] };
+      return { model, commands: [AllocateAssessmentSave.make({ draft: model.draft })] };
     },
-    AllocatedSave: ({ request }) => {
+    AllocatedSave: ({ request }): Return<Model, Message> => {
       if (
         !ready ||
         !editable ||
@@ -372,7 +377,7 @@ export function update(model: Model, message: Message, context: Context): Return
         return { model };
       return {
         model: { ...model, delivery: { status: 'sending', request }, notice: 'Saving assessment…' },
-        commands: [SubmitAssessmentSave({ room: context.room, request })],
+        commands: [SubmitAssessmentSave.make({ room: context.room, request })],
       };
     },
     FailedAllocation: () => ({
@@ -380,7 +385,7 @@ export function update(model: Model, message: Message, context: Context): Return
         ? { ...model, notice: 'Could not prepare save. Review required fields and retry.' }
         : model,
     }),
-    ClickedRetry: () =>
+    ClickedRetry: (): Return<Model, Message> =>
       model.status === 'editing' && model.delivery.status === 'uncertain' && editable
         ? {
             model: {
@@ -389,11 +394,11 @@ export function update(model: Model, message: Message, context: Context): Return
               notice: 'Retrying original assessment request…',
             },
             commands: [
-              SubmitAssessmentSave({ room: context.room, request: model.delivery.request }),
+              SubmitAssessmentSave.make({ room: context.room, request: model.delivery.request }),
             ],
           }
         : { model },
-    SettledSave: ({ operationId, reply, status }) => {
+    SettledSave: ({ operationId, reply, status }): Return<Model, Message> => {
       if (
         model.status !== 'editing' ||
         model.delivery.status === 'ready' ||
@@ -431,31 +436,31 @@ const labels = {
 export function view<P>(
   model: Model,
   context: Context,
-  h: HtmlBuilder<P>,
+  h: Html.H<P>,
   toParent: (message: Message) => P,
-): Html {
+) {
   const frame = context.frame;
   const button = (label: string, message: Message, disabled = false) =>
-    h.button([h.Type('button'), h.Disabled(disabled), h.OnClick(toParent(message))], [label]);
-  if (!frame) return h.p([], ['Loading assessments…']);
+    h.button
+      .attr('type', 'button')
+      .disabled(disabled)
+      .on('click', toParent(message))
+      .children(label);
+  if (!frame) return h.p.children('Loading assessments…');
   const text = (
     label: string,
     value: string,
     changed: (text: string) => Message,
     disabled: boolean,
   ) =>
-    h.label(
-      [],
-      [
-        label,
-        h.textarea([
-          h.AriaLabel(label),
-          h.Value(value),
-          h.Maxlength(2048),
-          h.Disabled(disabled),
-          h.OnInput((text) => toParent(changed(text))),
-        ]),
-      ],
+    h.label.children(
+      label,
+      h.textarea
+        .attr('aria-label', label)
+        .value(value)
+        .attr('maxlength', String(2048))
+        .disabled(disabled)
+        .on('input', ({ value: text }) => toParent(changed(text))),
     );
   if (model.status === 'closed') {
     // The chooser renders every relationship. Index once instead of scanning
@@ -465,45 +470,35 @@ export function view<P>(
       (frame.assessments ?? []).map((record) => [record.assessment.target.relationshipId, record]),
     );
     const ids = [...new Set([...edges.keys(), ...records.keys()])];
-    return h.section(
-      [h.Class('coupling-authoring'), h.AriaLabel('Balanced Coupling assessment')],
-      [
-        h.h2([h.Class('rail-heading')], ['Balanced Coupling']),
-        h.p(
-          [],
-          [
-            'Capture relationship evidence before charting. Unknown is a valid answer; explain what is missing.',
-          ],
+    return h.section
+      .class('coupling-authoring')
+      .attr('aria-label', 'Balanced Coupling assessment')
+      .children(
+        h.h2.class('rail-heading').children('Balanced Coupling'),
+        h.p.children(
+          'Capture relationship evidence before charting. Unknown is a valid answer; explain what is missing.',
         ),
-        h.label(
-          [],
-          [
-            'Assess relationship',
-            h.select(
-              [
-                h.AriaLabel('Assess relationship'),
-                h.Value(''),
-                h.OnChange((id) => toParent(Message.SelectedRelationship({ id }))),
-              ],
-              [
-                h.option([h.Value('')], ['Choose a relationship']),
-                ...ids.map((id) => {
-                  const record = records.get(id);
-                  const edge = edges.get(id);
-                  return h.option(
-                    [h.Value(id)],
-                    [
-                      `${edge?.label ?? id} · ${edge ? `${edge.source.node} → ${edge.target.node}` : 'removed'}${record ? ` · revision ${record.revision}${record.assessment.target.graphVersion !== frame.document.version ? ' · stale' : ''}` : ' · unassessed'}`,
-                    ],
+        h.label.children(
+          'Assess relationship',
+          h.select
+            .attr('aria-label', 'Assess relationship')
+            .value('')
+            .on('change', ({ value }) => toParent(Message.SelectedRelationship({ id: value })))
+            .children(
+              h.option.attr('value', '').children('Choose a relationship'),
+              ...ids.map((id) => {
+                const record = records.get(id);
+                const edge = edges.get(id);
+                return h.option
+                  .attr('value', id)
+                  .children(
+                    `${edge?.label ?? id} · ${edge ? `${edge.source.node} → ${edge.target.node}` : 'removed'}${record ? ` · revision ${record.revision}${record.assessment.target.graphVersion !== frame.document.version ? ' · stale' : ''}` : ' · unassessed'}`,
                   );
-                }),
-              ],
+              }),
             ),
-          ],
         ),
-        ...(!ids.length ? [h.p([], ['Connect two nodes to author an assessment.'])] : []),
-      ],
-    );
+        ...(!ids.length ? [h.p.children('Connect two nodes to author an assessment.')] : []),
+      );
   }
   const draft = model.draft;
   const saved = recordFor(frame, draft.target.relationshipId);
@@ -519,36 +514,30 @@ export function view<P>(
         graph: frame.document.graph,
       })
     : null;
-  return h.section(
-    [h.Class('coupling-authoring'), h.AriaLabel('Balanced Coupling assessment')],
-    [
-      h.h2([h.Class('rail-heading')], ['Balanced Coupling']),
-      h.p(
-        [],
-        [
-          `Relationship ${draft.target.relationshipId} · ${draft.target.sourceNodeId} → ${draft.target.targetNodeId}`,
-        ],
+  return h.section
+    .class('coupling-authoring')
+    .attr('aria-label', 'Balanced Coupling assessment')
+    .children(
+      h.h2.class('rail-heading').children('Balanced Coupling'),
+      h.p.children(
+        `Relationship ${draft.target.relationshipId} · ${draft.target.sourceNodeId} → ${draft.target.targetNodeId}`,
       ),
-      h.p(
-        [h.DataAttribute('assessment-revision', String(saved?.revision ?? 0))],
-        [
+      h.p
+        .attr('data-assessment-revision', String(saved?.revision ?? 0))
+        .children(
           saved
             ? `Shared revision ${saved.revision} · author ${saved.authoredBy} · ${result?.status === 'rejected' ? 'stale; review required' : result?.status}`
             : 'No shared assessment yet.',
-        ],
-      ),
-      h.p(
-        [],
-        [
-          'Distance means co-evolution cost, not canvas position. Volatility means expected change over your horizon.',
-        ],
+        ),
+      h.p.children(
+        'Distance means co-evolution cost, not canvas position. Volatility means expected change over your horizon.',
       ),
       ...(stale
         ? [
-            h.p(
-              [h.Role('status'), h.AriaLive('polite')],
-              ['Assessment needs review after a diagram change. Your draft is preserved.'],
-            ),
+            h.p
+              .attr('role', 'status')
+              .attr('aria-live', 'polite')
+              .children('Assessment needs review after a diagram change. Your draft is preserved.'),
             button(
               'Review assessment against current diagram',
               Message.ClickedReviewGraph(),
@@ -558,12 +547,11 @@ export function view<P>(
         : []),
       ...(conflict
         ? [
-            h.p(
-              [h.Role('alert')],
-              [
+            h.p
+              .attr('role', 'alert')
+              .children(
                 'A teammate saved a newer revision. Your draft is preserved; load the shared assessment to review it.',
-              ],
-            ),
+              ),
           ]
         : []),
       text(
@@ -579,77 +567,67 @@ export function view<P>(
         disabled,
       ),
       ...(['integrationType', 'strength', 'distance', 'volatility'] as const).map((field) =>
-        h.fieldset(
-          [h.Disabled(disabled)],
-          [
-            h.legend([], [labels[field]]),
-            h.label(
-              [],
-              [
-                `${labels[field]} judgment`,
-                h.select(
-                  [
-                    h.AriaLabel(`${labels[field]} judgment`),
-                    h.Value(draft[field].value),
-                    h.OnChange((value) => toParent(Message.ChangedValue({ field, value }))),
-                  ],
-                  (field === 'integrationType'
-                    ? ['unknown', 'intrusive', 'functional', 'model', 'contract']
-                    : ['unknown', 'low', 'high']
-                  ).map((value) => h.option([h.Value(value)], [value])),
-                ),
-              ],
-            ),
-            ...(draft[field].value !== 'unknown'
-              ? [
-                  h.label(
-                    [],
-                    [
-                      `${labels[field]} basis`,
-                      h.select(
-                        [
-                          h.AriaLabel(`${labels[field]} basis`),
-                          h.Value(draft[field].basis),
-                          h.OnChange((value) =>
-                            toParent(
-                              Message.ChangedBasis({
-                                field,
-                                value: Schema.is(Basis)(value) ? value : 'declared',
-                              }),
-                            ),
-                          ),
-                        ],
-                        ['declared', 'observed', 'derived'].map((value) =>
-                          h.option([h.Value(value)], [value]),
-                        ),
+        h.fieldset.disabled(disabled).children(
+          h.legend.children(labels[field]),
+          h.label.children(
+            `${labels[field]} judgment`,
+            h.select
+              .attr('aria-label', `${labels[field]} judgment`)
+              .value(draft[field].value)
+              .on('change', ({ value }) => toParent(Message.ChangedValue({ field, value })))
+              .children(
+                (field === 'integrationType'
+                  ? ['unknown', 'intrusive', 'functional', 'model', 'contract']
+                  : ['unknown', 'low', 'high']
+                ).map((value) => h.option.attr('value', value).children(value)),
+              ),
+          ),
+          ...(draft[field].value !== 'unknown'
+            ? [
+                h.label.children(
+                  `${labels[field]} basis`,
+                  h.select
+                    .attr('aria-label', `${labels[field]} basis`)
+                    .value(draft[field].basis)
+                    .on('change', ({ value }) =>
+                      toParent(
+                        Message.ChangedBasis({
+                          field,
+                          value: Schema.is(Basis)(value) ? value : 'declared',
+                        }),
                       ),
-                    ],
-                  ),
-                ]
-              : []),
-            text(
-              `${labels[field]} ${draft[field].value === 'unknown' ? 'unknown reason' : 'rationale'}`,
-              draft[field].evidence,
-              (text) => Message.ChangedEvidence({ field, text }),
-              disabled,
-            ),
-          ],
+                    )
+                    .children(
+                      ['declared', 'observed', 'derived'].map((value) =>
+                        h.option.attr('value', value).children(value),
+                      ),
+                    ),
+                ),
+              ]
+            : []),
+          text(
+            `${labels[field]} ${draft[field].value === 'unknown' ? 'unknown reason' : 'rationale'}`,
+            draft[field].evidence,
+            (text) => Message.ChangedEvidence({ field, text }),
+            disabled,
+          ),
         ),
       ),
-      h.p(
-        [h.Role('status'), h.AriaLive('polite'), h.DataAttribute('assessment-status', '')],
-        [
+      h.p
+        .attr('role', 'status')
+        .attr('aria-live', 'polite')
+        .attr('data-assessment-status', '')
+        .children(
           model.notice ||
             (!context.editable
               ? 'Read-only assessment snapshot.'
               : Option.isNone(authoredAssessment(draft))
                 ? 'Complete scope, horizon and evidence for each input.'
                 : 'Draft ready for review.'),
-        ],
-      ),
-      h.div(
-        [h.Class('inspector-primary')],
-        [
+        ),
+      h.div
+        .class('inspector-primary')
+        .children(
           button(
             'Save shared assessment',
             Message.ClickedSave(),
@@ -664,16 +642,11 @@ export function view<P>(
                 ),
               ]
             : []),
-        ],
-      ),
+        ),
       button('Load shared assessment (discard draft)', Message.ClickedLoadShared(), busy),
       button('Discard draft and close assessment', Message.ClickedClose(), busy),
-      h.p(
-        [],
-        [
-          'Graph Undo, graph export and graph checkpoints do not include assessments. Drafts are local until saved.',
-        ],
+      h.p.children(
+        'Graph Undo, graph export and graph checkpoints do not include assessments. Drafts are local until saved.',
       ),
-    ],
-  );
+    );
 }

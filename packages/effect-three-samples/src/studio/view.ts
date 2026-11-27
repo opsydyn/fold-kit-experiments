@@ -1,9 +1,10 @@
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { overlay } from '@opsydyn/effect-three';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Option } from 'effect';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import { sceneMount } from '../environment';
+import { type SceneOverlay, sceneOverlayLayer, withSceneOverlays } from '../effect-ui-overlays';
+import { EffectThreeStage, unlabelledSceneMount } from '../effect-ui-scene';
 import { Message } from './message';
 import type { Finish, Lens, Model, Piece, Placement, Shadows, Tone } from './model';
 import { sceneFor } from './scene';
@@ -36,14 +37,11 @@ const lensLabel = {
 const shadowsOn = { soft: true, off: false } satisfies Record<Shadows, boolean>;
 const filmicOn = { aces: true, none: false } satisfies Record<Tone, boolean>;
 
-const toggle = (h: HtmlBuilder<Message>, label: string, on: boolean, message: Message): Html =>
-  h.button(
-    [h.Class('e3-button'), h.Type('button'), h.AriaPressed(String(on)), h.OnClick(message)],
-    [label],
-  );
+const button = (h: Html.H<Message>, label: string, message: Message) =>
+  h.button.class('e3-button').attr('type', 'button').on('click', message).children(label);
 
-const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
-  h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
+const toggle = (h: Html.H<Message>, label: string, on: boolean, message: Message) =>
+  button(h, label, message).attr('aria-pressed', String(on));
 
 const selectedPlacement = (model: Model): Option.Option<Placement> =>
   Option.flatMap(model.selected, (piece) =>
@@ -51,26 +49,28 @@ const selectedPlacement = (model: Model): Option.Option<Placement> =>
   );
 
 /** A tag floating over the selected piece: its name and finish, from the Model. */
-const tagFor = (h: HtmlBuilder<Message>) => (placement: Placement) => ({
-  overlay: overlay({
-    key: 'selected-tag',
-    node: pieceKey(placement.piece),
-    position: [0, 0.9, 0],
-    center: true,
-  }),
-  content: h.span([h.Class('e3-tag')], [`${pieceName[placement.piece]} · ${placement.finish}`]),
-  pointerEvents: 'none' as const,
-});
+const tagFor =
+  (h: Html.H<Message>) =>
+  (placement: Placement): SceneOverlay<Message> => ({
+    overlay: overlay({
+      key: 'selected-tag',
+      node: pieceKey(placement.piece),
+      position: [0, 0.9, 0],
+      center: true,
+    }),
+    content: h.span.class('e3-tag').children(`${pieceName[placement.piece]} · ${placement.finish}`),
+    pointerEvents: 'none',
+  });
 
-const tags = (model: Model, h: HtmlBuilder<Message>) =>
+const tags = (model: Model, h: Html.H<Message>) =>
   Option.toArray(Option.map(selectedPlacement(model), tagFor(h)));
 
 const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'] as const;
 
 /** Arrow keys move the camera while the stage has focus (shift turns); others pass. */
-const arrowKey = (key: string, modifiers: { readonly shiftKey: boolean }): Option.Option<Message> =>
+const arrowKey = (key: string, shift: boolean): Option.Option<Message> =>
   Option.map(Option.fromNullishOr(arrows.find((arrow) => arrow === key)), (arrow) =>
-    Message.PressedArrow({ key: arrow, turning: modifiers.shiftKey }),
+    Message.PressedArrow({ key: arrow, turning: shift }),
   );
 
 const readout = (model: Model): string =>
@@ -81,60 +81,55 @@ const readout = (model: Model): string =>
       `${pieceName[placement.piece]}: ${finishName[placement.finish]}. Right-click to change the finish, double-click to send it home.`,
   });
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'Studio — effect-three',
-  body: h.div(
-    [h.Class('e3-sample')],
-    [
-      h.div(
-        [
-          h.Tabindex(0),
-          h.AriaLabel('Studio scene. Arrow keys pan the camera; with shift they turn it.'),
-          h.OnKeyDownPreventDefault(arrowKey),
-        ],
-        [
-          EffectThreeFoldkit.view(
-            {
-              scene: sceneFor(model),
-              mount: sceneMount,
-              className: 'e3-stage',
-              onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-              onPointerEnter: ({ key }) => Message.HoveredPiece({ key }),
-              onPointerLeave: ({ key }) => Message.LeftPiece({ key }),
-              onClick: ({ key }) => Message.ClickedPiece({ key }),
-              onDoubleClick: ({ key }) => Message.DoubleClickedPiece({ key }),
-              onContextMenu: ({ key }) => Message.OpenedPieceMenu({ key }),
-              onPointerDown: ({ key, ray }) =>
-                Message.PressedPiece({ key, origin: ray.origin, direction: ray.direction }),
-              onDrag: ({ key, ray }) =>
-                Message.DraggedPiece({ key, origin: ray.origin, direction: ray.direction }),
-              onDragEnd: () => Message.DroppedPiece(),
-              onPointerMissed: () => Message.ClickedEmptySpace(),
-              onGesture: (gesture) => Message.MadeGesture({ gesture }),
-              onMeasured: ({ key, min, max }) => Message.MeasuredPiece({ key, min, max }),
-              overlays: tags(model, h),
-            },
-            h,
-          ),
-        ],
+export const view = (h: Html.H<Message>, model: Model) => {
+  const overlays = tags(model, h);
+  const scene = withSceneOverlays(sceneFor(model), overlays);
+  return h.div.class('e3-sample').children(
+    h.div
+      .attr('tabindex', '0')
+      .attr('aria-label', 'Studio scene. Arrow keys pan the camera. Hold Shift to turn.')
+      .on('keydown', ({ key, shift }) => Option.getOrUndefined(arrowKey(key, shift)), {
+        preventDefault: true,
+      })
+      .children(
+        EffectThreeStage(h)
+          .class('e3-stage')
+          .on('scene-pointer-enter', ({ key }) => Message.HoveredPiece({ key }))
+          .on('scene-pointer-leave', ({ key }) => Message.LeftPiece({ key }))
+          .on('scene-click', ({ key }) => Message.ClickedPiece({ key }))
+          .on('scene-double-click', ({ key }) => Message.DoubleClickedPiece({ key }))
+          .on('scene-context-menu', ({ key }) => Message.OpenedPieceMenu({ key }))
+          .on('scene-pointer-down', ({ key, ray }) =>
+            Message.PressedPiece({ key, origin: ray.origin, direction: ray.direction }),
+          )
+          .on('scene-drag', ({ key, ray }) =>
+            Message.DraggedPiece({ key, origin: ray.origin, direction: ray.direction }),
+          )
+          .on('scene-drag-end', Message.DroppedPiece())
+          .on('scene-pointer-missed', Message.ClickedEmptySpace())
+          .on('scene-gesture', ({ gesture }) => Message.MadeGesture({ gesture }))
+          .on('scene-measured', ({ key, min, max }) => Message.MeasuredPiece({ key, min, max }))
+          .onMount(
+            Mount.map(unlabelledSceneMount({ scene }), (lifecycle) =>
+              Message.ReceivedSceneLifecycle({ lifecycle }),
+            ),
+          )
+          .children(sceneOverlayLayer(h, overlays)),
       ),
-      h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
-      h.div(
-        [h.Class('e3-controls')],
-        [
-          toggle(h, 'Shadows', shadowsOn[model.shadows], Message.ClickedShadows()),
-          toggle(h, 'Filmic tone mapping', filmicOn[model.tone], Message.ClickedToneMapping()),
-          button(h, lensLabel[model.lens], Message.ClickedLens()),
-          button(h, 'Frame the pieces', Message.ClickedFrame()),
-        ],
+    h.p.class('e3-readout').attr('aria-live', 'polite').children(readout(model)),
+    h.div
+      .class('e3-controls')
+      .children(
+        toggle(h, 'Shadows', shadowsOn[model.shadows], Message.ClickedShadows()),
+        toggle(h, 'Filmic tone mapping', filmicOn[model.tone], Message.ClickedToneMapping()),
+        button(h, lensLabel[model.lens], Message.ClickedLens()),
+        button(h, 'Frame the pieces', Message.ClickedFrame()),
       ),
-      h.p(
-        [h.Class('e3-note')],
-        [
-          'Every piece is a different geometry and material kind. A press captures the pointer, ',
-          'so a drag follows it anywhere; the drag ray meets the floor plane to place the piece.',
-        ],
+    h.p
+      .class('e3-note')
+      .children(
+        'Every piece is a different geometry and material kind. A press captures the pointer, ',
+        'so a drag follows it anywhere. The drag ray meets the floor plane to place the piece.',
       ),
-    ],
-  ),
-});
+  );
+};

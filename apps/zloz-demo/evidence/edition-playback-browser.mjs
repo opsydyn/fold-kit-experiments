@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseModelDocument } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,16 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const capturePath = (file) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${file.replace(/^\.\//u, '')}`)
+    : fileURLToPath(new URL(file, import.meta.url));
+async function toggleCheckbox(control, checked = true) {
+  if ((await control.isChecked()) !== checked) await control.click();
+  await expect(control).toBeChecked({ checked });
+}
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1100 },
@@ -60,6 +69,7 @@ async function run() {
   await page.goto(`http://127.0.0.1:${server.address().port}`);
   await button('Open DDD Order aggregate').click();
   await section('History');
+  await expect(page.locator('[data-architecture-effect-ui="history"]')).toBeVisible();
   const original = await download();
   await section('Diagram');
   await page.locator('[data-flow-handle="order"]').press('ArrowRight');
@@ -67,11 +77,13 @@ async function run() {
   await button('Load Order history example').click();
   const working = await download();
   await rewind().selectOption('order-start');
-  await page.getByRole('checkbox', { name: 'Show comparison ghosts', exact: true }).check();
+  await toggleCheckbox(page.getByRole('checkbox', { name: 'Show comparison ghosts', exact: true }));
   await expect(
     page.getByRole('checkbox', { name: 'Enable edition playback', exact: true }),
   ).not.toBeChecked();
-  await page.getByRole('checkbox', { name: 'Enable edition playback', exact: true }).check();
+  await toggleCheckbox(
+    page.getByRole('checkbox', { name: 'Enable edition playback', exact: true }),
+  );
   await page.getByRole('combobox', { name: 'Edition interval', exact: true }).selectOption('1000');
   await button('Play editions').click();
   await expect(status()).toContainText('Playing');
@@ -94,9 +106,7 @@ async function run() {
       .getByRole('group', { name: 'Edition playback', exact: true })
       .scrollIntoViewIfNeeded();
     await page.screenshot({
-      path: fileURLToPath(
-        new URL(`./edition-playback-${theme.toLowerCase()}.png`, import.meta.url),
-      ),
+      path: capturePath(`./edition-playback-${theme.toLowerCase()}.png`),
     });
   }
   await button('Rewind editions').click();
@@ -115,7 +125,7 @@ async function run() {
   await expect(rewind()).toHaveValue('order-evolved');
   await page.getByRole('group', { name: 'Edition playback', exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: fileURLToPath(new URL('./edition-playback-reduced-motion.png', import.meta.url)),
+    path: capturePath('./edition-playback-reduced-motion.png'),
   });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await expect(button('Play editions')).toBeEnabled();

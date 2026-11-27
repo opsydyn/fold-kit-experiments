@@ -2,29 +2,24 @@
 import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import {
-  zlozDddNode,
-  zlozDddGroup,
-  zlozView,
-  zlozLightTheme,
+  graphSurface,
   zlozDarkTheme,
-  type ZlozDddNodeOptions,
-  type ZlozNodeBodyCache,
-  type ZlozViewOptions,
-} from '../src/foldkit';
+  zlozLightTheme,
+  type GraphSurfaceOptions,
+  type NativeNotationContext,
+  type NativeNotationParts,
+} from '../src/effect-ui';
 import {
   createArchitectureNode,
   createEditor,
   nodeShapeGeometry,
-  type EditorEvent,
   type EditorState,
   type ZlozGraph,
-  type ZlozNode,
 } from '../src/index';
 
 const graph: ZlozGraph = {
@@ -89,30 +84,29 @@ const graph: ZlozGraph = {
 const initial = createEditor(graph);
 async function render(
   state: EditorState = initial,
-  options: ZlozDddNodeOptions<EditorEvent> = {},
-  view: Partial<ZlozViewOptions<EditorEvent>> = {},
+  parts: NativeNotationParts<string> = {},
+  view: Partial<GraphSurfaceOptions<string>> = {},
 ) {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'DDD',
-          body: zlozView(h, model, {
-            id: 'ddd',
-            label: 'Domain model',
-            onEvent: (event) => event,
-            resizeHandles: true,
-            renderNodeShell: (context, builder) => zlozDddNode(context, builder, options),
-            renderGroupShell: (context, builder) => zlozDddGroup(context, builder, options),
-            ...view,
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const component = Html.component({
+    name: 'dddTest',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) =>
+      graphSurface(h, state, {
+        id: 'ddd',
+        label: 'Domain model',
+        onInput: (event) => event.type,
+        onToggleGroup: (id) => id,
+        resizeHandles: true,
+        architectureNotation: true,
+        notationParts: parts,
+        ...view,
+      }),
+  });
+  const result = await Effect.runPromise(HtmlServer.renderToHtml(component, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = result.html;
   return window.document;
@@ -138,9 +132,9 @@ test('all nine DDD roles retain native semantics, canonical geometry and family 
   expect(document.querySelector('[data-flow-node="bounded-context"]')?.textContent).toContain(
     'Core subdomain',
   );
-  expect(document.querySelector('[data-flow-ddd-group="bounded-context"]')?.textContent).toContain(
-    'Supporting subdomain',
-  );
+  expect(
+    document.querySelector('[data-flow-ddd-group="bounded-context-boundary"]')?.textContent,
+  ).toContain('Supporting subdomain');
   expect(
     document.querySelector('[data-flow-node="read-model"] [data-flow-ddd-type]')?.textContent,
   ).toBe('Read Model');
@@ -150,14 +144,12 @@ test('all nine DDD roles retain native semantics, canonical geometry and family 
   );
   expect(repository?.querySelector('[data-flow-ddd-cap]')).not.toBeNull();
   expect(repository?.querySelector('[data-flow-port="out"]')?.getAttribute('style')).toContain(
-    'top: 8.888',
+    'top:8.888',
   );
   expect(repository?.querySelector('[data-flow-handle]')?.getAttribute('aria-label')).toBe(
     'Select Named repository',
   );
-  expect(
-    document.querySelector('[data-flow-ddd-boundary-controls] button[aria-expanded]'),
-  ).not.toBeNull();
+  expect(document.querySelector('[data-flow-ddd-group] button[aria-expanded]')).not.toBeNull();
   expect(document.querySelectorAll('[data-flow-ddd-group] [data-flow-port]')).toHaveLength(0);
   expect(document.querySelectorAll('button button')).toHaveLength(0);
 });
@@ -170,10 +162,10 @@ test('slots omit or replace inert parts; live controls stay outside the drag but
         renderType: () => null,
         renderSubdomain: () => null,
         renderDescription: () => null,
-        renderBadge: ({ architecture }, h) => h.span([], [`Custom ${architecture.role}`]),
-        renderName: ({ node }, h) => h.strong([], [`Custom ${node.label}`]),
+        renderBadge: ({ architecture }, h) => h.span.children(`Custom ${architecture.role}`),
+        renderName: ({ node }, h) => h.strong.children(`Custom ${node.label}`),
       },
-      { theme, minimalMode: true, canConnectPort: () => 'Domain approval required' },
+      { theme, policy: { canConnectPort: () => 'Domain approval required' } },
     );
     expect(document.body.textContent).not.toContain('A domain responsibility');
     expect(document.body.textContent).not.toContain('Core subdomain');
@@ -183,12 +175,10 @@ test('slots omit or replace inert parts; live controls stay outside the drag but
       'Domain approval required',
     );
     expect(document.querySelector('[data-flow-port]')?.hasAttribute('disabled')).toBe(true);
-    expect(document.getElementById('ddd')?.getAttribute('style')).toContain(
-      `color-scheme: ${theme.colorScheme}`,
+    expect(document.getElementById('ddd-surface')?.getAttribute('style')).toContain(
+      `color-scheme:${theme.colorScheme}`,
     );
-    expect(document.querySelector('[data-flow-ddd-outline]')?.getAttribute('fill')).toBe(
-      'var(--flow-node-background, #fff)',
-    );
+    expect(document.querySelectorAll('[data-flow-ddd-type]')).toHaveLength(0);
     expect(
       document.querySelectorAll(
         '[data-flow-ddd-body] button, [data-flow-ddd-body] [data-flow-port]',
@@ -198,20 +188,19 @@ test('slots omit or replace inert parts; live controls stay outside the drag but
 });
 
 test('cached body inputs exclude source/read-only policies and retain live socket feedback', async () => {
-  const mutable: unknown[][] = [];
-  const cache: ZlozNodeBodyCache = (_node, view, args) => {
-    mutable.push(args.slice(1));
-    return view(...args);
+  const inputs: NativeNotationContext[] = [];
+  const options: NativeNotationParts<string> = {
+    renderBody(context) {
+      inputs.push(context);
+    },
   };
-  const options: ZlozDddNodeOptions<EditorEvent> = { bodyCache: cache };
   await render(initial, options);
-  const before = mutable.slice();
-  mutable.length = 0;
+  const before = inputs.splice(0);
   const document = await render(
     { ...initial, readOnly: true, connection: { node: 'entity', port: 'out' } },
     options,
   );
-  expect(mutable).toEqual(before);
+  expect(inputs).toEqual(before);
   expect(
     document
       .querySelector('[data-flow-owner="entity"][data-flow-port]')
@@ -226,18 +215,22 @@ test('cached body inputs exclude source/read-only policies and retain live socke
 });
 
 test('custom body and controls can be omitted without losing ports, dimensions or accessible names', async () => {
-  const document = await render(initial, {
-    attributes: [],
-    renderBody: () => null,
-    renderControls: () => [],
-  });
+  const hideControls = () => ({ controls: false });
+  const document = await render(
+    initial,
+    { renderBody: () => null },
+    {
+      renderNodeShell: hideControls,
+      renderGroupShell: hideControls,
+    },
+  );
   expect(document.querySelector('[data-flow-ddd-type]')).toBeNull();
   expect(document.querySelector('[data-flow-node="entity"] [data-flow-port]')).not.toBeNull();
   expect(document.querySelector('[data-flow-handle="entity"]')?.getAttribute('aria-label')).toBe(
     'Select Named entity',
   );
   expect(document.querySelector('[data-flow-ddd-node="entity"]')?.getAttribute('style')).toContain(
-    'height: 180px',
+    'height:180px',
   );
   expect(
     document.querySelectorAll(
@@ -250,34 +243,35 @@ test('declared group header geometry composes custom content and keeps compact c
   const node = graph.nodes.find((n) => n.id === 'bounded-context-boundary');
   assert(node);
   const state = createEditor({ nodes: [node], edges: [] });
-  const options = {
-    groupHeader: {
-      id: node.id,
-      size: { width: 600, height: 112 },
-      padding: { top: 24, right: 24, bottom: 24, left: 24 },
-      gap: 24,
-    },
-    renderBody: (_context: { node: ZlozNode }, h: HtmlBuilder<EditorEvent>) =>
-      h.div([h.DataAttribute('custom-group-heading', '')], ['Custom architecture heading']),
+  const groupHeader = {
+    id: node.id,
+    size: { width: 600, height: 112 },
+    padding: { top: 24, right: 24, bottom: 24, left: 24 },
+    gap: 24,
   };
-  const document = await render(state, options, { minimalMode: true });
+  const options: NativeNotationParts<string> = {
+    renderBody: (_, h) =>
+      h.span.attr('data-custom-group-heading', '').children('Custom architecture heading'),
+  };
+  const document = await render(state, options, { groupHeader: () => groupHeader });
   const header = document.querySelector('[data-zloz-group-header]');
-  expect(header?.getAttribute('style')).toContain('width: 600px');
-  expect(header?.getAttribute('style')).toContain('height: 112px');
-  expect(header?.getAttribute('style')).toContain('left: 24px');
-  expect(header?.getAttribute('style')).toContain('top: 24px');
+  expect(header?.getAttribute('style')).toContain('width:600px');
+  expect(header?.getAttribute('style')).toContain('height:112px');
+  expect(header?.getAttribute('style')).toContain('left:24px');
+  expect(header?.getAttribute('style')).toContain('top:24px');
   expect(header?.textContent).toContain('Custom architecture heading');
-  const intrinsic = await render(state, {
-    ...options,
-    groupHeader: { ...options.groupHeader, sizing: 'intrinsic' },
+  const intrinsic = await render(state, options, {
+    groupHeader: () => ({ ...groupHeader, sizing: 'intrinsic' }),
   });
   expect(intrinsic.querySelector('[data-zloz-group-header]')?.getAttribute('style')).toContain(
-    'width: max-content',
+    'width:max-content',
   );
   expect(intrinsic.querySelector('[data-zloz-group-header]')?.getAttribute('style')).toContain(
-    'height: max-content',
+    'height:max-content',
   );
-  const collapsed = await render({ ...state, collapsedGroups: [node.id] }, options);
+  const collapsed = await render({ ...state, collapsedGroups: [node.id] }, options, {
+    groupHeader: () => groupHeader,
+  });
   expect(collapsed.querySelector('[data-zloz-group-header]')).toBeNull();
   expect(collapsed.querySelector('[data-custom-group-heading]')).not.toBeNull();
 });

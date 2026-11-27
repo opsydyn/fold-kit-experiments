@@ -1,5 +1,5 @@
 /**
- * The Foldkit adapter end to end, with real WebGL in headless Chromium (SwiftShader).
+ * The Effect UI adapter end to end, with real WebGL in headless Chromium (SwiftShader).
  * Pointer listeners are read through the Chrome DevTools Protocol, so the oracle is the
  * browser's own listener list rather than anything the adapter reports about itself.
  */
@@ -49,7 +49,16 @@ function probeSnapshot(): Probe {
 /** Runs in the page: true once the unmounted scene has released its resources. */
 function releasedScene(): boolean {
   const probe = Reflect.get(globalThis, '__probe');
-  return probe.stats().geometries.live === 0 && probe.resizeObservers === 0;
+  return (
+    probe.stats().geometries.live === 0 &&
+    probe.resizeObservers === 0 &&
+    probe.intersectionObservers === 0
+  );
+}
+
+function observingScene(): boolean {
+  const probe = Reflect.get(globalThis, '__probe');
+  return probe.resizeObservers === 1 && probe.intersectionObservers === 1;
 }
 
 function readProbe(page: Page): Promise<Probe> {
@@ -134,7 +143,7 @@ test('the adapter proves the vertical slice in a real browser', async () => {
   expect(await canvasPointerListeners(cdp)).toHaveLength(sceneInputTypes.size);
   expect(await readProbe(page)).toMatchObject({ resizeObservers: 1, intersectionObservers: 1 });
 
-  // Animation runs without Foldkit model updates.
+  // Animation runs without component model updates.
   const canvas = page.locator('effect-three-scene canvas');
   const updatesBefore = (await readProbe(page)).updates;
   const firstFrame = await canvas.screenshot();
@@ -143,7 +152,7 @@ test('the adapter proves the vertical slice in a real browser', async () => {
   expect(laterFrame.equals(firstFrame)).toBe(false);
   expect((await readProbe(page)).updates).toBe(updatesBefore);
 
-  // Pointer interaction dispatches a typed Foldkit Message.
+  // Pointer interaction dispatches a typed component message.
   await canvas.click({ position: { x: 160, y: 120 } });
   await waitForText(page, '#clicks', '1');
   expect(await text(page, '#last-key')).toBe('cube');
@@ -239,7 +248,7 @@ test('assets load into the store, play, pick by part and unload from the GPU', a
   await animationFrames(page, 3);
   const before = await page.evaluate(gpuMemory);
 
-  // A glTF model loads through a Foldkit Command and appears through a borrowed node.
+  // A glTF model loads through an Effect UI command and appears through a borrowed node.
   await page.click('#load-model');
   await waitForText(page, '#robot', 'ready:wave,roll');
   await animationFrames(page, 5);
@@ -474,15 +483,19 @@ test('repeated mount and unmount releases WebGL contexts and resources', async (
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const warnings: Array<string> = [];
   page.on('console', (message) => {
-    if (message.text().includes('WebGL')) warnings.push(message.text());
+    const text = message.text();
+    if (text.includes('WebGL') && !text.includes('GPU stall due to ReadPixels'))
+      warnings.push(text);
   });
   await page.goto(app.url('index.html'));
   await waitForText(page, '#started', '1');
+  await page.waitForFunction(observingScene);
   for (let cycle = 2; cycle <= 21; cycle++) {
     await page.click('#visible');
     await page.waitForFunction(releasedScene);
     await page.click('#visible');
     await waitForText(page, '#started', String(cycle));
+    await page.waitForFunction(observingScene);
   }
   const probe = await readProbe(page);
   expect(probe.stats.geometries.live).toBe(1);

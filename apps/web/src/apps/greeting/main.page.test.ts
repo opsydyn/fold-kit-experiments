@@ -1,74 +1,28 @@
-import { resolvePageDocument } from '@opsydyn/astro-foldkit/server';
 import { Schema } from 'effect';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 
-import { Flags, Name, init } from './model';
-import GreetingPage from './page';
-import { presentationFor } from './view';
+import { Props } from './model';
+import { localeFromUrl, presentationFor } from './presentation';
 
-const props = (name: string) => ({ name: Schema.decodeSync(Name)(name) });
-
-const context = (url: string, name: string) => ({
-  request: new Request(url),
-  url: new URL(url),
-  params: {},
-  props: props(name),
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
-
-describe('GreetingPage', () => {
-  test('derives Flags from validated props and the accepted request URL locale', () => {
-    const ada = Schema.decodeSync(Name)('Ada');
-
-    expect(GreetingPage.flags(context('https://example.com/greeting?locale=ar', 'Ada'))).toEqual({
-      name: ada,
-      locale: 'ar',
-    });
-    expect(GreetingPage.flags(context('https://example.com/greeting?locale=en', 'Ada'))).toEqual({
-      name: ada,
-      locale: 'en',
-    });
-    expect(GreetingPage.flags(context('https://example.com/greeting?locale=fr', 'Ada'))).toEqual({
-      name: ada,
-      locale: 'en',
-    });
+describe('Greeting page presentation', () => {
+  test('accepts English and Arabic and falls back to English', () => {
+    for (const [query, locale] of [
+      ['ar', 'ar'],
+      ['en', 'en'],
+      ['fr', 'en'],
+    ] as const)
+      expect(localeFromUrl(new URL('https://example.test/greeting?locale=' + query))).toBe(locale);
   });
 
-  test('initialises directly from Flags instead of rebuilding request defaults', () => {
-    const flags = Schema.decodeSync(Flags)({ name: 'Ada', locale: 'ar' });
-
-    expect(init(flags).model).toEqual({
-      name: Schema.decodeSync(Name)('Ada'),
-      locale: 'ar',
-    });
-  });
-
-  test('resolves the FoldKit document metadata used by the Astro layout', async () => {
-    vi.stubEnv('FOLDKIT_BUILD_ID', 'greeting-page-test');
-
-    await expect(
-      resolvePageDocument(GreetingPage, context('https://example.com/greeting?locale=ar', 'Ada')),
-    ).resolves.toEqual({
-      title: 'مرحبا، Ada! — Astro + FoldKit',
+  test('uses the same metadata on the server and the client', () => {
+    const props = Schema.decodeSync(Props)({ name: 'Ada', locale: 'ar' });
+    expect(presentationFor(props)).toEqual({
+      greeting: 'مرحبا، Ada!',
+      title: 'مرحبا، Ada! — Astro + Effect UI',
       lang: 'ar',
       dir: 'rtl',
       canonical: 'https://opsydyn-web.opsydyn.workers.dev/greeting?locale=ar',
       ogUrl: 'https://opsydyn-web.opsydyn.workers.dev/greeting?locale=ar',
     });
-  });
-
-  test('view metadata remains deterministic from the model only', () => {
-    const document = presentationFor({
-      name: Schema.decodeSync(Name)('Ada'),
-      locale: 'en',
-    });
-
-    expect(document.title).toBe('Hello, Ada! — Astro + FoldKit');
-    expect(document.lang).toBe('en');
-    expect(document.canonical).toBe('https://opsydyn-web.opsydyn.workers.dev/greeting');
-    expect(document.ogUrl).toBe('https://opsydyn-web.opsydyn.workers.dev/greeting');
   });
 });

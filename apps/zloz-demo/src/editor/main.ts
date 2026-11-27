@@ -1,174 +1,149 @@
-import { Effect, Option, Schema, Stream } from 'effect';
-import { Command, Dom, Subscription, Submodel } from 'foldkit';
-import type { Document, HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
-import { defineTaggedUnion } from 'foldkit/schema';
-import { foldChild, type Return } from 'foldkit/update';
+import { Command, Subscription, UiSchema } from '@effect/ui';
+import { Html } from '@effect/ui/html';
+import { Effect, Queue, Schema, Stream } from 'effect';
 
 import { LoadThemePreference } from './command';
-import * as Workbench from './message';
+import { Message as WorkbenchMessage } from './message';
 import { init as initModel, type Model as WorkbenchModel } from './model';
 import { update as updateWorkbench } from './update';
 import { view as viewWorkbench } from './view';
 
-export const Model = defineTaggedUnion({
+const Model = UiSchema.TaggedEnum({
   Preparing: {},
   Ready: { workbench: Schema.Unknown },
   Failed: {},
 });
-export type Model = typeof Model.Type;
-export const Message = defineMessageUnion({
+export const Lifecycle = UiSchema.TaggedEnum({
   SucceededIdentity: { namespace: Schema.String },
   FailedIdentity: {},
   ClickedRetryIdentity: {},
-  GotWorkbenchMessage: { message: Workbench.Message },
 });
-export type Message = typeof Message.Type;
-export const AllocateIdentity = Command.define('AllocateIdentity', {
-  messages: [Message.SucceededIdentity, Message.FailedIdentity],
-  execute: Effect.try(() => globalThis.crypto.randomUUID()).pipe(
+const Message = Schema.Union([Lifecycle, WorkbenchMessage]);
+type Message = typeof Message.Type;
+
+export const allocateIdentity = Command.make('AllocateIdentity', { args: {} }, () =>
+  Effect.try(() => globalThis.crypto.randomUUID()).pipe(
     Effect.match({
-      onSuccess: (namespace) => Message.SucceededIdentity({ namespace }),
-      onFailure: () => Message.FailedIdentity(),
+      onSuccess: (namespace) => Lifecycle.SucceededIdentity({ namespace }),
+      onFailure: () => Lifecycle.FailedIdentity(),
     }),
   ),
-});
-export const init = () => ({ model: Model.Preparing(), commands: [AllocateIdentity()] });
-function readWorkbench(model: Model): Option.Option<WorkbenchModel> {
-  return Model.match(model, {
-    Preparing: () => Option.none(),
-    Failed: () => Option.none(),
-    Ready: ({ workbench }) => {
-      // SAFETY: only SucceededIdentity constructs Ready with the typed editor initializer below.
-      return Option.some(workbench as WorkbenchModel);
-    },
-  });
-}
-const foldWorkbench = foldChild<
-  Model,
-  Message,
-  WorkbenchModel,
-  Workbench.Message,
-  Workbench.Message
->({
-  update: updateWorkbench,
-  read: readWorkbench,
-  write: (_model: Model, workbench: WorkbenchModel) => Model.Ready({ workbench }),
-  toParentMessage: (message: Workbench.Message) => Message.GotWorkbenchMessage({ message }),
-});
-export function update(model: Model, message: Message): Return<Model, Message> {
-  return Message.match(message, {
-    SucceededIdentity: ({ namespace }) =>
-      model._tag !== 'Preparing'
-        ? { model }
-        : {
-            model: Model.Ready({ workbench: initModel(namespace).model }),
-            commands: [
-              Command.mapMessage(LoadThemePreference(), (message) =>
-                Message.GotWorkbenchMessage({ message }),
-              ),
-            ],
-          },
-    FailedIdentity: () => ({ model: model._tag === 'Preparing' ? Model.Failed() : model }),
-    ClickedRetryIdentity: () => (model._tag === 'Failed' ? init() : { model }),
-    GotWorkbenchMessage: ({ message: raw }) => {
-      // SAFETY: h.submodel, Command.mapMessage and Subscription.lift wrap the child Message universe.
-      return foldWorkbench(model, raw);
-    },
-  });
-}
-const workbenchView = Submodel.defineView<WorkbenchModel, Workbench.Message>(
-  (model, h) => viewWorkbench(model, h).body,
 );
-export function view(model: Model, h: HtmlBuilder<Message>): Document {
-  return {
-    title: 'ZLOZ',
-    body: Model.match(model, {
-      Preparing: () => h.p([h.Role('status')], ['Preparing workbench…']),
-      Failed: () =>
-        h.div(
-          [],
-          [
-            h.p(
-              [h.Role('alert')],
-              ['Could not allocate a model identity. Your files remain unchanged.'],
+
+function mediaPreference(
+  name: string,
+  query: string,
+  message: (value: boolean) => WorkbenchMessage,
+) {
+  return Subscription.make(
+    name,
+    Stream.callback<WorkbenchMessage>((queue) => {
+      const watch = Effect.sync(() => {
+        const media = window.matchMedia(query);
+        const listener = () => Queue.offerUnsafe(queue, message(media.matches));
+        media.addEventListener('change', listener);
+        listener();
+        return () => media.removeEventListener('change', listener);
+      });
+      return Effect.acquireRelease(watch, Effect.sync);
+    }),
+  );
+}
+
+const reducedMotion = mediaPreference(
+  'reduced-motion',
+  '(prefers-reduced-motion: reduce)',
+  (reducedMotion) => WorkbenchMessage.ChangedPlaybackReducedMotion({ reducedMotion }),
+);
+const colorScheme = mediaPreference('color-scheme', '(prefers-color-scheme: dark)', (dark) =>
+  WorkbenchMessage.ChangedSystemColorScheme({ colorScheme: dark ? 'dark' : 'light' }),
+);
+const visibility = Subscription.make(
+  'visibility',
+  Stream.suspend(() => {
+    const snapshot = () =>
+      WorkbenchMessage.ChangedPlaybackVisibility({
+        visible: document.visibilityState === 'visible',
+      });
+    return Stream.concat(
+      Stream.fromEffect(Effect.sync(snapshot)),
+      Stream.map(Stream.fromEventListener(document, 'visibilitychange'), snapshot),
+    );
+  }),
+);
+
+function readWorkbench(model: typeof Model.Type): WorkbenchModel | null {
+  // SAFETY: only a successful identity allocation creates a Ready workbench.
+  return model._tag === 'Ready' ? (model.workbench as WorkbenchModel) : null;
+}
+
+export default Html.component({ name: 'ZlozArchitecture', model: Model, message: Message }).make({
+  init: ($) => $.set(Model.Preparing()).run(allocateIdentity.make({})),
+  update: ($, message) => {
+    const model = $.model;
+    if (message._tag === 'SucceededIdentity') {
+      if (model._tag !== 'Preparing') return $.set(model);
+      return $.set(Model.Ready({ workbench: initModel(message.namespace).model })).run(
+        LoadThemePreference.make({}),
+      );
+    }
+    if (message._tag === 'FailedIdentity') {
+      return $.set(model._tag === 'Preparing' ? Model.Failed() : model);
+    }
+    if (message._tag === 'ClickedRetryIdentity') {
+      if (model._tag !== 'Failed') return $.set(model);
+      return $.set(Model.Preparing()).run(allocateIdentity.make({}));
+    }
+    const current = readWorkbench(model);
+    if (!current) return $.set(model);
+    const next = updateWorkbench(current, message);
+    return $.set(next.model === current ? model : Model.Ready({ workbench: next.model })).run(
+      ...(next.interrupts ?? []),
+      ...(next.commands ?? []),
+    );
+  },
+  subscriptions: ($) => {
+    const workbench = readWorkbench($.model);
+    if (!workbench) return [];
+    const playback = workbench.historyPlayback?.cursor;
+    const timer =
+      playback?.status !== 'playing'
+        ? []
+        : [
+            Subscription.make(
+              'playback',
+              [workbench.modelIdentity.id, workbench.playbackRun, playback.intervalMs],
+              ([modelId, run, intervalMs]) =>
+                Stream.tick(intervalMs).pipe(
+                  Stream.drop(1),
+                  Stream.map(() =>
+                    WorkbenchMessage.AdvancedEditionPlayback({
+                      modelId,
+                      run,
+                      milliseconds: intervalMs,
+                    }),
+                  ),
+                ),
             ),
-            h.button([h.OnClick(Message.ClickedRetryIdentity())], ['Try again']),
-          ],
+          ];
+    return [reducedMotion, colorScheme, visibility, ...timer];
+  },
+  view: (h, model) =>
+    Model.match(model, {
+      Preparing: () => h.p.attr('role', 'status').children('Preparing workbench…'),
+      Failed: () =>
+        h.div.children(
+          h.p
+            .attr('role', 'alert')
+            .children('Could not allocate a model identity. Your files remain unchanged.'),
+          h.button
+            .attr('type', 'button')
+            .on('click', Lifecycle.ClickedRetryIdentity())
+            .children('Try again'),
         ),
       Ready: ({ workbench }) => {
-        // SAFETY: Ready is initialized with WorkbenchModel and maintained only through foldWorkbench.
-        return h.submodel({
-          slotId: 'workbench',
-          model: workbench as WorkbenchModel,
-          view: workbenchView,
-          toParentMessage: (message) => Message.GotWorkbenchMessage({ message }),
-        });
+        // SAFETY: only the initializer and typed workbench reducer construct Ready.
+        return viewWorkbench(workbench as WorkbenchModel, h, (message): Message => message);
       },
     }),
-  };
-}
-const childSubscriptions = Subscription.make<WorkbenchModel, Workbench.Message>()((entry) => ({
-  playback: entry(
-    {
-      playing: Schema.Boolean,
-      modelId: Schema.String,
-      run: Schema.Number,
-      intervalMs: Schema.Number,
-    },
-    {
-      modelToDependencies: (model) => ({
-        playing: model.historyPlayback?.cursor.status === 'playing',
-        modelId: model.modelIdentity.id,
-        run: model.playbackRun,
-        intervalMs: model.historyPlayback?.cursor.intervalMs ?? 2000,
-      }),
-      dependenciesToStream: ({ playing, modelId, run, intervalMs }) =>
-        Stream.tick(intervalMs).pipe(
-          Stream.drop(1),
-          Stream.map(() =>
-            Workbench.Message.AdvancedEditionPlayback({ modelId, run, milliseconds: intervalMs }),
-          ),
-          Stream.when(Effect.sync(() => playing)),
-        ),
-    },
-  ),
-  reducedMotion: Subscription.persistentEntry(
-    Dom.streamFromMediaQuery({
-      query: '(prefers-reduced-motion: reduce)',
-      mapMatches: (reducedMotion) =>
-        Workbench.Message.ChangedPlaybackReducedMotion({ reducedMotion }),
-    }),
-  ),
-  visibility: Subscription.persistentEntry(
-    Stream.fromEffect(
-      Effect.sync(() =>
-        Workbench.Message.ChangedPlaybackVisibility({
-          visible: document.visibilityState === 'visible',
-        }),
-      ),
-    ).pipe(
-      Stream.concat(
-        Dom.streamFromEvent({
-          target: () => document,
-          type: 'visibilitychange',
-          mapEvent: () =>
-            Workbench.Message.ChangedPlaybackVisibility({
-              visible: document.visibilityState === 'visible',
-            }),
-        }),
-      ),
-    ),
-  ),
-  systemColorScheme: Subscription.persistentEntry(
-    Dom.streamFromMediaQuery({
-      query: '(prefers-color-scheme: dark)',
-      mapMatches: (dark) =>
-        Workbench.Message.ChangedSystemColorScheme({ colorScheme: dark ? 'dark' : 'light' }),
-    }),
-  ),
-}));
-export const subscriptions = Subscription.lift(childSubscriptions)<Model, Message>({
-  read: readWorkbench,
-  toParentMessage: (message) => Message.GotWorkbenchMessage({ message }),
 });

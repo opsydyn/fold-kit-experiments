@@ -1,10 +1,10 @@
+import { Html, HtmlServer } from '@effect/ui/html';
+import { Effect } from 'effect';
 import { expect, it } from 'vitest';
 
-import { renderChart } from '../../ui/shared/render-chart.test-helper';
-import type { Message } from './message';
-import { initModel, Session } from './model';
-import type { Model } from './model';
-import { body } from './view';
+import { Message } from './message';
+import { initModel, Model, Session } from './model';
+import { view } from './view';
 
 const wire = {
   services: [
@@ -15,7 +15,17 @@ const wire = {
 
 async function rendered(model: Model) {
   const node = document.createElement('div');
-  node.innerHTML = await renderChart<Message>((h) => body(model, h));
+  const component = Html.component({
+    name: 'AgentViewFixture',
+    model: Model,
+    message: Message,
+  }).make({
+    init: () => model,
+    update: ($) => $.model,
+    view,
+  });
+  const result = await Effect.runPromise(HtmlServer.renderToHtml(component, {}));
+  node.innerHTML = result.html;
   return node;
 }
 

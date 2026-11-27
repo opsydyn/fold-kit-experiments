@@ -1,18 +1,20 @@
+import { Command } from '@effect/ui';
 import { parseEditionsV2, parseModelDocumentV2, ZlozError } from '@opsydyn/foldkit-zloz';
 import { Effect, Schema } from 'effect';
-import { Command } from 'foldkit';
 
 import { Message } from './message';
 export const byteLimit = 5 * 1024 * 1024;
-export const ReadHistoryFile = Command.define('ReadHistoryFile', {
-  args: {
-    token: Schema.Number,
-    kind: Schema.Literals(['model', 'archive']),
-    file: Schema.instanceOf(File),
+export const ReadHistoryFile = Command.make(
+  'ReadHistoryFile',
+  {
+    args: {
+      token: Schema.Number,
+      kind: Schema.Literals(['model', 'archive']),
+      file: Schema.instanceOf(File),
+    },
+    group: ['token'],
   },
-  interrupt: { keyFields: ['token'], toKey: ({ token }) => String(token) },
-  messages: [Message.SucceededModelRead, Message.SucceededArchiveRead, Message.FailedRead],
-  execute: ({ token, kind, file }) =>
+  ({ token, kind, file }) =>
     Effect.gen(function* () {
       if (file.size > byteLimit)
         return yield* Effect.fail(new ZlozError('invalid-edit', 'File exceeds the 5 MiB limit.'));
@@ -33,11 +35,13 @@ export const ReadHistoryFile = Command.define('ReadHistoryFile', {
         onFailure: () => Message.FailedRead({ token }),
       }),
     ),
-});
-export const DownloadHistory = Command.define('DownloadHistory', {
-  args: { json: Schema.String, kind: Schema.Literals(['model', 'archive']) },
-  messages: [Message.CompletedDownload, Message.FailedDownload],
-  execute: ({ json, kind }) =>
+);
+export const DownloadHistory = Command.make(
+  'DownloadHistory',
+  {
+    args: { json: Schema.String, kind: Schema.Literals(['model', 'archive']) },
+  },
+  ({ json, kind }) =>
     Effect.gen(function* () {
       const acquire = Effect.try(() =>
         URL.createObjectURL(new Blob([json], { type: 'application/json' })),
@@ -60,4 +64,4 @@ export const DownloadHistory = Command.define('DownloadHistory', {
         onFailure: () => Message.FailedDownload(),
       }),
     ),
-});
+);

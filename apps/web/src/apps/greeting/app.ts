@@ -1,5 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-import type { Flags } from './model';
+import { Greeting } from './main';
 
-export default lazyApp<Flags>(() => import('./main'));
+export default astroComponent(Greeting);

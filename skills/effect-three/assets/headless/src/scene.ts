@@ -1,7 +1,7 @@
 /**
  * A scene derived from a Model: plain data, keyed so the kernel keeps each crate's
  * three.js object while it moves, recolours or is reordered. Nothing here touches the
- * DOM, a renderer or Effect: the same function feeds a Foldkit view or a headless test.
+ * DOM, a renderer or Effect: the same function feeds an Effect UI browser view or a headless test.
  */
 import {
   ambientLight,

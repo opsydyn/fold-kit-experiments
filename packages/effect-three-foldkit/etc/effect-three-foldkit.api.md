@@ -4,60 +4,84 @@
 
 ```ts
 
-import { Asset } from '@opsydyn/effect-three';
-import { Behaviour } from '@opsydyn/effect-three';
-import { BodyPose } from '@opsydyn/effect-three';
-import { BufferGeometry } from 'three';
+import { $Array } from 'effect/Schema';
+import { AnimationFrameHost } from '@opsydyn/effect-three/browser';
+import { animationFrameScheduler } from '@opsydyn/effect-three/browser';
+import { AssetLoadError } from '@opsydyn/effect-three/browser';
+import { Assets } from '@opsydyn/effect-three/browser';
+import { Boolean as Boolean_2 } from 'effect/Schema';
+import { BoxSelect as BoxSelect_2 } from '@opsydyn/effect-three/browser';
 import { Camera } from '@opsydyn/effect-three';
-import { CustomElement } from 'foldkit';
+import { capturesPointer } from '@opsydyn/effect-three/browser';
+import { claimsContextMenu } from '@opsydyn/effect-three/browser';
+import { defaultPixelRatio } from '@opsydyn/effect-three/browser';
+import { domEventName } from '@opsydyn/effect-three/browser';
 import { Effect } from 'effect';
-import { Effect as Effect_2 } from 'effect/Effect';
+import { Environment } from '@opsydyn/effect-three/browser';
+import { EnvironmentHost } from '@opsydyn/effect-three/browser';
+import { EnvironmentOptions } from '@opsydyn/effect-three/browser';
 import type { FieldPath } from '@opsydyn/effect-three';
 import type { FieldValue } from '@opsydyn/effect-three';
-import { FrameScheduler } from '@opsydyn/effect-three';
-import { Gesture as Gesture_2 } from '@opsydyn/effect-three';
+import { Finite } from 'effect/Schema';
 import { gizmo } from '@opsydyn/effect-three';
 import { GizmoHandle } from '@opsydyn/effect-three';
-import type { Html } from 'foldkit/html';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Html } from '@effect/ui/html';
 import { Hud } from '@opsydyn/effect-three';
 import { HudAlignment } from '@opsydyn/effect-three';
 import type { InspectedField } from '@opsydyn/effect-three';
-import { LabelEngine } from '@opsydyn/effect-three';
-import { MessageUnion } from 'foldkit/message';
-import { Mount } from 'foldkit';
-import type { Object3D } from 'three';
-import type { Op } from '@opsydyn/effect-three';
-import { Option as Option_2 } from 'effect';
+import { Literals } from 'effect/Schema';
+import { makeAssets } from '@opsydyn/effect-three/browser';
+import { makeEnvironment } from '@opsydyn/effect-three/browser';
+import { MeasuringTape as MeasuringTape_2 } from '@opsydyn/effect-three/browser';
+import { ModelInfo } from '@opsydyn/effect-three/browser';
+import { Mount } from '@effect/ui';
+import { NullOr } from 'effect/Schema';
+import { Option as Option_2 } from 'effect/Schema';
+import { Option as Option_3 } from 'effect/Option';
+import { Option as Option_4 } from 'effect';
 import type { Overlay } from '@opsydyn/effect-three';
-import { PhysicsEngine } from '@opsydyn/effect-three';
 import { pivot } from '@opsydyn/effect-three';
+import { PivotControls as PivotControls_2 } from '@opsydyn/effect-three/browser';
 import { PivotHandle } from '@opsydyn/effect-three';
+import { PixelRatio } from '@opsydyn/effect-three/browser';
 import { Placement } from '@opsydyn/effect-three';
-import type { PointerInput } from '@opsydyn/effect-three';
-import { RendererFactory } from '@opsydyn/effect-three';
-import type { ResourceStats } from '@opsydyn/effect-three';
-import { ResourceStore } from '@opsydyn/effect-three';
-import type { ReturnWithOutMessage } from 'foldkit/update';
-import type { SceneDescription } from '@opsydyn/effect-three';
-import type { SceneEvent } from '@opsydyn/effect-three';
+import { ReconciledDetail } from '@opsydyn/effect-three/browser';
+import { Rect } from '@opsydyn/effect-three/browser';
+import { resolvePixelRatio } from '@opsydyn/effect-three/browser';
+import { SceneDescription } from '@opsydyn/effect-three';
+import { SceneError } from '@opsydyn/effect-three/browser';
+import { sceneEventSchemas } from '@opsydyn/effect-three/browser';
 import { SceneNode } from '@opsydyn/effect-three';
 import type { SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
+import { Scope } from 'effect';
+import { String as String_2 } from 'effect/Schema';
+import { Struct } from 'effect/Schema';
+import { summarise } from '@opsydyn/effect-three/browser';
+import { TaggedStruct } from 'effect/Schema';
 import { TapeLook } from '@opsydyn/effect-three';
+import { toNdc } from '@opsydyn/effect-three/browser';
+import { toPointerInput } from '@opsydyn/effect-three/browser';
+import { TransformGizmo as TransformGizmo_2 } from '@opsydyn/effect-three/browser';
+import { Tuple } from 'effect/Schema';
+import { UiSchema } from '@effect/ui';
+import { Union } from 'effect/Schema';
+import { View } from '@effect/ui';
 import { ViewAxis } from '@opsydyn/effect-three';
-import { VoidIfEmpty } from 'effect/Types';
-import { WebGLRendererParameters } from 'three';
-import type { Xr } from '@opsydyn/effect-three';
-import type { XrInput } from '@opsydyn/effect-three';
-import { XrSpace } from '@opsydyn/effect-three';
-import { YieldableError } from 'effect/Cause';
+import { ViewportGizmo as ViewportGizmo_2 } from '@opsydyn/effect-three/browser';
+import { WebGLOptions } from '@opsydyn/effect-three/browser';
+import { webglRendererFactory } from '@opsydyn/effect-three/browser';
+import { WebGPUOptions } from '@opsydyn/effect-three/browser';
+import { webgpuRendererFactory } from '@opsydyn/effect-three/browser';
+import { withDecodingDefaultKey } from 'effect/Schema';
+import { XrControls } from '@opsydyn/effect-three/browser';
+import { XrMode } from '@opsydyn/effect-three/browser';
+import { XrSessionDetail } from '@opsydyn/effect-three/browser';
+import { XrUnavailable } from '@opsydyn/effect-three/browser';
 
-// @public
-export type AnimationFrameHost = Pick<Window, 'requestAnimationFrame' | 'cancelAnimationFrame'>;
+export { AnimationFrameHost }
 
-// @public
-export const animationFrameScheduler: (host: AnimationFrameHost) => FrameScheduler;
+export { animationFrameScheduler }
 
 // @public (undocumented)
 export type AssetFailedDetail = typeof SceneSchema.AssetFailedDetail.Type;
@@ -65,70 +89,57 @@ export type AssetFailedDetail = typeof SceneSchema.AssetFailedDetail.Type;
 // @public (undocumented)
 export type AssetLoadedDetail = typeof SceneSchema.AssetLoadedDetail.Type;
 
-// Warning: (ae-forgotten-export) The symbol "AssetLoadError_base" needs to be exported by the entry point index.d.ts
-//
-// @public
-export class AssetLoadError extends AssetLoadError_base<{
-    readonly url: string;
-    readonly cause: unknown;
-}> {
-}
+export { AssetLoadError }
 
-// @public (undocumented)
-export type Assets = ReturnType<typeof makeAssets>;
+export { Assets }
 
 // @public
 export type AutoRotatedDetail = typeof SceneSchema.AutoRotatedDetail.Type;
 
-// @public
-const axisOf: (model: Model_5, key: string) => Option_2.Option<ViewAxis>;
-
-// @public
-const Box: Schema.Struct<{
-    readonly from: Schema.Struct<{
-        readonly x: Schema.Finite;
-        readonly y: Schema.Finite;
-    }>;
-    readonly to: Schema.Struct<{
-        readonly x: Schema.Finite;
-        readonly y: Schema.Finite;
-    }>;
-    readonly width: Schema.Finite;
-    readonly height: Schema.Finite;
-}>;
+// @public (undocumented)
+const axisOf: (model: ViewportGizmo_2.Model, key: string) => Option_3<ViewAxis>;
 
 // @public (undocumented)
-type Box = typeof Box.Type;
+const Box: Struct<    {
+readonly from: Struct<    {
+readonly x: Finite;
+readonly y: Finite;
+}>;
+readonly to: Struct<    {
+readonly x: Finite;
+readonly y: Finite;
+}>;
+readonly width: Finite;
+readonly height: Finite;
+}>;
 
 declare namespace BoxSelect {
     export {
         Box,
         Model,
+        init,
+        drawing,
+        claims,
+        inside,
+        rectangle,
+        DragGesture,
+        Rectangle,
         Message,
         OutMessage,
-        init,
         update,
-        drawing,
-        DragGesture,
-        claims,
-        dragOf,
-        inside,
-        Rectangle,
-        rectangle
+        dragOf
     }
 }
 
 // @public
 export type ButtonDetail = typeof SceneSchema.ButtonDetail.Type;
 
-// @public
-export const capturesPointer: (events: ReadonlyArray<SceneEvent>) => boolean;
+export { capturesPointer }
 
-// @public
-const claims: (model: Model, drag: DragGesture) => boolean;
+// @public (undocumented)
+const claims: (model: BoxSelect_2.Model, drag: BoxSelect_2.DragGesture) => boolean;
 
-// @public
-export const claimsContextMenu: (events: ReadonlyArray<SceneEvent>) => boolean;
+export { claimsContextMenu }
 
 // @public
 export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
@@ -136,70 +147,30 @@ export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
 // @public
 export type ContactForceDetail = typeof SceneSchema.ContactForceDetail.Type;
 
-// @public (undocumented)
-export const defaultPixelRatio: PixelRatio;
+export { defaultPixelRatio }
 
 // @public
-export const domEventName: {
-    readonly Click: 'scene-click';
-    readonly DoubleClick: 'scene-double-click';
-    readonly ContextMenu: 'scene-context-menu';
-    readonly PointerDown: 'scene-pointer-down';
-    readonly PointerUp: 'scene-pointer-up';
-    readonly PointerEnter: 'scene-pointer-enter';
-    readonly PointerMove: 'scene-pointer-move';
-    readonly PointerLeave: 'scene-pointer-leave';
-    readonly PointerMissed: 'scene-pointer-missed';
-    readonly Wheel: 'scene-wheel';
-    readonly Drag: 'scene-drag';
-    readonly DragEnd: 'scene-drag-end';
-    readonly Gesture: 'scene-gesture';
-    readonly GestureEnd: 'scene-gesture-end';
-    readonly AutoRotated: 'scene-auto-rotated';
-    readonly Collision: 'scene-collision';
-    readonly ContactForce: 'scene-contact-force';
-    readonly PhysicsReached: 'scene-physics-reached';
-    readonly Measured: 'scene-measured';
-    readonly LabelMeasured: 'scene-label-measured';
-    readonly XrStick: 'scene-xr-stick';
-    readonly XrButton: 'scene-xr-button';
-    readonly XrSurface: 'scene-xr-surface';
-    readonly XrMoved: 'scene-xr-moved';
-    readonly XrTeleported: 'scene-xr-teleported';
-    readonly XrPoses: 'scene-xr-poses';
-    readonly XrPlanes: 'scene-xr-planes';
-    readonly XrMeshes: 'scene-xr-meshes';
-    readonly PerformanceChanged: 'scene-performance';
-};
+export const defineScopedSceneMount: <R>(environment: Effect.Effect<Environment, never, R>) => SceneMount<R>;
+
+export { domEventName }
 
 // @public
 export type DragDetail = typeof SceneSchema.DragDetail.Type;
 
-// @public
-type DragGesture = Extract<Gesture_2, {
-    readonly _tag: 'Drag';
-}>;
+// @public (undocumented)
+type DragGesture = BoxSelect_2.DragGesture;
 
 // @public
 const dragOf: (gesture: DragGesture) => Message;
 
-// @public
-const drawing: (model: Model) => boolean;
-
 // @public (undocumented)
-export type Environment = ReturnType<typeof makeEnvironment>;
+const drawing: (model: BoxSelect_2.Model) => boolean;
 
-// @public
-export type EnvironmentHost = AnimationFrameHost & Pick<Window, 'matchMedia' | 'devicePixelRatio'> & Partial<Pick<Window, 'navigator'>>;
+export { Environment }
 
-// @public (undocumented)
-export type EnvironmentOptions = {
-    readonly renderer?: (canvas: HTMLCanvasElement) => RendererFactory;
-    readonly pixelRatio?: PixelRatio;
-    readonly behaviours?: Readonly<Record<string, Behaviour>>;
-    readonly physics?: PhysicsEngine | Promise<PhysicsEngine>;
-    readonly labels?: LabelEngine;
-};
+export { EnvironmentHost }
+
+export { EnvironmentOptions }
 
 // @public
 export type Gesture = typeof SceneSchema.Gesture.Type;
@@ -207,118 +178,76 @@ export type Gesture = typeof SceneSchema.Gesture.Type;
 // @public
 export type GestureEndDetail = typeof SceneSchema.GestureEndDetail.Type;
 
-// @public
-const handleOf: (model: Model_3, key: string) => Option_2.Option<PivotHandle>;
+// @public (undocumented)
+const handleOf: (model: PivotControls_2.Model, key: string) => Option_3<PivotHandle>;
 
-// @public
-const handleOf_2: (model: Model_4, key: string) => Option_2.Option<GizmoHandle>;
+// @public (undocumented)
+const handleOf_2: (model: TransformGizmo_2.Model, key: string) => Option_3<GizmoHandle>;
 
-// @public
-const held: (model: Model_3) => boolean;
+// @public (undocumented)
+const held: (model: PivotControls_2.Model) => boolean;
 
-// @public
-const held_2: (model: Model_4) => boolean;
+// @public (undocumented)
+const held_2: (model: TransformGizmo_2.Model) => boolean;
 
 // @public
 export type HitDetail = typeof SceneSchema.HitDetail.Type;
 
-// @public
-const hud: (model: Model_5, camera: Camera, placement?: {
+// @public (undocumented)
+const hud: (model: ViewportGizmo_2.Model, camera: Camera, placement?: {
     readonly alignment?: HudAlignment;
     readonly margin?: readonly [number, number];
 }) => Hud;
 
-// @public
-const init: () => Model;
+// @public (undocumented)
+const init: () => BoxSelect_2.Model;
 
-// @public
+// @public (undocumented)
 const init_2: (key: string, options?: {
     readonly snap?: number | null;
-}) => Model_2;
+}) => MeasuringTape_2.Model;
 
-// @public
-const init_3: (key: string, options?: Parameters<typeof pivot>[0]) => Model_3;
+// @public (undocumented)
+const init_3: (key: string, options?: Parameters<pivot>[0]) => PivotControls_2.Model;
 
-// @public
-const init_4: (key: string, options?: Parameters<typeof gizmo>[0]) => Model_4;
+// @public (undocumented)
+const init_4: (key: string, options?: Parameters<gizmo>[0]) => TransformGizmo_2.Model;
 
-// @public
+// @public (undocumented)
 const init_5: (key: string, options?: {
     readonly hideNegativeAxes?: boolean;
-}) => Model_5;
+}) => ViewportGizmo_2.Model;
 
-// Warning: (ae-forgotten-export) The symbol "Selectables" needs to be exported by the entry point index.d.ts
-//
-// @public
-const inside: (model: Model, camera: Camera, selectable: Selectables) => ReadonlyArray<string>;
+// @public (undocumented)
+const inside: (model: BoxSelect_2.Model, camera: Camera, selectable: readonly {
+    readonly key: string;
+    readonly at: readonly [number, number, number];
+}[]) => ReadonlyArray<string>;
 
 // @public
-export const inspectorView: <Message>(h: HtmlBuilder<Message>, fields: ReadonlyArray<InspectedField>, onEdit: OnEdit<Message>) => Html;
+export const inspectorView: <Message>(h: Html.H<Message>, fields: ReadonlyArray<InspectedField>, onEdit: OnEdit<Message>) => Html.Element<Message, never, Html.Events, HTMLDivElement, "div">;
 
 // @public
 export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
 
 // @public
-const label: <Message>(model: Model_2, h: HtmlBuilder<Message>, options?: {
+const label: <Message>(model: Model_2, h: Html.H<Message>, options?: {
     readonly unit?: string;
     readonly className?: string;
-}) => ReadonlyArray<OverlayView>;
+}) => ReadonlyArray<OverlayView<Message>>;
 
 // @public
 export type LabelMeasuredDetail = typeof SceneSchema.LabelMeasuredDetail.Type;
 
-// @public
-const length_2: (model: Model_2) => Option_2.Option<number>;
+// @public (undocumented)
+const length_2: (model: MeasuringTape_2.Model) => Option_4.Option<number>;
+
+export { makeAssets }
+
+export { makeEnvironment }
 
 // @public
-export const makeAssets: (store: ResourceStore) => {
-    loadTexture: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
-    loadModel: (id: string, url: string) => Effect.Effect<ModelInfo, AssetLoadError, never>;
-    loadEnvironment: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
-    loadFont: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
-    unload: (id: string) => Effect.Effect<void, never, never>;
-    dispose: () => void;
-};
-
-// @public
-export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptions) => {
-    host: EnvironmentHost;
-    store: ResourceStore;
-    frames: FrameScheduler;
-    renderer: (canvas: HTMLCanvasElement) => RendererFactory;
-    pixelRatio: PixelRatio;
-    behaviours: Readonly<Record<string, Behaviour>>;
-    physics: Promise<PhysicsEngine | undefined>;
-    labels: LabelEngine | undefined;
-    assets: {
-        loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
-        loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
-        loadEnvironment: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
-        loadFont: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
-        unload: (id: string) => Effect_2<void, never, never>;
-        dispose: () => void;
-    };
-    assetRegistry: {
-        want: (holder: object, assets: ReadonlyArray<Asset>, notify: (notice: AssetNotice) => void) => void;
-        release: (holder: object) => void;
-        dispose: () => void;
-    };
-    xr: {
-        supported: (mode: XrMode) => Effect_2<boolean, never, never>;
-        enter: (mode: XrMode) => Effect_2<void, XrUnavailable, never>;
-        exit: Effect_2<void, never, never>;
-    };
-    xrHub: XrHub;
-    dispose: () => void;
-};
-
-// @public
-export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
-    readonly _tag: "StartedScene";
-} | {
-    readonly _tag: "FailedScene";
-    readonly reason: string;
-}>;
+export const makeSceneMount: (environment: Environment) => SceneMount;
 
 // @public
 export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
@@ -326,245 +255,245 @@ export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
 declare namespace MeasuringTape {
     export {
         Model_2 as Model,
-        Message_2 as Message,
-        OutMessage_2 as OutMessage,
         init_2 as init,
-        update_2 as update,
         length_2 as length,
         nodes,
+        Message_2 as Message,
+        OutMessage_2 as OutMessage,
+        update_2 as update,
         label
     }
 }
 
 // @public (undocumented)
-const Message: MessageUnion<    {
-readonly Dragged: {
-x: Schema.Finite;
-y: Schema.Finite;
-deltaX: Schema.Finite;
-deltaY: Schema.Finite;
-width: Schema.Finite;
-height: Schema.Finite;
-};
-readonly Ended: {
-camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
-readonly fov: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
-}>>, never>;
-}>, Schema.TaggedStruct<"Orthographic", {
-readonly zoom: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
-}>>, never>;
-}>]>;
-selectable: Schema.$Array<Schema.Struct<{
-readonly key: Schema.String;
-readonly at: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-}>>;
-};
-readonly Cancelled: {};
+const Message: UiSchema.TaggedEnum<{
+    readonly Cancelled: TaggedStruct<"Cancelled", {}>;
+    readonly Dragged: TaggedStruct<"Dragged", {
+    readonly x: Finite;
+    readonly y: Finite;
+    readonly deltaX: Finite;
+    readonly deltaY: Finite;
+    readonly width: Finite;
+    readonly height: Finite;
+    }>;
+    readonly Ended: TaggedStruct<"Ended", {
+    readonly camera: Union<readonly [TaggedStruct<"Perspective", {
+    readonly fov: Finite;
+    readonly near: Finite;
+    readonly far: Finite;
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly damping: Finite;
+    readonly autoRotate: Finite;
+    readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+    readonly intensity: Finite;
+    readonly decay: Boolean_2;
+    readonly decayRate: Finite;
+    readonly maxYaw: Finite;
+    readonly maxPitch: Finite;
+    readonly maxRoll: Finite;
+    readonly yawFrequency: Finite;
+    readonly pitchFrequency: Finite;
+    readonly rollFrequency: Finite;
+    readonly trigger: Finite;
+    }>>, never>;
+    }>, TaggedStruct<"Orthographic", {
+    readonly zoom: Finite;
+    readonly near: Finite;
+    readonly far: Finite;
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly damping: Finite;
+    readonly autoRotate: Finite;
+    readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+    readonly intensity: Finite;
+    readonly decay: Boolean_2;
+    readonly decayRate: Finite;
+    readonly maxYaw: Finite;
+    readonly maxPitch: Finite;
+    readonly maxRoll: Finite;
+    readonly yawFrequency: Finite;
+    readonly pitchFrequency: Finite;
+    readonly rollFrequency: Finite;
+    readonly trigger: Finite;
+    }>>, never>;
+    }>]>;
+    readonly selectable: $Array<Struct<    {
+    readonly key: String_2;
+    readonly at: Tuple<readonly [Finite, Finite, Finite]>;
+    }>>;
+    }>;
 }>;
 
 // @public (undocumented)
 type Message = typeof Message.Type;
 
 // @public (undocumented)
-const Message_2: MessageUnion<    {
-readonly Placed: {
-point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-};
-readonly Pointed: {
-point: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
-};
-readonly Cleared: {};
-readonly ChoseSnap: {
-snap: Schema.NullOr<Schema.Finite>;
-};
+const Message_2: UiSchema.TaggedEnum<{
+    readonly ChoseSnap: TaggedStruct<"ChoseSnap", {
+    readonly snap: NullOr<Finite>;
+    }>;
+    readonly Cleared: TaggedStruct<"Cleared", {}>;
+    readonly Placed: TaggedStruct<"Placed", {
+    readonly point: Tuple<readonly [Finite, Finite, Finite]>;
+    }>;
+    readonly Pointed: TaggedStruct<"Pointed", {
+    readonly point: NullOr<Tuple<readonly [Finite, Finite, Finite]>>;
+    }>;
 }>;
 
 // @public (undocumented)
 type Message_2 = typeof Message_2.Type;
 
 // @public (undocumented)
-const Message_3: MessageUnion<    {
-readonly Pressed: {
-handle: Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
-point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-}>;
-};
-readonly Dragged: {
-origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-snap: Schema.Boolean;
-};
-readonly Released: {};
-readonly Hovered: {
-handle: Schema.NullOr<Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>>;
-};
+const Message_3: UiSchema.TaggedEnum<{
+    readonly Dragged: TaggedStruct<"Dragged", {
+    readonly origin: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly direction: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly snap: Boolean_2;
+    }>;
+    readonly Hovered: TaggedStruct<"Hovered", {
+    readonly handle: NullOr<Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>>;
+    }>;
+    readonly Pressed: TaggedStruct<"Pressed", {
+    readonly handle: Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
+    readonly point: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly placement: Struct<    {
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+    }>;
+    }>;
+    readonly Released: TaggedStruct<"Released", {}>;
 }>;
 
 // @public (undocumented)
 type Message_3 = typeof Message_3.Type;
 
 // @public (undocumented)
-const Message_4: MessageUnion<    {
-readonly Pressed: {
-handle: Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
-origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-}>;
-camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
-readonly fov: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
-}>>, never>;
-}>, Schema.TaggedStruct<"Orthographic", {
-readonly zoom: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
-}>>, never>;
-}>]>;
-};
-readonly Dragged: {
-origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-};
-readonly Released: {};
-readonly Hovered: {
-handle: Schema.NullOr<Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>>;
-};
-readonly ChoseMode: {
-mode: Schema.Literals<readonly ["translate", "rotate", "scale"]>;
-};
-readonly ChoseSpace: {
-space: Schema.Literals<readonly ["world", "local"]>;
-};
+const Message_4: UiSchema.TaggedEnum<{
+    readonly ChoseMode: TaggedStruct<"ChoseMode", {
+    readonly mode: Literals<readonly ["translate", "rotate", "scale"]>;
+    }>;
+    readonly ChoseSpace: TaggedStruct<"ChoseSpace", {
+    readonly space: Literals<readonly ["world", "local"]>;
+    }>;
+    readonly Dragged: TaggedStruct<"Dragged", {
+    readonly origin: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly direction: Tuple<readonly [Finite, Finite, Finite]>;
+    }>;
+    readonly Hovered: TaggedStruct<"Hovered", {
+    readonly handle: NullOr<Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>>;
+    }>;
+    readonly Pressed: TaggedStruct<"Pressed", {
+    readonly handle: Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
+    readonly origin: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly direction: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly placement: Struct<    {
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+    }>;
+    readonly camera: Union<readonly [TaggedStruct<"Perspective", {
+    readonly fov: Finite;
+    readonly near: Finite;
+    readonly far: Finite;
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly damping: Finite;
+    readonly autoRotate: Finite;
+    readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+    readonly intensity: Finite;
+    readonly decay: Boolean_2;
+    readonly decayRate: Finite;
+    readonly maxYaw: Finite;
+    readonly maxPitch: Finite;
+    readonly maxRoll: Finite;
+    readonly yawFrequency: Finite;
+    readonly pitchFrequency: Finite;
+    readonly rollFrequency: Finite;
+    readonly trigger: Finite;
+    }>>, never>;
+    }>, TaggedStruct<"Orthographic", {
+    readonly zoom: Finite;
+    readonly near: Finite;
+    readonly far: Finite;
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly damping: Finite;
+    readonly autoRotate: Finite;
+    readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+    readonly intensity: Finite;
+    readonly decay: Boolean_2;
+    readonly decayRate: Finite;
+    readonly maxYaw: Finite;
+    readonly maxPitch: Finite;
+    readonly maxRoll: Finite;
+    readonly yawFrequency: Finite;
+    readonly pitchFrequency: Finite;
+    readonly rollFrequency: Finite;
+    readonly trigger: Finite;
+    }>>, never>;
+    }>]>;
+    }>;
+    readonly Released: TaggedStruct<"Released", {}>;
 }>;
 
 // @public (undocumented)
 type Message_4 = typeof Message_4.Type;
 
 // @public (undocumented)
-const Message_5: MessageUnion<    {
-readonly Entered: {
-key: Schema.String;
-};
-readonly Left: {
-key: Schema.String;
-};
-readonly Pressed: {
-key: Schema.String;
-camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
-readonly fov: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
-}>>, never>;
-}>, Schema.TaggedStruct<"Orthographic", {
-readonly zoom: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
-}>>, never>;
-}>]>;
-};
+const Message_5: UiSchema.TaggedEnum<{
+    readonly Entered: TaggedStruct<"Entered", {
+    readonly key: String_2;
+    }>;
+    readonly Left: TaggedStruct<"Left", {
+    readonly key: String_2;
+    }>;
+    readonly Pressed: TaggedStruct<"Pressed", {
+    readonly key: String_2;
+    readonly camera: Union<readonly [TaggedStruct<"Perspective", {
+    readonly fov: Finite;
+    readonly near: Finite;
+    readonly far: Finite;
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly damping: Finite;
+    readonly autoRotate: Finite;
+    readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+    readonly intensity: Finite;
+    readonly decay: Boolean_2;
+    readonly decayRate: Finite;
+    readonly maxYaw: Finite;
+    readonly maxPitch: Finite;
+    readonly maxRoll: Finite;
+    readonly yawFrequency: Finite;
+    readonly pitchFrequency: Finite;
+    readonly rollFrequency: Finite;
+    readonly trigger: Finite;
+    }>>, never>;
+    }>, TaggedStruct<"Orthographic", {
+    readonly zoom: Finite;
+    readonly near: Finite;
+    readonly far: Finite;
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly damping: Finite;
+    readonly autoRotate: Finite;
+    readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+    readonly intensity: Finite;
+    readonly decay: Boolean_2;
+    readonly decayRate: Finite;
+    readonly maxYaw: Finite;
+    readonly maxPitch: Finite;
+    readonly maxRoll: Finite;
+    readonly yawFrequency: Finite;
+    readonly pitchFrequency: Finite;
+    readonly rollFrequency: Finite;
+    readonly trigger: Finite;
+    }>>, never>;
+    }>]>;
+    }>;
 }>;
 
 // @public (undocumented)
@@ -574,262 +503,260 @@ type Message_5 = typeof Message_5.Type;
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
 
 // @public (undocumented)
-const Model: Schema.Struct<{
-    readonly box: Schema.Option<Schema.Struct<{
-        readonly from: Schema.Struct<{
-            readonly x: Schema.Finite;
-            readonly y: Schema.Finite;
-        }>;
-        readonly to: Schema.Struct<{
-            readonly x: Schema.Finite;
-            readonly y: Schema.Finite;
-        }>;
-        readonly width: Schema.Finite;
-        readonly height: Schema.Finite;
-    }>>;
+const Model: Struct<    {
+readonly box: Option_2<Struct<    {
+readonly from: Struct<    {
+readonly x: Finite;
+readonly y: Finite;
+}>;
+readonly to: Struct<    {
+readonly x: Finite;
+readonly y: Finite;
+}>;
+readonly width: Finite;
+readonly height: Finite;
+}>>;
 }>;
 
 // @public (undocumented)
-type Model = typeof Model.Type;
+type Model = BoxSelect_2.Model;
 
 // @public (undocumented)
-const Model_2: Schema.Struct<{
-    readonly key: Schema.String;
-    readonly tape: Schema.Struct<{
-        readonly from: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
-        readonly to: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
-        readonly pointer: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
-        readonly snap: Schema.NullOr<Schema.Finite>;
-    }>;
+const Model_2: Struct<    {
+readonly key: String_2;
+readonly tape: Struct<    {
+readonly from: NullOr<Tuple<readonly [Finite, Finite, Finite]>>;
+readonly to: NullOr<Tuple<readonly [Finite, Finite, Finite]>>;
+readonly pointer: NullOr<Tuple<readonly [Finite, Finite, Finite]>>;
+readonly snap: NullOr<Finite>;
+}>;
 }>;
 
 // @public (undocumented)
-type Model_2 = typeof Model_2.Type;
+type Model_2 = MeasuringTape_2.Model;
 
 // @public (undocumented)
-const Model_3: Schema.Struct<{
-    readonly key: Schema.String;
-    readonly pivot: Schema.Struct<{
-        readonly scale: Schema.Finite;
-        readonly depthTest: Schema.Boolean;
-        readonly disableAxes: Schema.Boolean;
-        readonly disableSliders: Schema.Boolean;
-        readonly disableRotations: Schema.Boolean;
-        readonly disableScaling: Schema.Boolean;
-        readonly hovered: Schema.NullOr<Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>>;
-        readonly grab: Schema.NullOr<Schema.Struct<{
-            readonly handle: Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
-            readonly start: Schema.Struct<{
-                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            }>;
-            readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly e1: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly e2: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>>;
-    }>;
-    readonly last: Schema.Option<Schema.Struct<{
-        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-    }>>;
+const Model_3: Struct<    {
+readonly key: String_2;
+readonly pivot: Struct<    {
+readonly scale: Finite;
+readonly depthTest: Boolean_2;
+readonly disableAxes: Boolean_2;
+readonly disableSliders: Boolean_2;
+readonly disableRotations: Boolean_2;
+readonly disableScaling: Boolean_2;
+readonly hovered: NullOr<Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>>;
+readonly grab: NullOr<Struct<    {
+readonly handle: Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
+readonly start: Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+}>;
+readonly point: Tuple<readonly [Finite, Finite, Finite]>;
+readonly e1: Tuple<readonly [Finite, Finite, Finite]>;
+readonly e2: Tuple<readonly [Finite, Finite, Finite]>;
+readonly normal: Tuple<readonly [Finite, Finite, Finite]>;
+}>>;
+}>;
+readonly last: Option_2<Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+}>>;
 }>;
 
 // @public (undocumented)
-type Model_3 = typeof Model_3.Type;
+type Model_3 = PivotControls_2.Model;
 
 // @public (undocumented)
-const Model_4: Schema.Struct<{
-    readonly key: Schema.String;
-    readonly gizmo: Schema.Struct<{
-        readonly mode: Schema.Literals<readonly ["translate", "rotate", "scale"]>;
-        readonly space: Schema.Literals<readonly ["world", "local"]>;
-        readonly size: Schema.Finite;
-        readonly translationSnap: Schema.NullOr<Schema.Finite>;
-        readonly rotationSnap: Schema.NullOr<Schema.Finite>;
-        readonly scaleSnap: Schema.NullOr<Schema.Finite>;
-        readonly showX: Schema.Boolean;
-        readonly showY: Schema.Boolean;
-        readonly showZ: Schema.Boolean;
-        readonly hovered: Schema.NullOr<Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>>;
-        readonly grab: Schema.NullOr<Schema.Struct<{
-            readonly handle: Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
-            readonly start: Schema.Struct<{
-                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            }>;
-            readonly from: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly plane: Schema.Struct<{
-                readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly constant: Schema.Finite;
-            }>;
-            readonly eye: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly distance: Schema.Finite;
-        }>>;
-    }>;
-    readonly last: Schema.Option<Schema.Struct<{
-        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-    }>>;
+const Model_4: Struct<    {
+readonly key: String_2;
+readonly gizmo: Struct<    {
+readonly mode: Literals<readonly ["translate", "rotate", "scale"]>;
+readonly space: Literals<readonly ["world", "local"]>;
+readonly size: Finite;
+readonly translationSnap: NullOr<Finite>;
+readonly rotationSnap: NullOr<Finite>;
+readonly scaleSnap: NullOr<Finite>;
+readonly showX: Boolean_2;
+readonly showY: Boolean_2;
+readonly showZ: Boolean_2;
+readonly hovered: NullOr<Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>>;
+readonly grab: NullOr<Struct<    {
+readonly handle: Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
+readonly start: Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+}>;
+readonly from: Tuple<readonly [Finite, Finite, Finite]>;
+readonly plane: Struct<    {
+readonly normal: Tuple<readonly [Finite, Finite, Finite]>;
+readonly constant: Finite;
+}>;
+readonly eye: Tuple<readonly [Finite, Finite, Finite]>;
+readonly distance: Finite;
+}>>;
+}>;
+readonly last: Option_2<Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+}>>;
 }>;
 
 // @public (undocumented)
-type Model_4 = typeof Model_4.Type;
+type Model_4 = TransformGizmo_2.Model;
 
 // @public (undocumented)
-const Model_5: Schema.Struct<{
-    readonly key: Schema.String;
-    readonly hovered: Schema.NullOr<Schema.Literals<readonly ["x", "y", "z", "-x", "-y", "-z"]>>;
-    readonly hideNegativeAxes: Schema.Boolean;
+const Model_5: Struct<    {
+readonly key: String_2;
+readonly hovered: NullOr<Literals<readonly ["x", "y", "z", "-x", "-y", "-z"]>>;
+readonly hideNegativeAxes: Boolean_2;
 }>;
 
 // @public (undocumented)
-type Model_5 = typeof Model_5.Type;
+type Model_5 = ViewportGizmo_2.Model;
 
-// @public
-export type ModelInfo = {
-    readonly id: string;
-    readonly parts: ReadonlyArray<string>;
-    readonly clips: ReadonlyArray<string>;
-};
+export { ModelInfo }
 
-// @public
-const nodes: (model: Model_2, look?: Partial<TapeLook>) => SceneNode;
+// @public (undocumented)
+const nodes: (model: MeasuringTape_2.Model, look?: Partial<TapeLook>) => SceneNode;
 
-// @public
-const nodes_2: (model: Model_3, placement: Placement) => SceneNode;
+// @public (undocumented)
+const nodes_2: (model: PivotControls_2.Model, placement: Placement) => SceneNode;
 
-// @public
-const nodes_3: (model: Model_4, placement: Placement, camera: Camera) => SceneNode;
+// @public (undocumented)
+const nodes_3: (model: TransformGizmo_2.Model, placement: Placement, camera: Camera) => SceneNode;
 
-// @public
-const nodes_4: (model: Model_5, camera: Camera) => SceneNode;
+// @public (undocumented)
+const nodes_4: (model: ViewportGizmo_2.Model, camera: Camera) => SceneNode;
 
 // @public
 export type OnEdit<Message> = (path: FieldPath, value: FieldValue) => Message;
 
 // @public (undocumented)
-const OutMessage: MessageUnion<    {
-readonly Selected: {
-keys: Schema.$Array<Schema.String>;
-};
+const OutMessage: UiSchema.TaggedEnum<{
+    readonly Selected: TaggedStruct<"Selected", {
+    readonly keys: $Array<String_2>;
+    }>;
 }>;
 
 // @public (undocumented)
 type OutMessage = typeof OutMessage.Type;
 
 // @public (undocumented)
-const OutMessage_2: MessageUnion<    {
-readonly Measured: {
-from: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-to: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-length: Schema.Finite;
-};
+const OutMessage_2: UiSchema.TaggedEnum<{
+    readonly Measured: TaggedStruct<"Measured", {
+    readonly from: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly to: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly length: Finite;
+    }>;
 }>;
 
 // @public (undocumented)
 type OutMessage_2 = typeof OutMessage_2.Type;
 
 // @public (undocumented)
-const OutMessage_3: MessageUnion<    {
-readonly Moved: {
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-}>;
-};
-readonly Finished: {
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-}>;
-};
+const OutMessage_3: UiSchema.TaggedEnum<{
+    readonly Finished: TaggedStruct<"Finished", {
+    readonly placement: Struct<    {
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+    }>;
+    }>;
+    readonly Moved: TaggedStruct<"Moved", {
+    readonly placement: Struct<    {
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+    }>;
+    }>;
 }>;
 
 // @public (undocumented)
 type OutMessage_3 = typeof OutMessage_3.Type;
 
 // @public (undocumented)
-const OutMessage_4: MessageUnion<    {
-readonly Moved: {
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-}>;
-};
-readonly Finished: {
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-}>;
-};
+const OutMessage_4: UiSchema.TaggedEnum<{
+    readonly Finished: TaggedStruct<"Finished", {
+    readonly placement: Struct<    {
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+    }>;
+    }>;
+    readonly Moved: TaggedStruct<"Moved", {
+    readonly placement: Struct<    {
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+    }>;
+    }>;
 }>;
 
 // @public (undocumented)
 type OutMessage_4 = typeof OutMessage_4.Type;
 
 // @public (undocumented)
-const OutMessage_5: MessageUnion<    {
-readonly Turned: {
-camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
-readonly fov: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
-}>>, never>;
-}>, Schema.TaggedStruct<"Orthographic", {
-readonly zoom: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
-}>>, never>;
-}>]>;
-};
+const OutMessage_5: UiSchema.TaggedEnum<{
+    readonly Turned: TaggedStruct<"Turned", {
+    readonly camera: Union<readonly [TaggedStruct<"Perspective", {
+    readonly fov: Finite;
+    readonly near: Finite;
+    readonly far: Finite;
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly damping: Finite;
+    readonly autoRotate: Finite;
+    readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+    readonly intensity: Finite;
+    readonly decay: Boolean_2;
+    readonly decayRate: Finite;
+    readonly maxYaw: Finite;
+    readonly maxPitch: Finite;
+    readonly maxRoll: Finite;
+    readonly yawFrequency: Finite;
+    readonly pitchFrequency: Finite;
+    readonly rollFrequency: Finite;
+    readonly trigger: Finite;
+    }>>, never>;
+    }>, TaggedStruct<"Orthographic", {
+    readonly zoom: Finite;
+    readonly near: Finite;
+    readonly far: Finite;
+    readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+    readonly damping: Finite;
+    readonly autoRotate: Finite;
+    readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+    readonly intensity: Finite;
+    readonly decay: Boolean_2;
+    readonly decayRate: Finite;
+    readonly maxYaw: Finite;
+    readonly maxPitch: Finite;
+    readonly maxRoll: Finite;
+    readonly yawFrequency: Finite;
+    readonly pitchFrequency: Finite;
+    readonly rollFrequency: Finite;
+    readonly trigger: Finite;
+    }>>, never>;
+    }>]>;
+    }>;
 }>;
 
 // @public (undocumented)
 type OutMessage_5 = typeof OutMessage_5.Type;
 
+// @public (undocumented)
+export const overlayLayer: <Message>(h: Html.H<Message>, overlays: ReadonlyArray<OverlayView<Message>>) => Html.Element<Message, never, Html.Events, HTMLDivElement, "div"> | null;
+
 // @public
-export type OverlayView = {
+export type OverlayView<Message> = {
     readonly overlay: Overlay;
-    readonly content: Html;
+    readonly content: View.Input<Message, never>;
     readonly pointerEvents?: 'auto' | 'none';
 };
 
@@ -842,1010 +769,106 @@ export type PhysicsReachedDetail = typeof SceneSchema.PhysicsReachedDetail.Type;
 declare namespace PivotControls {
     export {
         Model_3 as Model,
-        Message_3 as Message,
-        OutMessage_3 as OutMessage,
         init_3 as init,
-        update_3 as update,
         handleOf,
         held,
-        nodes_2 as nodes
+        nodes_2 as nodes,
+        Message_3 as Message,
+        OutMessage_3 as OutMessage,
+        update_3 as update
     }
 }
 
-// @public
-export type PixelRatio = number | readonly [min: number, max: number];
+export { PixelRatio }
 
-// @public
-export const ReconciledDetail: Schema.Struct<{
-    readonly ops: Schema.Struct<{
-        readonly created: Schema.Int;
-        readonly updated: Schema.Int;
-        readonly moved: Schema.Int;
-        readonly removed: Schema.Int;
-        readonly replaced: Schema.Int;
-        readonly reordered: Schema.Int;
-        readonly configured: Schema.Int;
-    }>;
-    readonly resources: Schema.Struct<{
-        readonly geometries: Schema.Struct<{
-            readonly live: Schema.Int;
-            readonly created: Schema.Int;
-            readonly disposed: Schema.Int;
-        }>;
-        readonly materials: Schema.Struct<{
-            readonly live: Schema.Int;
-            readonly created: Schema.Int;
-            readonly disposed: Schema.Int;
-        }>;
-    }>;
-}>;
+export { ReconciledDetail }
+
+export { Rect }
 
 // @public (undocumented)
-export type ReconciledDetail = typeof ReconciledDetail.Type;
-
-// @public
-export type Rect = {
-    readonly left: number;
-    readonly top: number;
-    readonly width: number;
-    readonly height: number;
-};
-
-// @public
-type Rectangle = {
-    readonly left: number;
-    readonly top: number;
-    readonly width: number;
-    readonly height: number;
-};
-
-// @public
-const rectangle: (model: Model) => Option_2.Option<Rectangle>;
-
-// @public
-export const resolvePixelRatio: (devicePixelRatio: number, setting: PixelRatio) => number;
+type Rectangle = BoxSelect_2.Rectangle;
 
 // @public (undocumented)
-export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene", {
-    scene: Schema.Struct<{
-        readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
-            readonly fov: Schema.Finite;
-            readonly near: Schema.Finite;
-            readonly far: Schema.Finite;
-            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly damping: Schema.Finite;
-            readonly autoRotate: Schema.Finite;
-            readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-                readonly intensity: Schema.Finite;
-                readonly decay: Schema.Boolean;
-                readonly decayRate: Schema.Finite;
-                readonly maxYaw: Schema.Finite;
-                readonly maxPitch: Schema.Finite;
-                readonly maxRoll: Schema.Finite;
-                readonly yawFrequency: Schema.Finite;
-                readonly pitchFrequency: Schema.Finite;
-                readonly rollFrequency: Schema.Finite;
-                readonly trigger: Schema.Finite;
-            }>>, never>;
-        }>, Schema.TaggedStruct<"Orthographic", {
-            readonly zoom: Schema.Finite;
-            readonly near: Schema.Finite;
-            readonly far: Schema.Finite;
-            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly damping: Schema.Finite;
-            readonly autoRotate: Schema.Finite;
-            readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-                readonly intensity: Schema.Finite;
-                readonly decay: Schema.Boolean;
-                readonly decayRate: Schema.Finite;
-                readonly maxYaw: Schema.Finite;
-                readonly maxPitch: Schema.Finite;
-                readonly maxRoll: Schema.Finite;
-                readonly yawFrequency: Schema.Finite;
-                readonly pitchFrequency: Schema.Finite;
-                readonly rollFrequency: Schema.Finite;
-                readonly trigger: Schema.Finite;
-            }>>, never>;
-        }>]>;
-        readonly gestures: Schema.Literals<readonly ["page", "scene"]>;
-        readonly views: Schema.$Array<Schema.Struct<{
-            readonly key: Schema.String;
-            readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
-                readonly fov: Schema.Finite;
-                readonly near: Schema.Finite;
-                readonly far: Schema.Finite;
-                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly damping: Schema.Finite;
-                readonly autoRotate: Schema.Finite;
-                readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-                    readonly intensity: Schema.Finite;
-                    readonly decay: Schema.Boolean;
-                    readonly decayRate: Schema.Finite;
-                    readonly maxYaw: Schema.Finite;
-                    readonly maxPitch: Schema.Finite;
-                    readonly maxRoll: Schema.Finite;
-                    readonly yawFrequency: Schema.Finite;
-                    readonly pitchFrequency: Schema.Finite;
-                    readonly rollFrequency: Schema.Finite;
-                    readonly trigger: Schema.Finite;
-                }>>, never>;
-            }>, Schema.TaggedStruct<"Orthographic", {
-                readonly zoom: Schema.Finite;
-                readonly near: Schema.Finite;
-                readonly far: Schema.Finite;
-                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly damping: Schema.Finite;
-                readonly autoRotate: Schema.Finite;
-                readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-                    readonly intensity: Schema.Finite;
-                    readonly decay: Schema.Boolean;
-                    readonly decayRate: Schema.Finite;
-                    readonly maxYaw: Schema.Finite;
-                    readonly maxPitch: Schema.Finite;
-                    readonly maxRoll: Schema.Finite;
-                    readonly yawFrequency: Schema.Finite;
-                    readonly pitchFrequency: Schema.Finite;
-                    readonly rollFrequency: Schema.Finite;
-                    readonly trigger: Schema.Finite;
-                }>>, never>;
-            }>]>;
-            readonly rect: Schema.Struct<{
-                readonly x: Schema.Finite;
-                readonly y: Schema.Finite;
-                readonly width: Schema.Finite;
-                readonly height: Schema.Finite;
-            }>;
-        }>>;
-        readonly renderTextures: Schema.$Array<Schema.Struct<{
-            readonly id: Schema.String;
-            readonly width: Schema.Int;
-            readonly height: Schema.Int;
-            readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
-                readonly fov: Schema.Finite;
-                readonly near: Schema.Finite;
-                readonly far: Schema.Finite;
-                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly damping: Schema.Finite;
-                readonly autoRotate: Schema.Finite;
-                readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-                    readonly intensity: Schema.Finite;
-                    readonly decay: Schema.Boolean;
-                    readonly decayRate: Schema.Finite;
-                    readonly maxYaw: Schema.Finite;
-                    readonly maxPitch: Schema.Finite;
-                    readonly maxRoll: Schema.Finite;
-                    readonly yawFrequency: Schema.Finite;
-                    readonly pitchFrequency: Schema.Finite;
-                    readonly rollFrequency: Schema.Finite;
-                    readonly trigger: Schema.Finite;
-                }>>, never>;
-            }>, Schema.TaggedStruct<"Orthographic", {
-                readonly zoom: Schema.Finite;
-                readonly near: Schema.Finite;
-                readonly far: Schema.Finite;
-                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly damping: Schema.Finite;
-                readonly autoRotate: Schema.Finite;
-                readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-                    readonly intensity: Schema.Finite;
-                    readonly decay: Schema.Boolean;
-                    readonly decayRate: Schema.Finite;
-                    readonly maxYaw: Schema.Finite;
-                    readonly maxPitch: Schema.Finite;
-                    readonly maxRoll: Schema.Finite;
-                    readonly yawFrequency: Schema.Finite;
-                    readonly pitchFrequency: Schema.Finite;
-                    readonly rollFrequency: Schema.Finite;
-                    readonly trigger: Schema.Finite;
-                }>>, never>;
-            }>]>;
-            readonly background: Schema.NullOr<Schema.Int>;
-            readonly children: Schema.$Array<Schema.Codec<SceneNode, unknown, never, never>>;
-        }>>;
-        readonly hud: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-            readonly alignment: Schema.Literals<readonly ["top-left", "top-center", "top-right", "center-left", "center-center", "center-right", "bottom-left", "bottom-center", "bottom-right"]>;
-            readonly margin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
-            readonly children: Schema.$Array<Schema.Codec<SceneNode, unknown, never, never>>;
-        }>>, never>;
-        readonly overlays: Schema.$Array<Schema.Struct<{
-            readonly key: Schema.String;
-            readonly node: Schema.NullOr<Schema.String>;
-            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly center: Schema.Boolean;
-            readonly distanceFactor: Schema.NullOr<Schema.Finite>;
-            readonly occlude: Schema.Boolean;
-            readonly zIndexRange: Schema.Tuple<readonly [Schema.Int, Schema.Int]>;
-            readonly view: Schema.NullOr<Schema.String>;
-        }>>;
-        readonly environment: Schema.NullOr<Schema.Struct<{
-            readonly map: Schema.NullOr<Schema.String>;
-            readonly background: Schema.Union<readonly [Schema.Boolean, Schema.Literal<"only">]>;
-            readonly backgroundBlurriness: Schema.Finite;
-            readonly backgroundIntensity: Schema.Finite;
-            readonly environmentIntensity: Schema.Finite;
-        }>>;
-        readonly sky: Schema.NullOr<Schema.Struct<{
-            readonly sunPosition: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly turbidity: Schema.Finite;
-            readonly rayleigh: Schema.Finite;
-            readonly mieCoefficient: Schema.Finite;
-            readonly mieDirectionalG: Schema.Finite;
-            readonly clouds: Schema.Finite;
-            readonly distance: Schema.Finite;
-        }>>;
-        readonly contactShadows: Schema.NullOr<Schema.Struct<{
-            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly size: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
-            readonly near: Schema.Finite;
-            readonly far: Schema.Finite;
-            readonly blur: Schema.Finite;
-            readonly smooth: Schema.Boolean;
-            readonly opacity: Schema.Finite;
-            readonly color: Schema.Int;
-            readonly resolution: Schema.Int;
-        }>>;
-        readonly physics: Schema.NullOr<Schema.Struct<{
-            readonly gravity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly paused: Schema.Boolean;
-            readonly timeStep: Schema.Finite;
-            readonly interpolate: Schema.Boolean;
-            readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
-            readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
-            readonly snapshotAt: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
-            readonly from: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-                readonly step: Schema.Int;
-                readonly snapshot: Schema.NullOr<Schema.String>;
-            }>>, never>;
-            readonly keep: Schema.withDecodingDefaultKey<Schema.Int, never>;
-            readonly debug: Schema.Boolean;
-            readonly joints: Schema.$Array<Schema.Struct<{
-                readonly key: Schema.String;
-                readonly a: Schema.Struct<{
-                    readonly key: Schema.String;
-                    readonly instance: Schema.NullOr<Schema.String>;
-                }>;
-                readonly b: Schema.Struct<{
-                    readonly key: Schema.String;
-                    readonly instance: Schema.NullOr<Schema.String>;
-                }>;
-                readonly anchorA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly anchorB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly kind: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
-                    readonly frameA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                    readonly frameB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                }>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
-                    readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                    readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
-                    readonly motor: Schema.NullOr<Schema.Struct<{
-                        readonly position: Schema.Finite;
-                        readonly velocity: Schema.Finite;
-                        readonly stiffness: Schema.Finite;
-                        readonly damping: Schema.Finite;
-                    }>>;
-                }>, Schema.TaggedStruct<"Prismatic", {
-                    readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                    readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
-                    readonly motor: Schema.NullOr<Schema.Struct<{
-                        readonly position: Schema.Finite;
-                        readonly velocity: Schema.Finite;
-                        readonly stiffness: Schema.Finite;
-                        readonly damping: Schema.Finite;
-                    }>>;
-                }>, Schema.TaggedStruct<"Rope", {
-                    readonly length: Schema.Finite;
-                }>, Schema.TaggedStruct<"Spring", {
-                    readonly restLength: Schema.Finite;
-                    readonly stiffness: Schema.Finite;
-                    readonly damping: Schema.Finite;
-                }>]>;
-                readonly contacts: Schema.Boolean;
-            }>>;
-        }>>;
-        readonly xr: Schema.NullOr<Schema.Struct<{
-            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly heading: Schema.Finite;
-            readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
-            readonly framebufferScale: Schema.Finite;
-            readonly hitTest: Schema.Boolean;
-            readonly showInputs: Schema.Boolean;
-            readonly anchors: Schema.$Array<Schema.Struct<{
-                readonly id: Schema.String;
-                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            }>>;
-            readonly planes: Schema.Boolean;
-            readonly meshes: Schema.Boolean;
-            readonly domOverlay: Schema.Boolean;
-            readonly teleportArc: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-                readonly hand: Schema.Literals<readonly ["left", "right"]>;
-                readonly targets: Schema.$Array<Schema.String>;
-                readonly color: Schema.Int;
-                readonly opacity: Schema.Finite;
-            }>>, never>;
-            readonly poses: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Finite>, never>;
-            readonly glide: Schema.NullOr<Schema.Struct<{
-                readonly speed: Schema.Finite;
-                readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
-                readonly turnSpeed: Schema.Finite;
-                readonly snapDegrees: Schema.Finite;
-            }>>;
-        }>>;
-        readonly measure: Schema.$Array<Schema.String>;
-        readonly assets: Schema.withDecodingDefaultKey<Schema.$Array<Schema.Struct<{
-            readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
-            readonly id: Schema.String;
-            readonly url: Schema.String;
-            readonly levels: Schema.withDecodingDefaultKey<Schema.$Array<Schema.String>, never>;
-        }>>, never>;
-        readonly render: Schema.Struct<{
-            readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
-                readonly strength: Schema.Finite;
-                readonly radius: Schema.Finite;
-                readonly threshold: Schema.Finite;
-            }>, Schema.TaggedStruct<"Vignette", {
-                readonly offset: Schema.Finite;
-                readonly darkness: Schema.Finite;
-            }>, Schema.TaggedStruct<"Film", {
-                readonly intensity: Schema.Finite;
-                readonly grayscale: Schema.Boolean;
-            }>]>>;
-            readonly frames: Schema.Literals<readonly ["always", "demand", "never"]>;
-            readonly resolution: Schema.Finite;
-            readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
-            readonly toneMapping: Schema.Literals<readonly ["none", "linear", "reinhard", "cineon", "aces", "agx", "neutral"]>;
-            readonly exposure: Schema.Finite;
-            readonly colorSpace: Schema.Literals<readonly ["srgb", "linear"]>;
-        }>;
-        readonly resources: Schema.Struct<{
-            readonly geometries: Schema.$Array<Schema.Struct<{
-                readonly id: Schema.String;
-                readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
-                    readonly text: Schema.String;
-                    readonly font: Schema.String;
-                    readonly size: Schema.Finite;
-                    readonly depth: Schema.Finite;
-                    readonly curveSegments: Schema.Int;
-                    readonly bevel: Schema.NullOr<Schema.Struct<{
-                        readonly thickness: Schema.Finite;
-                        readonly size: Schema.Finite;
-                        readonly offset: Schema.Finite;
-                        readonly segments: Schema.Int;
-                    }>>;
-                    readonly center: Schema.Boolean;
-                    readonly letterSpacing: Schema.Finite;
-                    readonly lineHeight: Schema.Finite;
-                    readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
-                }>, Schema.TaggedStruct<"Box", {
-                    readonly width: Schema.Finite;
-                    readonly height: Schema.Finite;
-                    readonly depth: Schema.Finite;
-                }>, Schema.TaggedStruct<"Sphere", {
-                    readonly radius: Schema.Finite;
-                    readonly widthSegments: Schema.Int;
-                    readonly heightSegments: Schema.Int;
-                }>, Schema.TaggedStruct<"Plane", {
-                    readonly width: Schema.Finite;
-                    readonly height: Schema.Finite;
-                }>, Schema.TaggedStruct<"Cylinder", {
-                    readonly radiusTop: Schema.Finite;
-                    readonly radiusBottom: Schema.Finite;
-                    readonly height: Schema.Finite;
-                    readonly radialSegments: Schema.Int;
-                }>, Schema.TaggedStruct<"Torus", {
-                    readonly radius: Schema.Finite;
-                    readonly tube: Schema.Finite;
-                    readonly radialSegments: Schema.Int;
-                    readonly tubularSegments: Schema.Int;
-                }>, Schema.TaggedStruct<"Cone", {
-                    readonly radius: Schema.Finite;
-                    readonly height: Schema.Finite;
-                    readonly radialSegments: Schema.Int;
-                }>, Schema.TaggedStruct<"Capsule", {
-                    readonly radius: Schema.Finite;
-                    readonly height: Schema.Finite;
-                    readonly capSegments: Schema.Int;
-                    readonly radialSegments: Schema.Int;
-                }>, Schema.TaggedStruct<"Ring", {
-                    readonly innerRadius: Schema.Finite;
-                    readonly outerRadius: Schema.Finite;
-                    readonly thetaSegments: Schema.Int;
-                }>, Schema.TaggedStruct<"Circle", {
-                    readonly radius: Schema.Finite;
-                    readonly segments: Schema.Int;
-                }>, Schema.TaggedStruct<"RoundedBox", {
-                    readonly width: Schema.Finite;
-                    readonly height: Schema.Finite;
-                    readonly depth: Schema.Finite;
-                    readonly radius: Schema.Finite;
-                    readonly smoothness: Schema.Int;
-                    readonly bevelSegments: Schema.Int;
-                    readonly steps: Schema.Int;
-                    readonly creaseAngle: Schema.Finite;
-                }>, Schema.TaggedStruct<"Backdrop", {
-                    readonly floor: Schema.Finite;
-                    readonly segments: Schema.Int;
-                }>]>;
-            }>>;
-            readonly materials: Schema.$Array<Schema.Struct<{
-                readonly id: Schema.String;
-                readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
-                    readonly color: Schema.Int;
-                    readonly opacity: Schema.Finite;
-                }>, Schema.TaggedStruct<"Basic", {
-                    readonly opacity: Schema.Finite;
-                    readonly transparent: Schema.Boolean;
-                    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
-                    readonly wireframe: Schema.Boolean;
-                    readonly color: Schema.Int;
-                    readonly map: Schema.NullOr<Schema.String>;
-                    readonly depthTest: Schema.withDecodingDefaultKey<Schema.Boolean, never>;
-                }>, Schema.TaggedStruct<"Lambert", {
-                    readonly opacity: Schema.Finite;
-                    readonly transparent: Schema.Boolean;
-                    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
-                    readonly wireframe: Schema.Boolean;
-                    readonly flatShading: Schema.Boolean;
-                    readonly color: Schema.Int;
-                    readonly map: Schema.NullOr<Schema.String>;
-                    readonly emissive: Schema.Int;
-                }>, Schema.TaggedStruct<"Phong", {
-                    readonly opacity: Schema.Finite;
-                    readonly transparent: Schema.Boolean;
-                    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
-                    readonly wireframe: Schema.Boolean;
-                    readonly flatShading: Schema.Boolean;
-                    readonly color: Schema.Int;
-                    readonly map: Schema.NullOr<Schema.String>;
-                    readonly emissive: Schema.Int;
-                    readonly specular: Schema.Int;
-                    readonly shininess: Schema.Finite;
-                }>, Schema.TaggedStruct<"Standard", {
-                    readonly opacity: Schema.Finite;
-                    readonly transparent: Schema.Boolean;
-                    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
-                    readonly wireframe: Schema.Boolean;
-                    readonly flatShading: Schema.Boolean;
-                    readonly color: Schema.Int;
-                    readonly map: Schema.NullOr<Schema.String>;
-                    readonly roughness: Schema.Finite;
-                    readonly metalness: Schema.Finite;
-                    readonly emissive: Schema.Int;
-                    readonly emissiveIntensity: Schema.Finite;
-                }>, Schema.TaggedStruct<"Physical", {
-                    readonly opacity: Schema.Finite;
-                    readonly transparent: Schema.Boolean;
-                    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
-                    readonly wireframe: Schema.Boolean;
-                    readonly flatShading: Schema.Boolean;
-                    readonly color: Schema.Int;
-                    readonly map: Schema.NullOr<Schema.String>;
-                    readonly roughness: Schema.Finite;
-                    readonly metalness: Schema.Finite;
-                    readonly emissive: Schema.Int;
-                    readonly emissiveIntensity: Schema.Finite;
-                    readonly clearcoat: Schema.Finite;
-                    readonly clearcoatRoughness: Schema.Finite;
-                    readonly transmission: Schema.Finite;
-                    readonly ior: Schema.Finite;
-                }>, Schema.TaggedStruct<"Normal", {
-                    opacity: Schema.Finite;
-                    transparent: Schema.Boolean;
-                    side: Schema.Literals<readonly ["front", "back", "double"]>;
-                    wireframe: Schema.Boolean;
-                    flatShading: Schema.Boolean;
-                }>]>;
-            }>>;
-        }>;
-        readonly children: Schema.$Array<Schema.Codec<SceneNode, unknown, never, never>>;
-    }>;
-}, {
-    'scene-click': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly instance: Schema.optionalKey<Schema.String>;
-        readonly part: Schema.optionalKey<Schema.String>;
-        readonly view: Schema.optionalKey<Schema.String>;
-        readonly path: Schema.$Array<Schema.String>;
-        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly distance: Schema.Finite;
-        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
-        readonly ray: Schema.Struct<{
-            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
-        readonly button: Schema.Int;
-    }>;
-    'scene-double-click': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly instance: Schema.optionalKey<Schema.String>;
-        readonly part: Schema.optionalKey<Schema.String>;
-        readonly view: Schema.optionalKey<Schema.String>;
-        readonly path: Schema.$Array<Schema.String>;
-        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly distance: Schema.Finite;
-        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
-        readonly ray: Schema.Struct<{
-            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
-        readonly button: Schema.Int;
-    }>;
-    'scene-context-menu': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly instance: Schema.optionalKey<Schema.String>;
-        readonly part: Schema.optionalKey<Schema.String>;
-        readonly view: Schema.optionalKey<Schema.String>;
-        readonly path: Schema.$Array<Schema.String>;
-        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly distance: Schema.Finite;
-        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
-        readonly ray: Schema.Struct<{
-            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
-    }>;
-    'scene-pointer-down': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly instance: Schema.optionalKey<Schema.String>;
-        readonly part: Schema.optionalKey<Schema.String>;
-        readonly view: Schema.optionalKey<Schema.String>;
-        readonly path: Schema.$Array<Schema.String>;
-        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly distance: Schema.Finite;
-        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
-        readonly ray: Schema.Struct<{
-            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
-        readonly button: Schema.Int;
-    }>;
-    'scene-pointer-up': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly instance: Schema.optionalKey<Schema.String>;
-        readonly part: Schema.optionalKey<Schema.String>;
-        readonly view: Schema.optionalKey<Schema.String>;
-        readonly path: Schema.$Array<Schema.String>;
-        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly distance: Schema.Finite;
-        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
-        readonly ray: Schema.Struct<{
-            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
-        readonly button: Schema.Int;
-    }>;
-    'scene-pointer-enter': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly instance: Schema.optionalKey<Schema.String>;
-        readonly part: Schema.optionalKey<Schema.String>;
-        readonly view: Schema.optionalKey<Schema.String>;
-        readonly path: Schema.$Array<Schema.String>;
-        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly distance: Schema.Finite;
-        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
-        readonly ray: Schema.Struct<{
-            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
-    }>;
-    'scene-pointer-move': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly instance: Schema.optionalKey<Schema.String>;
-        readonly part: Schema.optionalKey<Schema.String>;
-        readonly view: Schema.optionalKey<Schema.String>;
-        readonly path: Schema.$Array<Schema.String>;
-        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly distance: Schema.Finite;
-        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
-        readonly ray: Schema.Struct<{
-            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
-    }>;
-    'scene-pointer-leave': Schema.Struct<{
-        readonly key: Schema.String;
-    }>;
-    'scene-pointer-missed': Schema.Struct<{
-        readonly button: Schema.Int;
-    }>;
-    'scene-wheel': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly instance: Schema.optionalKey<Schema.String>;
-        readonly part: Schema.optionalKey<Schema.String>;
-        readonly view: Schema.optionalKey<Schema.String>;
-        readonly path: Schema.$Array<Schema.String>;
-        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly distance: Schema.Finite;
-        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
-        readonly ray: Schema.Struct<{
-            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
-        readonly deltaX: Schema.Finite;
-        readonly deltaY: Schema.Finite;
-    }>;
-    'scene-drag': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly button: Schema.Int;
-        readonly ray: Schema.Struct<{
-            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
-    }>;
-    'scene-drag-end': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly button: Schema.Int;
-        readonly ray: Schema.Struct<{
-            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
-    }>;
-    'scene-gesture': Schema.Struct<{
-        readonly gesture: Schema.Union<readonly [Schema.TaggedStruct<"Drag", {
-            readonly view: Schema.optionalKey<Schema.String>;
-            readonly width: Schema.Finite;
-            readonly height: Schema.Finite;
-            readonly x: Schema.Finite;
-            readonly y: Schema.Finite;
-            readonly button: Schema.Int;
-            readonly modifiers: Schema.Struct<{
-                readonly shift: Schema.Boolean;
-                readonly control: Schema.Boolean;
-                readonly meta: Schema.Boolean;
-                readonly alt: Schema.Boolean;
-            }>;
-            readonly key: Schema.optionalKey<Schema.String>;
-            readonly deltaX: Schema.Finite;
-            readonly deltaY: Schema.Finite;
-        }>, Schema.TaggedStruct<"Wheel", {
-            readonly view: Schema.optionalKey<Schema.String>;
-            readonly width: Schema.Finite;
-            readonly height: Schema.Finite;
-            readonly x: Schema.Finite;
-            readonly y: Schema.Finite;
-            readonly modifiers: Schema.Struct<{
-                readonly shift: Schema.Boolean;
-                readonly control: Schema.Boolean;
-                readonly meta: Schema.Boolean;
-                readonly alt: Schema.Boolean;
-            }>;
-            readonly deltaX: Schema.Finite;
-            readonly deltaY: Schema.Finite;
-        }>, Schema.TaggedStruct<"Pinch", {
-            readonly view: Schema.optionalKey<Schema.String>;
-            readonly width: Schema.Finite;
-            readonly height: Schema.Finite;
-            readonly x: Schema.Finite;
-            readonly y: Schema.Finite;
-            readonly scale: Schema.Finite;
-            readonly deltaX: Schema.Finite;
-            readonly deltaY: Schema.Finite;
-        }>]>;
-    }>;
-    'scene-gesture-end': Schema.Struct<{
-        readonly button: Schema.Int;
-        readonly modifiers: Schema.Struct<{
-            readonly shift: Schema.Boolean;
-            readonly control: Schema.Boolean;
-            readonly meta: Schema.Boolean;
-            readonly alt: Schema.Boolean;
-        }>;
-        readonly key: Schema.optionalKey<Schema.String>;
-        readonly view: Schema.optionalKey<Schema.String>;
-    }>;
-    'scene-auto-rotated': Schema.Struct<{
-        readonly view: Schema.optionalKey<Schema.String>;
-        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-    }>;
-    'scene-collision': Schema.Struct<{
-        readonly a: Schema.String;
-        readonly aInstance: Schema.optionalKey<Schema.String>;
-        readonly aPart: Schema.optionalKey<Schema.String>;
-        readonly b: Schema.String;
-        readonly bInstance: Schema.optionalKey<Schema.String>;
-        readonly bPart: Schema.optionalKey<Schema.String>;
-        readonly started: Schema.Boolean;
-    }>;
-    'scene-contact-force': Schema.Struct<{
-        readonly a: Schema.String;
-        readonly aInstance: Schema.optionalKey<Schema.String>;
-        readonly aPart: Schema.optionalKey<Schema.String>;
-        readonly b: Schema.String;
-        readonly bInstance: Schema.optionalKey<Schema.String>;
-        readonly bPart: Schema.optionalKey<Schema.String>;
-        readonly totalForce: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly totalForceMagnitude: Schema.Finite;
-        readonly maxForceDirection: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly maxForceMagnitude: Schema.Finite;
-    }>;
-    'scene-physics-reached': Schema.Struct<{
-        readonly run: Schema.Int;
-        readonly step: Schema.Int;
-        readonly checksum: Schema.String;
-        readonly snapshot: Schema.optionalKey<Schema.String>;
-    }>;
-    'scene-measured': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly max: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-    }>;
-    'scene-label-measured': Schema.Struct<{
-        readonly key: Schema.String;
-        readonly block: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly visible: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
-    }>;
-    'scene-xr': Schema.Struct<{
-        readonly mode: Schema.NullOr<Schema.Literals<readonly ["immersive-vr", "immersive-ar"]>>;
-    }>;
-    'scene-xr-stick': Schema.Struct<{
-        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
-        readonly direction: Schema.Literals<readonly ["center", "left", "right", "forward", "back"]>;
-    }>;
-    'scene-xr-button': Schema.Struct<{
-        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
-        readonly button: Schema.Literals<readonly ["trigger", "squeeze", "touchpad", "thumbstick", "primary", "secondary"]>;
-        readonly pressed: Schema.Boolean;
-    }>;
-    'scene-xr-surface': Schema.Struct<{
-        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
-        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-    }>;
-    'scene-xr-moved': Schema.Struct<{
-        readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly heading: Schema.Finite;
-    }>;
-    'scene-xr-teleported': Schema.Struct<{
-        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
-        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-    }>;
-    'scene-xr-poses': Schema.Struct<{
-        readonly head: Schema.Struct<{
-            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
-        readonly left: Schema.NullOr<Schema.Struct<{
-            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>>;
-        readonly right: Schema.NullOr<Schema.Struct<{
-            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>>;
-    }>;
-    'scene-xr-planes': Schema.Struct<{
-        readonly planes: Schema.$Array<Schema.Struct<{
-            readonly id: Schema.String;
-            readonly orientation: Schema.Literals<readonly ["horizontal", "vertical"]>;
-            readonly label: Schema.String;
-            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly polygon: Schema.$Array<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
-        }>>;
-    }>;
-    'scene-xr-meshes': Schema.Struct<{
-        readonly meshes: Schema.$Array<Schema.Struct<{
-            readonly id: Schema.String;
-            readonly label: Schema.String;
-            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>>;
-    }>;
-    'scene-performance': Schema.Struct<{
-        readonly fps: Schema.Finite;
-        readonly factor: Schema.Finite;
-    }>;
-    'scene-error': Schema.Struct<{
-        readonly error: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKey", {
-            readonly key: Schema.String;
-        }>, Schema.TaggedStruct<"DuplicateResourceId", {
-            readonly resource: Schema.Literals<readonly ["geometry", "material"]>;
-            readonly id: Schema.String;
-        }>, Schema.TaggedStruct<"UnknownSharedGeometry", {
-            readonly nodeKey: Schema.String;
-            readonly id: Schema.String;
-        }>, Schema.TaggedStruct<"UnknownSharedMaterial", {
-            readonly nodeKey: Schema.String;
-            readonly id: Schema.String;
-        }>, Schema.TaggedStruct<"DuplicateInstanceKey", {
-            readonly nodeKey: Schema.String;
-            readonly key: Schema.String;
-        }>, Schema.TaggedStruct<"UnknownBehaviour", {
-            readonly nodeKey: Schema.String;
-            readonly name: Schema.String;
-        }>, Schema.TaggedStruct<"DuplicateViewKey", {
-            readonly key: Schema.String;
-        }>, Schema.TaggedStruct<"DuplicateOverlayKey", {
-            readonly key: Schema.String;
-        }>, Schema.TaggedStruct<"UnknownOverlayNode", {
-            readonly key: Schema.String;
-            readonly node: Schema.String;
-        }>, Schema.TaggedStruct<"UnknownOverlayView", {
-            readonly key: Schema.String;
-            readonly view: Schema.String;
-        }>, Schema.TaggedStruct<"UnknownMeasuredNode", {
-            readonly key: Schema.String;
-        }>, Schema.TaggedStruct<"DuplicateAssetId", {
-            readonly id: Schema.String;
-        }>, Schema.TaggedStruct<"DuplicateJointKey", {
-            readonly key: Schema.String;
-        }>, Schema.TaggedStruct<"UnknownJointBody", {
-            readonly joint: Schema.String;
-            readonly body: Schema.String;
-        }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
-            readonly id: Schema.String;
-        }>, Schema.TaggedStruct<"MalformedScene", {
-            readonly issue: Schema.String;
-        }>]>;
-    }>;
-    'scene-asset-loaded': Schema.Struct<{
-        readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
-        readonly id: Schema.String;
-        readonly url: Schema.String;
-        readonly levels: Schema.$Array<Schema.String>;
-        readonly level: Schema.Int;
-        readonly final: Schema.Boolean;
-        readonly parts: Schema.$Array<Schema.String>;
-        readonly clips: Schema.$Array<Schema.String>;
-    }>;
-    'scene-asset-failed': Schema.Struct<{
-        readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
-        readonly id: Schema.String;
-        readonly url: Schema.String;
-        readonly levels: Schema.$Array<Schema.String>;
+const rectangle: (model: BoxSelect_2.Model) => Option_3<BoxSelect_2.Rectangle>;
+
+export { resolvePixelRatio }
+
+// @public
+export const sceneElement: Html.CustomElementBinding<'effect-three-scene', Record<never, never>, typeof sceneEventSchemas>;
+
+export { SceneError }
+
+// @public
+export const SceneLifecycle: UiSchema.TaggedEnum<{
+    readonly FailedScene: Schema.TaggedStruct<"FailedScene", {
         readonly reason: Schema.String;
     }>;
-    'scene-reconciled': Schema.Struct<{
-        readonly ops: Schema.Struct<{
-            readonly created: Schema.Int;
-            readonly updated: Schema.Int;
-            readonly moved: Schema.Int;
-            readonly removed: Schema.Int;
-            readonly replaced: Schema.Int;
-            readonly reordered: Schema.Int;
-            readonly configured: Schema.Int;
-        }>;
-        readonly resources: Schema.Struct<{
-            readonly geometries: Schema.Struct<{
-                readonly live: Schema.Int;
-                readonly created: Schema.Int;
-                readonly disposed: Schema.Int;
-            }>;
-            readonly materials: Schema.Struct<{
-                readonly live: Schema.Int;
-                readonly created: Schema.Int;
-                readonly disposed: Schema.Int;
-            }>;
-        }>;
-    }>;
-}>;
-
-// @public
-export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKey", {
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateResourceId", {
-    readonly resource: Schema.Literals<readonly ["geometry", "material"]>;
-    readonly id: Schema.String;
-}>, Schema.TaggedStruct<"UnknownSharedGeometry", {
-    readonly nodeKey: Schema.String;
-    readonly id: Schema.String;
-}>, Schema.TaggedStruct<"UnknownSharedMaterial", {
-    readonly nodeKey: Schema.String;
-    readonly id: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateInstanceKey", {
-    readonly nodeKey: Schema.String;
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"UnknownBehaviour", {
-    readonly nodeKey: Schema.String;
-    readonly name: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateViewKey", {
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateOverlayKey", {
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"UnknownOverlayNode", {
-    readonly key: Schema.String;
-    readonly node: Schema.String;
-}>, Schema.TaggedStruct<"UnknownOverlayView", {
-    readonly key: Schema.String;
-    readonly view: Schema.String;
-}>, Schema.TaggedStruct<"UnknownMeasuredNode", {
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateAssetId", {
-    readonly id: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateJointKey", {
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"UnknownJointBody", {
-    readonly joint: Schema.String;
-    readonly body: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
-    readonly id: Schema.String;
-}>, Schema.TaggedStruct<"MalformedScene", {
-    readonly issue: Schema.String;
-}>]>;
-
-// @public (undocumented)
-export type SceneError = typeof SceneError.Type;
-
-// @public
-export const SceneLifecycle: MessageUnion<    {
-readonly StartedScene: {};
-readonly FailedScene: {
-reason: Schema.String;
-};
+    readonly StartedScene: Schema.TaggedStruct<"StartedScene", {}>;
 }>;
 
 // @public (undocumented)
 export type SceneLifecycle = typeof SceneLifecycle.Type;
 
 // @public (undocumented)
-export type SceneMount = ReturnType<typeof makeSceneMount>;
+export type SceneMount<R = never> = Mount.Factory<SceneMountArgs, SceneLifecycle, HTMLElement, R | Scope.Scope>;
 
 // @public
-export const summarise: (ops: ReadonlyArray<Op>, stats: ResourceStats) => ReconciledDetail;
-
-// @public
-export const toNdc: (rect: Rect, clientX: number, clientY: number) => {
-    readonly x: number;
-    readonly y: number;
+export type SceneMountArgs = {
+    readonly scene: SceneDescription;
+    readonly live?: boolean;
 };
 
-// @public
-export const toPointerInput: (event: MouseEvent, rect: Rect) => PointerInput | undefined;
+export { summarise }
+
+export { toNdc }
+
+export { toPointerInput }
 
 declare namespace TransformGizmo {
     export {
         Model_4 as Model,
-        Message_4 as Message,
-        OutMessage_4 as OutMessage,
         init_4 as init,
-        update_4 as update,
         handleOf_2 as handleOf,
         held_2 as held,
-        nodes_3 as nodes
+        nodes_3 as nodes,
+        Message_4 as Message,
+        OutMessage_4 as OutMessage,
+        update_4 as update
     }
 }
 
-// Warning: (ae-forgotten-export) The symbol "Return" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
-const update: (model: Model, message: Message) => Return;
+const update: (model: BoxSelect_2.Model, message: BoxSelect_2.Message) => {
+    readonly model: BoxSelect_2.Model;
+    readonly outMessage?: BoxSelect_2.OutMessage;
+};
 
-// Warning: (ae-forgotten-export) The symbol "Return_2" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
-const update_2: (model: Model_2, message: Message_2) => Return_2;
+const update_2: (model: MeasuringTape_2.Model, message: MeasuringTape_2.Message) => {
+    readonly model: MeasuringTape_2.Model;
+    readonly outMessage?: MeasuringTape_2.OutMessage;
+};
 
-// Warning: (ae-forgotten-export) The symbol "Return_3" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
-const update_3: (model: Model_3, message: Message_3) => Return_3;
+const update_3: (model: PivotControls_2.Model, message: PivotControls_2.Message) => {
+    readonly model: PivotControls_2.Model;
+    readonly outMessage?: PivotControls_2.OutMessage;
+};
 
-// Warning: (ae-forgotten-export) The symbol "Return_4" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
-const update_4: (model: Model_4, message: Message_4) => Return_4;
+const update_4: (model: TransformGizmo_2.Model, message: TransformGizmo_2.Message) => {
+    readonly model: TransformGizmo_2.Model;
+    readonly outMessage?: TransformGizmo_2.OutMessage;
+};
 
-// Warning: (ae-forgotten-export) The symbol "Return_5" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
-const update_5: (model: Model_5, message: Message_5) => Return_5;
+const update_5: (model: ViewportGizmo_2.Model, message: ViewportGizmo_2.Message) => {
+    readonly model: ViewportGizmo_2.Model;
+    readonly outMessage?: ViewportGizmo_2.OutMessage;
+};
 
 // @public
-export const view: <Message>(config: ViewConfig<NoInfer<Message>>, h: HtmlBuilder<Message>) => Html;
+export const view: <Message>(config: ViewConfig<NoInfer<Message>>, h: Html.H<Message>) => View.Content<Message, Scope.Scope>;
 
 // @public (undocumented)
 export type ViewConfig<Message> = {
@@ -1888,55 +911,47 @@ export type ViewConfig<Message> = {
     readonly onAssetLoaded?: (detail: AssetLoadedDetail) => Message;
     readonly onAssetFailed?: (detail: AssetFailedDetail) => Message;
     readonly onReconciled?: (detail: ReconciledDetail) => Message;
-    readonly overlays?: ReadonlyArray<OverlayView>;
+    readonly overlays?: ReadonlyArray<OverlayView<Message>>;
     readonly className?: string;
+    readonly live?: boolean;
 };
 
 declare namespace ViewportGizmo {
     export {
         Model_5 as Model,
-        Message_5 as Message,
-        OutMessage_5 as OutMessage,
         init_5 as init,
         axisOf,
-        update_5 as update,
         nodes_4 as nodes,
-        hud
+        hud,
+        Message_5 as Message,
+        OutMessage_5 as OutMessage,
+        update_5 as update
     }
 }
 
-// @public
-export type WebGLOptions = Omit<WebGLRendererParameters, 'canvas'>;
+export { WebGLOptions }
 
-// @public
-export const webglRendererFactory: (canvas: HTMLCanvasElement, options?: WebGLOptions) => RendererFactory;
+export { webglRendererFactory }
 
-// @public
-export type WebGPUOptions = {
-    readonly forceWebGL?: boolean;
-    readonly alpha?: boolean;
-    readonly antialias?: boolean;
-};
+export { WebGPUOptions }
 
-// @public
-export const webgpuRendererFactory: (canvas: HTMLCanvasElement, options?: WebGPUOptions) => RendererFactory;
+export { webgpuRendererFactory }
 
 // @public
 export type WheelDetail = typeof SceneSchema.WheelDetail.Type;
 
+// @public (undocumented)
+export const withOverlays: <Message>(scene: SceneDescription, overlays: ReadonlyArray<OverlayView<Message>>) => SceneDescription;
+
 // @public
 export type XrButtonDetail = typeof SceneSchema.XrButtonDetail.Type;
 
-// Warning: (ae-forgotten-export) The symbol "makeXr" needs to be exported by the entry point index.d.ts
-//
-// @public (undocumented)
-export type XrControls = ReturnType<typeof makeXr>;
+export { XrControls }
 
 // @public
 export type XrMeshesDetail = typeof SceneSchema.XrMeshesDetail.Type;
 
-// @public
-export type XrMode = 'immersive-vr' | 'immersive-ar';
+export { XrMode }
 
 // @public
 export type XrMovedDetail = typeof SceneSchema.XrMovedDetail.Type;
@@ -1947,13 +962,7 @@ export type XrPlanesDetail = typeof SceneSchema.XrPlanesDetail.Type;
 // @public
 export type XrPosesDetail = typeof SceneSchema.XrPosesDetail.Type;
 
-// @public
-export const XrSessionDetail: Schema.Struct<{
-    readonly mode: Schema.NullOr<Schema.Literals<readonly ["immersive-vr", "immersive-ar"]>>;
-}>;
-
-// @public (undocumented)
-export type XrSessionDetail = typeof XrSessionDetail.Type;
+export { XrSessionDetail }
 
 // @public
 export type XrStickDetail = typeof SceneSchema.XrStickDetail.Type;
@@ -1964,19 +973,7 @@ export type XrSurfaceDetail = typeof SceneSchema.XrSurfaceDetail.Type;
 // @public (undocumented)
 export type XrTeleportedDetail = typeof SceneSchema.XrTeleportedDetail.Type;
 
-// Warning: (ae-forgotten-export) The symbol "XrUnavailable_base" needs to be exported by the entry point index.d.ts
-//
-// @public
-export class XrUnavailable extends XrUnavailable_base<{
-    readonly mode: XrMode;
-    readonly cause: unknown;
-}> {
-}
-
-// Warnings were encountered during analysis:
-//
-// src/environment.ts:70:9 - (ae-forgotten-export) The symbol "AssetNotice" needs to be exported by the entry point index.d.ts
-// src/environment.ts:73:5 - (ae-forgotten-export) The symbol "XrHub" needs to be exported by the entry point index.d.ts
+export { XrUnavailable }
 
 // (No @packageDocumentation comment for this package)
 

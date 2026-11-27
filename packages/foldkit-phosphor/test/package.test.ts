@@ -9,9 +9,21 @@ import { promisify } from 'node:util';
 const exec = promisify(execFile);
 const workspace = fileURLToPath(new URL('../', import.meta.url));
 
+test('declares no FoldKit dependency for compilation or rendering', async () => {
+  const manifest = JSON.parse(await readFile(path.join(workspace, 'package.json'), 'utf8'));
+  for (const group of [
+    'dependencies',
+    'peerDependencies',
+    'devDependencies',
+    'optionalDependencies',
+  ])
+    expect(manifest[group] ?? {}).not.toHaveProperty('foldkit');
+});
+
 test('browser rendering excludes the XML compiler and the complete Core catalog', async () => {
   const result = await Bun.build({
-    entrypoints: [path.join(workspace, 'src/index.ts')],
+    entrypoints: [path.join(workspace, 'src/effect-ui.ts')],
+    packages: 'external',
     target: 'browser',
     minify: true,
   });
@@ -42,9 +54,8 @@ test('a packed consumer imports both entries in Node/Bun and resolves public typ
         '--no-audit',
         '--no-fund',
         archive,
-        'foldkit@0.170.0',
-        'effect@4.1.0',
-        '@effect/platform-browser@4.1.0',
+        '@effect/ui@https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92',
+        'effect@4.1.6',
       ],
       { cwd: directory, maxBuffer: 1024 * 1024 },
     );
@@ -55,12 +66,18 @@ test('a packed consumer imports both entries in Node/Bun and resolves public typ
       ),
     );
     expect(manifest.dependencies.sax).toBe('1.6.1');
-    const source = `import { phosphorIcon } from '@opsydyn/foldkit-phosphor';
+    const lock = JSON.parse(await readFile(path.join(directory, 'package-lock.json'), 'utf8'));
+    expect(
+      Object.keys(lock.packages).filter(
+        (name) => name.endsWith('/node_modules/foldkit') || name === 'node_modules/foldkit',
+      ),
+    ).toEqual([]);
+    const source = `import { phosphorIcon } from '@opsydyn/foldkit-phosphor/effect-ui';
 import type { PhosphorIconDefinition } from '@opsydyn/foldkit-phosphor';
 import { compilePhosphorIcon } from '@opsydyn/foldkit-phosphor/compile';
-import type { HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
 const definition: PhosphorIconDefinition = compilePhosphorIcon('<svg viewBox="0 0 256 256"><path d="M0 0h20v20Z"/></svg>');
-export const view = (h: HtmlBuilder<{ readonly _tag: 'ClickedAdd' }>) => phosphorIcon(h, definition, { label: 'System', size: '1em', attributes: [h.Class('icon')] });
+export const view = (h: Html.H<{ readonly _tag: 'ClickedAdd' }>) => phosphorIcon(h, definition, { label: 'System', size: '1em', attributes: { class: 'icon' } });
 if (definition.children[0]?.tag !== 'path') throw Error('Missing compiled geometry');
 console.log('packed-icon-ok');`;
     const file = path.join(directory, 'consumer.mts');

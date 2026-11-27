@@ -1,20 +1,22 @@
-import { Result, Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
+import { UiSchema } from '@effect/ui';
+import { Schema } from 'effect';
 
-import type { Message as CarouselMessage } from '../../ui/carousel';
-import type { Slide } from './model';
+import { Slide } from './model';
 
-export const Message = defineMessageUnion({
-  ReceivedCarouselMessage: { message: Schema.Unknown },
-  SettledSlides: { result: Schema.Unknown },
+export const Message = UiSchema.TaggedEnum({
+  LoadedSlides: { slides: Schema.Array(Slide) },
+  PressedSlide: {},
+  MovedDragPointer: { deltaX: Schema.Number },
+  ReleasedDragPointer: {
+    deltaX: Schema.Number,
+    velocityX: Schema.Number,
+    trackWidth: Schema.Number,
+  },
+  CancelledDrag: {},
+  TickedSettle: { deltaTimeMs: Schema.Number },
+  ClickedPrevious: {},
+  ClickedNext: {},
+  ClickedDot: { index: Schema.Number },
+  PressedNavigationKey: { key: Schema.Literals(['ArrowLeft', 'ArrowRight']) },
 });
-export type ReceivedCarouselMessage = Omit<
-  typeof Message.ReceivedCarouselMessage.Type,
-  'message'
-> & {
-  readonly message: CarouselMessage;
-};
-export type SettledSlides = Omit<typeof Message.SettledSlides.Type, 'result'> & {
-  readonly result: Result.Result<ReadonlyArray<Slide>, string>;
-};
 export type Message = typeof Message.Type;

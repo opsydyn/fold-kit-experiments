@@ -1,10 +1,10 @@
 import { EventSchemas } from '@ag-ui/core/schemas';
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
 import { Filter, NavigationValue, Scenario } from './contract';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ClickedRun: {},
   ClickedCancel: {},
   ClickedRecover: {},
@@ -19,5 +19,5 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type;
 
 // The transport payload stays unknown until the SDK validates this Message boundary.
-export const decodeAgentEvent = (message: typeof Message.ReceivedAgentEvent.Type) =>
+export const decodeAgentEvent = (message: typeof Message.cases.ReceivedAgentEvent.Type) =>
   EventSchemas.safeParse(message.event);

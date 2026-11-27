@@ -1,23 +1,20 @@
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 
-import { sceneMount } from '../environment';
+import { EffectThreeStage, unlabelledSceneMount } from '../effect-ui-scene';
 import { cubeIndex, Message } from './message';
 import type { Model } from './model';
 import { sceneFor } from './scene';
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'effect-three',
-  body: EffectThreeFoldkit.view(
-    {
-      scene: sceneFor(model),
-      mount: sceneMount,
-      className: 'e3-stage e3-stage-hero',
-      onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-      onClick: ({ key }) => Message.ClickedCube({ index: cubeIndex(key) }),
-      onPointerEnter: ({ key }) => Message.HoveredCube({ index: cubeIndex(key) }),
-      onPointerLeave: ({ key }) => Message.LeftCube({ index: cubeIndex(key) }),
-    },
-    h,
-  ),
-});
+export const view = (h: Html.H<Message>, model: Model) =>
+  EffectThreeStage(h)
+    .class('e3-stage', 'e3-stage-hero')
+    .on('scene-click', ({ key }) => Message.ClickedCube({ index: cubeIndex(key) }))
+    .on('scene-pointer-enter', ({ key }) => Message.HoveredCube({ index: cubeIndex(key) }))
+    .on('scene-pointer-leave', ({ key }) => Message.LeftCube({ index: cubeIndex(key) }))
+    .onMount(
+      Mount.map(unlabelledSceneMount({ scene: sceneFor(model) }), (lifecycle) =>
+        Message.ReceivedSceneLifecycle({ lifecycle }),
+      ),
+    )
+    .children();

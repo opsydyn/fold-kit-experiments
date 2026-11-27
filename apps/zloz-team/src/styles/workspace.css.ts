@@ -244,6 +244,7 @@ globalStyle('.board-title h1', {
   whiteSpace: 'nowrap',
 });
 globalStyle('.board-content, .board-content astro-island', { minWidth: 0, minHeight: 0 });
+globalStyle('.board-content > astro-island > [data-effect-ui-root]', { display: 'contents' });
 globalStyle('.board-content', { display: 'grid', gridTemplateRows: 'minmax(0, 1fr)' });
 globalStyle('.board-page .site-header', {
   '@media': {
@@ -472,6 +473,8 @@ globalStyle('.role-label', {
   marginTop: 18,
 });
 globalStyle('.canvas-column', {
+  display: 'flex',
+  flexDirection: 'column',
   gridArea: 'canvas',
   minWidth: 0,
   minHeight: 0,
@@ -516,6 +519,12 @@ globalStyle('.board-canvas', {
   minHeight: 0,
   flex: '1 1 0',
 });
+globalStyle('.board-canvas > .zloz-ui-surface, .rewind-canvas > .zloz-ui-surface', {
+  flex: '1 1 0',
+  minHeight: 0,
+  height: 'auto',
+});
+globalStyle('.board-viewport-controls', { display: 'flex', flexWrap: 'wrap', gap: 4 });
 globalStyle('.board-navigation', {
   position: 'relative',
   padding: '3px 8px',
@@ -655,7 +664,10 @@ globalStyle('.board-import > header', {
 globalStyle('.board-import > header h2', { margin: 0 });
 globalStyle('.board-import-content', { padding: 12, overflowY: 'auto' });
 globalStyle('.board-svg', { gridTemplateRows: 'auto minmax(0, 1fr)' });
-globalStyle('.svg-review', { minHeight: 0, gridTemplateRows: 'minmax(0, 1fr) auto' });
+globalStyle('.board-svg > [data-zloz-svg-review]', {
+  minHeight: 0,
+  gridTemplateRows: 'minmax(0, 1fr) auto',
+});
 globalStyle('.svg-review-settings', {
   display: 'grid',
   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -773,7 +785,7 @@ globalStyle('.shared-editor [data-flow-help]', {
   color: theme.muted,
 });
 globalStyle('.shared-editor .shared-node', {
-  position: 'static',
+  position: 'absolute',
   width: '100%',
   padding: 12,
   border: `2px solid ${theme.rule}`,
@@ -786,14 +798,6 @@ globalStyle('.shared-editor .shared-node[data-architecture="ddd"]', { borderColo
 globalStyle('.shared-editor .shared-node.is-selected', {
   borderColor: theme.accent,
   boxShadow: `0 0 0 1px ${theme.accent}`,
-});
-globalStyle('.shared-node-frame', {
-  position: 'absolute',
-  boxSizing: 'border-box',
-  border: 0,
-  padding: 0,
-  margin: 0,
-  pointerEvents: 'auto',
 });
 globalStyle('.shared-editor .shared-node-title', {
   width: '100%',
@@ -814,6 +818,7 @@ globalStyle('.shared-editor .shared-node-title', {
   lineHeight: 1.3,
   letterSpacing: '.02em',
 });
+globalStyle('.shared-node-copy', { display: 'contents' });
 globalStyle('.node-name', { display: 'flex', alignItems: 'center', gap: 10, width: '100%' });
 globalStyle('.node-name .team-icon', { flexShrink: 0, color: theme.accent });
 globalStyle('.node-type', {
@@ -825,7 +830,11 @@ globalStyle('.node-type', {
 });
 globalStyle('.team-icon', { display: 'block', flexShrink: 0 });
 globalStyle('.team-uploaded-icon', { objectFit: 'contain' });
-globalStyle('.shared-editor .shared-node-resize', {
+globalStyle('.shared-editor .zloz-ui-width-resize', {
+  left: 'auto',
+  top: 'auto',
+  transform: 'none',
+  touchAction: 'none',
   position: 'absolute',
   right: -8,
   bottom: -8,
@@ -1027,11 +1036,13 @@ globalStyle('.peer-cursor', {
   border: `1px solid ${theme.accent}`,
   fontSize: 11,
 });
-globalStyle('.shared-group', {
+globalStyle('.shared-editor .shared-group', {
+  padding: 0,
+  pointerEvents: 'none',
   border: `2px dashed ${theme.muted}`,
   background: `color-mix(in srgb, ${theme.accent} 7%, ${theme.panel})`,
 });
-globalStyle('.shared-group-title', { padding: '4px 8px' });
+globalStyle('.shared-editor .shared-group-title', { padding: '4px 8px', pointerEvents: 'auto' });
 globalStyle('.secondary', { color: theme.accent, background: theme.panel });
 globalStyle('.site-header', {
   '@media': { '(max-width: 680px)': { padding: '12px 16px', gap: 10, flexWrap: 'wrap' } },

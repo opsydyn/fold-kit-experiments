@@ -1,17 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import {
-  zlozView,
-  zlozPortAnchorHandle,
-  type ZlozViewOptions,
-  type ZlozPortAnchorHandleContext,
-} from '../src/foldkit';
+import type { GraphSurfaceOptions, ZlozPortAnchorHandleContext } from '../src/effect-ui';
 import { createEditor, updateEditor, type EditorEvent, type EditorState } from '../src/index';
+import { renderCanvas } from './render-effect-ui';
 
 const initial = () =>
   createEditor(
@@ -138,27 +131,10 @@ test('measurement updates survive cancellation and preview leaves redo history i
 test('anchor handles opt in, select visible nodes, preserve custom styles and use edit permissions independently', async () => {
   const state = { ...initial(), selectedNodes: ['a'] };
   const render = async (
-    options: Partial<ZlozViewOptions<EditorEvent>>,
+    options: Partial<GraphSurfaceOptions<string>>,
     model: EditorState = state,
   ) => {
-    const result = await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model }),
-          view: (model, h: HtmlBuilder<EditorEvent>) => ({
-            title: 'Anchors',
-            body: zlozView(h, model, {
-              id: 'anchors',
-              label: 'Anchors',
-              onEvent: (event) => event,
-              ...options,
-            }),
-          }),
-        },
-        { flags: {}, isHydratable: false },
-      ),
-    );
+    const result = await renderCanvas(model, options);
     const window = new Window();
     window.document.body.innerHTML = result.html;
     return window.document;
@@ -171,9 +147,9 @@ test('anchor handles opt in, select visible nodes, preserve custom styles and us
     });
     return undefined;
   };
-  await render({ portAnchorHandles: true, renderPortAnchorHandle: collectOffset });
+  await render({ portAnchors: { renderHandle: collectOffset } });
   await render(
-    { portAnchorHandles: true, renderPortAnchorHandle: collectOffset },
+    { portAnchors: { renderHandle: collectOffset } },
     updateEditor(state, { type: 'PortAnchorNudged', endpoint, delta: { x: -0.75, y: -0.25 } }),
   );
   expect(offsets).toEqual([
@@ -182,33 +158,30 @@ test('anchor handles opt in, select visible nodes, preserve custom styles and us
   ]);
   expect((await render({})).querySelector('[data-flow-anchor-port]')).toBeNull();
   const document = await render({
-    portAnchorHandles: true,
-    minimalMode: true,
-    canConnectPort: () => 'Wiring closed',
+    portAnchors: {},
+    policy: { canConnectPort: () => 'Wiring closed' },
   });
   const handle = document.querySelector('[data-flow-anchor-port="out"]');
   expect(document.querySelectorAll('[data-flow-anchor-port]')).toHaveLength(1);
   expect(handle?.hasAttribute('disabled')).toBe(false);
-  expect(handle?.getAttribute('style')).toContain('width: 18px');
-  expect(handle?.getAttribute('style')).toContain('touch-action: none');
+  expect(handle?.classList.contains('zloz-ui-anchor-handle')).toBe(true);
   const locked = await render({
-    portAnchorHandles: true,
-    canEditPort: () => 'Managed anchor',
-    renderPortAnchorHandle: (context, h) =>
-      zlozPortAnchorHandle(
-        h,
-        context,
-        [h.Class('custom-anchor'), h.Style({ width: '32px' })],
-        ['Move'],
-      ),
+    policy: { canEditPort: () => 'Managed anchor' },
+    portAnchors: {
+      renderHandle: () => ({
+        className: 'custom-anchor',
+        style: { width: '32px' },
+        content: 'Move',
+      }),
+    },
   });
   const custom = locked.querySelector('.custom-anchor');
   expect(custom?.getAttribute('title')).toBe('Managed anchor');
   expect(custom?.hasAttribute('disabled')).toBe(true);
-  expect(custom?.getAttribute('style')).toContain('width: 32px');
+  expect(custom?.getAttribute('style')).toContain('width:32px');
   expect(custom?.getAttribute('aria-label')).toBe('Position A: out');
   expect(
-    (await render({ portAnchorHandles: true, renderPortAnchorHandle: () => null })).querySelector(
+    (await render({ portAnchors: { renderHandle: () => null } })).querySelector(
       '[data-flow-anchor-port]',
     ),
   ).toBeNull();

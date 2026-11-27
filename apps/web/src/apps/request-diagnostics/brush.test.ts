@@ -2,7 +2,7 @@ import { rowsOf } from '@opsydyn/foldkit-viz/plot';
 import { Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import * as PlotPanel from '../../ui/plot-panel';
+import * as PlotPanel from '../../ui/plot-panel/core';
 import { Message } from './message';
 import { initModel, samplePoints } from './model';
 import type { Model } from './model';

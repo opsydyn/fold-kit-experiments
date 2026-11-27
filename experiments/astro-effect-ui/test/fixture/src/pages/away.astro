@@ -1,0 +1,13 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import { Counter } from '../Counter';
+---
+<html lang="en">
+  <head><title>Away</title><ClientRouter /></head>
+  <body>
+    <main>
+      <Counter label="kept" start={10} client:load transition:persist="kept" transition:persist-props />
+      <a href="/">Return</a>
+    </main>
+  </body>
+</html>

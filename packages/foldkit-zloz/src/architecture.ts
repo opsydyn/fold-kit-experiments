@@ -147,6 +147,14 @@ export const architectureNodePresets: readonly ArchitectureNodePreset[] = Object
   ),
 );
 
+export function architectureRoleLabel({ family, role }: ZlozNodeArchitecture): string {
+  return (
+    architectureNodePresets.find(
+      (preset) => preset.architecture.family === family && preset.architecture.role === role,
+    )?.label ?? role
+  );
+}
+
 /** Untrusted descriptor fields are inspected individually before they enter the public union. */
 type UnknownNodeDescriptor = Readonly<{
   family?: unknown;

@@ -1,4 +1,4 @@
-import type { Port } from './types';
+import type { EditorState, Port } from './types';
 
 /** Persisted by v2 documents and retained by their editor sessions; legacy initialization stays strict. */
 export type ZlozConnectionMode = 'strict' | 'loose';
@@ -45,4 +45,18 @@ export function resolveConnectionPortPair({
       reason: 'Strict connections require an output source and input target.',
     };
   return { type: 'compatible', mode };
+}
+
+/** @internal Shared native/custom activation semantics; authored kind stays unchanged. */
+export function portConnectionEnd(
+  state: Pick<EditorState, 'connection' | 'connectionMode'>,
+  port: Port,
+): 'source' | 'target' {
+  return state.connectionMode === 'loose'
+    ? state.connection
+      ? 'target'
+      : 'source'
+    : port.kind === 'output'
+      ? 'source'
+      : 'target';
 }

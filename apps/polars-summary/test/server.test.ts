@@ -20,6 +20,46 @@ describe('GET /', () => {
     expect(html).not.toContain('<script');
   });
 
+  it('includes a readable data table for each chart and a native GET form', async () => {
+    const response = await get('/?bin=100&max=1000');
+    let dataTables = 0;
+    const values = new Map<string, string | null>();
+    const formAttributes = new Map<string, string | null>();
+    const inspected = new HTMLRewriter()
+      .on('figure.chart table.plot-data', {
+        element() {
+          dataTables += 1;
+        },
+      })
+      .on('form.controls', {
+        element(form) {
+          formAttributes.set('method', form.getAttribute('method'));
+          formAttributes.set('action', form.getAttribute('action'));
+        },
+      })
+      .on('form.controls input[name]', {
+        element(field) {
+          const name = field.getAttribute('name');
+          if (name !== null) values.set(name, field.getAttribute('value'));
+        },
+      })
+      .transform(response);
+    await inspected.text();
+    expect(dataTables).toBe(2);
+    expect(formAttributes).toEqual(
+      new Map([
+        ['method', 'get'],
+        ['action', '/'],
+      ]),
+    );
+    expect(values).toEqual(
+      new Map([
+        ['bin', '100'],
+        ['max', '1000'],
+      ]),
+    );
+  });
+
   it('summarises again with the bin width and cap it is given', async () => {
     const html = await (await get('/?bin=100&max=1000')).text();
     expect(html).toContain('in 100 ms bins');

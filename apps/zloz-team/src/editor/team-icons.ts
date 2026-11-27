@@ -1,5 +1,5 @@
+import { Html } from '@effect/ui/html';
 import { Data, Schema } from 'effect';
-import type { HtmlBuilder } from 'foldkit/html';
 
 import { teamIcon, type TeamIcon } from '../appearance/icons';
 
@@ -43,22 +43,18 @@ export const builtInIcon = (reference: string | undefined) =>
   builtIns.find(([key]) => reference === `builtin:${key}`)?.[0];
 
 export function nodeIcon<M>(
-  h: HtmlBuilder<M>,
+  h: Html.H<M>,
   team: string,
   reference: string | undefined,
   fallback: TeamIcon,
   onFailure?: (icon: string) => M,
 ) {
-  return reference?.startsWith('team:') && team
-    ? h.img([
-        h.Src(assetPath(team, reference)),
-        h.Alt(''),
-        h.Width('20'),
-        h.Height('20'),
-        h.Class('team-icon team-uploaded-icon'),
-        ...(onFailure ? [h.OnError(onFailure(reference))] : []),
-      ])
-    : teamIcon(h, builtInIcon(reference) ?? fallback);
+  if (!reference?.startsWith('team:') || !team)
+    return teamIcon(h, builtInIcon(reference) ?? fallback);
+  const image = h.img
+    .class('team-icon', 'team-uploaded-icon')
+    .attrs({ src: assetPath(team, reference), alt: '', width: '20', height: '20' });
+  return onFailure ? image.on('error', onFailure(reference)) : image;
 }
 
 class IconLibraryError extends Data.TaggedError('IconLibraryError')<{ message: string }> {}
@@ -97,7 +93,7 @@ export async function archive(team: string, id: string) {
 }
 
 export function view<M>(
-  h: HtmlBuilder<M>,
+  h: Html.H<M>,
   panel: Panel,
   team: string,
   selected: string | undefined,
@@ -109,101 +105,71 @@ export function view<M>(
     archive: (id: string) => M;
   },
 ) {
-  return h.section(
-    [h.AriaLabel('Node icon picker')],
-    [
-      h.div(
-        [h.Role('group'), h.AriaLabel('Icon sources')],
-        [
-          h.button(
-            [
-              h.Type('button'),
-              h.AriaPressed(String(panel.tab === 'built-in')),
-              h.OnClick(actions.tab('built-in')),
-            ],
-            ['Built-in'],
-          ),
-          h.button(
-            [
-              h.Type('button'),
-              h.AriaPressed(String(panel.tab === 'team')),
-              h.OnClick(actions.tab('team')),
-            ],
-            ['Team library'],
-          ),
-        ],
+  return h.section.attr('aria-label', 'Node icon picker').children(
+    h.div
+      .attr('role', 'group')
+      .attr('aria-label', 'Icon sources')
+      .children(
+        h.button
+          .attr('type', 'button')
+          .attr('aria-pressed', String(String(panel.tab === 'built-in')))
+          .on('click', actions.tab('built-in'))
+          .children('Built-in'),
+        h.button
+          .attr('type', 'button')
+          .attr('aria-pressed', String(String(panel.tab === 'team')))
+          .on('click', actions.tab('team'))
+          .children('Team library'),
       ),
-      h.button(
-        [
-          h.Type('button'),
-          h.Disabled(panel.busy || selected === undefined),
-          h.OnClick(actions.choose(null)),
-        ],
-        ['Use default icon'],
-      ),
-      h.p([h.Role('status')], [panel.busy ? 'Updating the icon library…' : panel.notice]),
-      ...(panel.tab === 'built-in'
-        ? builtIns.map(([key, name]) =>
-            h.button(
-              [
-                h.Key(key),
-                h.Type('button'),
-                h.Disabled(panel.busy),
-                h.AriaPressed(String(selected === `builtin:${key}`)),
-                h.OnClick(actions.choose(`builtin:${key}`)),
-              ],
-              [teamIcon(h, key), name],
+    h.button
+      .attr('type', 'button')
+      .disabled(panel.busy || selected === undefined)
+      .on('click', actions.choose(null))
+      .children('Use default icon'),
+    h.p.attr('role', 'status').children(panel.busy ? 'Updating the icon library…' : panel.notice),
+    ...(panel.tab === 'built-in'
+      ? builtIns.map(([key, name]) =>
+          h.button
+            .key(key)
+            .attr('type', 'button')
+            .disabled(panel.busy)
+            .attr('aria-pressed', String(String(selected === `builtin:${key}`)))
+            .on('click', actions.choose(`builtin:${key}`))
+            .children(teamIcon(h, key), name),
+        )
+      : [
+          h.p.children(
+            'Uploading adds the icon to the team library and applies it to the selected node for everyone.',
+          ),
+          h.label.children(
+            'Upload and apply icon (PNG or WebP, 64 KiB max)',
+            h.input
+              .key(String(panel.run))
+              .attr('type', 'file')
+              .attr('accept', 'image/png,image/webp')
+              .disabled(panel.busy)
+              .value('')
+              .on('change', ({ files }) => actions.upload(files[0])),
+          ),
+          ...panel.entries.map((icon) =>
+            h.div.key(icon.id).children(
+              h.button
+                .attr('type', 'button')
+                .disabled(panel.busy)
+                .attr('aria-pressed', String(String(selected === `team:${icon.id}`)))
+                .on('click', actions.choose(`team:${icon.id}`))
+                .children(nodeIcon(h, team, `team:${icon.id}`, 'cube'), icon.name),
+              ...(owner
+                ? [
+                    h.button
+                      .attr('type', 'button')
+                      .disabled(panel.busy)
+                      .on('click', actions.archive(icon.id))
+                      .children(`Archive ${icon.name}`),
+                  ]
+                : []),
             ),
-          )
-        : [
-            h.p(
-              [],
-              [
-                'Uploading adds the icon to the team library and applies it to the selected node for everyone.',
-              ],
-            ),
-            h.label(
-              [],
-              [
-                'Upload and apply icon (PNG or WebP, 64 KiB max)',
-                h.input([
-                  h.Key(String(panel.run)),
-                  h.Type('file'),
-                  h.Accept('image/png,image/webp'),
-                  h.Disabled(panel.busy),
-                  h.OnFileChange(([file]) => actions.upload(file)),
-                ]),
-              ],
-            ),
-            ...panel.entries.map((icon) =>
-              h.div(
-                [h.Key(icon.id)],
-                [
-                  h.button(
-                    [
-                      h.Type('button'),
-                      h.Disabled(panel.busy),
-                      h.AriaPressed(String(selected === `team:${icon.id}`)),
-                      h.OnClick(actions.choose(`team:${icon.id}`)),
-                    ],
-                    [nodeIcon(h, team, `team:${icon.id}`, 'cube'), icon.name],
-                  ),
-                  ...(owner
-                    ? [
-                        h.button(
-                          [
-                            h.Type('button'),
-                            h.Disabled(panel.busy),
-                            h.OnClick(actions.archive(icon.id)),
-                          ],
-                          [`Archive ${icon.name}`],
-                        ),
-                      ]
-                    : []),
-                ],
-              ),
-            ),
-          ]),
-    ],
+          ),
+        ]),
   );
 }

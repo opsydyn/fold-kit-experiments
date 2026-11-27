@@ -1,50 +1,35 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozView } from '../src/foldkit';
-import { createEditor, type EditorEvent } from '../src/index';
+import { graphSurface } from '../src/effect-ui';
+import { createEditor } from '../src/index';
+import { renderEffectUi } from './render-effect-ui';
 
 test('typed theme tokens and native color scheme are scoped to the requested Zloz root', async () => {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: createEditor({ nodes: [], edges: [] }) }),
-        view: (state, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Zloz themes',
-          body: h.div(
-            [],
-            [
-              zlozView(h, state, {
-                id: 'themed',
-                label: 'Themed',
-                themeClassName: 'host-pleat-class',
-                theme: { colorScheme: 'dark', tokens: { background: 'var(--app-surface)' } },
-                onEvent: (event) => event,
-              }),
-              zlozView(h, state, {
-                id: 'inherited',
-                label: 'Inherited',
-                themeClassName: 'host-pleat-class',
-                onEvent: (event) => event,
-              }),
-            ],
-          ),
-        }),
-      },
-      { flags: {}, isHydratable: false },
+  const state = createEditor({ nodes: [], edges: [] });
+  const result = await renderEffectUi((h) =>
+    h.div.class('host-pleat-class').children(
+      graphSurface(h, state, {
+        id: 'themed',
+        label: 'Themed',
+        theme: {
+          colorScheme: 'dark',
+          tokens: { background: 'var(--app-surface)' },
+        },
+        onInput: ({ type }) => type,
+      }),
+      graphSurface(h, state, { id: 'inherited', label: 'Inherited', onInput: ({ type }) => type }),
     ),
   );
   const { document } = new Window();
   document.body.innerHTML = result.html;
-  const themed = document.querySelector('#themed');
-  expect(themed?.classList.contains('host-pleat-class')).toBe(true);
-  expect(themed?.getAttribute('style')).toContain('color-scheme: dark');
-  expect(themed?.getAttribute('style')).toContain('--flow-background: var(--app-surface)');
+  const themed = document.querySelector('#themed-surface');
+  expect(themed?.parentElement?.classList.contains('host-pleat-class')).toBe(true);
+  expect(themed?.getAttribute('style')).toContain('color-scheme:dark');
+  expect(themed?.getAttribute('style')).toContain('--flow-background:var(--app-surface)');
   expect(themed?.getAttribute('style')).not.toContain('--flow-edge:');
-  expect(document.querySelector('#inherited')?.hasAttribute('style')).toBe(false);
+  expect(document.querySelector('#inherited-surface')?.getAttribute('style')).not.toContain(
+    '--flow-background:',
+  );
 });

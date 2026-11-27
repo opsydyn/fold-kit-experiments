@@ -1,7 +1,6 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
+import Workshop from '@opsydyn/effect-three-samples/workshop';
 
 import '@opsydyn/effect-three-samples/styles.css';
 
-export default lazyApp<{ readonly noMeta?: boolean; readonly assetBase?: string }>(
-  () => import('@opsydyn/effect-three-samples/workshop'),
-);
+export default astroComponent(Workshop);

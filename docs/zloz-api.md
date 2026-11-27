@@ -12,13 +12,10 @@ The reference includes:
 - `@opsydyn/foldkit-zloz`: graph/port types, editor state/events, serialization,
   history, layout publication, shared edge geometry, custom port anchors and connection-preview policies.
   The root also exports C4/DDD node descriptors, architecture presets/factory,
-  shape geometry and undoable architecture/appearance events. These are headless
-  contracts; opt-in C4 artwork lives in the optional view entry. DDD artwork and
-  pattern builders remain subsequent slices.
-- `@opsydyn/foldkit-zloz/foldkit`: view options, node/group shells, public
-  interaction primitives, diagnostics and background contracts.
-  Opt-in `zlozC4Node`/`zlozC4Group` presets expose content/control slots and scoped
-  themes through the same public primitives.
+  shape geometry and undoable architecture/appearance events.
+- `@opsydyn/foldkit-zloz/effect-ui`: the graph surface and the V3 group surface,
+  inspector and clipboard controls for Effect UI components. C4 notation
+  supports artwork slots, group headings and scoped themes.
 - `@opsydyn/foldkit-zloz-elk`: ELK layout options and adapter factory.
 - `@opsydyn/foldkit-zloz-force`: force layout factory and support checks.
 - `@opsydyn/foldkit-zloz-force/eligibility`: the lightweight eligibility entry.
@@ -61,8 +58,8 @@ The pure core exports `captureEdition`, `appendEdition`, `serializeEditions`,
 `parseEditions`, `createHistoryReview`, `updateHistoryReview`,
 `isHistoryNavigationEvent`, `compareEditions` and their `ZlozEdition`,
 `ZlozHistoryReview`, `ZlozHistoryChange`, `ZlozHistoryComparison` contracts.
-The optional Foldkit entry exports `zlozHistoryGhosts` and
-`ZlozHistoryGhostOptions`. See the [history guide](../packages/foldkit-zloz/README.md#named-editions-and-read-only-history)
+The `/effect-ui` entry exports `historyGhosts` and
+`NativeHistoryGhostArtwork`. See the [history guide](../packages/foldkit-zloz/README.md#named-editions-and-read-only-history)
 for archive compatibility, navigation permissions and inert mark customization.
 
 ### Edition import and restore
@@ -105,11 +102,10 @@ and [ADR 0023](adr/0023-insert-self-contained-patterns-atomically.md).
 
 Core's `EventStormingNodeArchitecture` adds command, domain-event, policy and actor
 notes to the architecture union. `createArchitecturePattern('event-storming')`
-uses the same atomic insertion API. The `/foldkit` entry exports
-`zlozEventStormingNode`, `ZlozEventStormingNodeOptions`,
-`ZlozEventStormingContentContext` and `ZlozEventStormingContentRenderer`.
-Four scoped `eventStorming*` theme tokens customize role accents; content/control
-slots and artwork caching follow the existing semantic renderer contracts. See
+uses the same atomic insertion API. `graphSurface` renders the notes when
+architecture notation is enabled. Four scoped `eventStorming*` theme tokens
+customize role accents. See
+
 [the package example](../packages/foldkit-zloz/README.md#event-storming-notes)
 and [ADR 0024](adr/0024-add-event-storming-process-notes.md).
 
@@ -131,8 +127,8 @@ Core exports `resolveEditionPlaybackControls` and its `ZlozPlaybackControlName`,
 and `ZlozPlaybackControlsOptions` contracts. Host restrictions add vetoes without
 removing core playback guards or blocking an active Pause.
 
-The `/foldkit` entry exports `zlozPlaybackControls`, `zlozPlaybackControl`,
-`zlozPlaybackStatus`, `zlozPlaybackReason`, `ZlozPlaybackControlsParts`,
+The `/effect-ui` entry exports `playbackControls`, `playbackControl`,
+`playbackStatus`, `playbackReason`, `ZlozPlaybackControlsParts`,
 `ZlozPlaybackControlsViewOptions` and `ZlozPlaybackTextOptions`. Native helpers,
 ordered subsets, nullable slots and a layout hook separate behavior from visual
 composition. See the [package example](../packages/foldkit-zloz/README.md#composable-playback-controls)
@@ -147,8 +143,8 @@ Core exports `resolveEditionScrubber`, `editionScrubberRequest` and
 dispatch; fresh host state/policy determines whether an EditionSelected event is
 ready, blocked or ignored.
 
-The `/foldkit` entry exports `zlozEditionScrubber`, `zlozEditionScrubberInput`,
-`zlozEditionScrubberReadout`, `zlozEditionScrubberReason`, `zlozEditionSeekButton`,
+The `/effect-ui` entry exports `editionScrubber`, `editionScrubberInput`,
+`editionScrubberReadout`, `editionScrubberReason`, `editionSeekButton`,
 `ZlozEditionScrubberParts` and `ZlozEditionScrubberViewOptions`. See the
 [package example](../packages/foldkit-zloz/README.md#edition-scrubber-and-explicit-seeking)
 and [ADR 0027](adr/0027-seek-editions-with-a-composable-scrubber.md).
@@ -164,9 +160,9 @@ and the `ZlozHistoryComparisonControlsState`, `ZlozHistoryComparisonRequest`,
 stored preferences from effective visibility; fresh requests validate identity
 and current host policy without editing history or Undo.
 
-The `/foldkit` entry exports `zlozHistoryComparisonControls`,
-`zlozHistoryBaselineSelect`, `zlozHistoryGhostToggle`,
-`zlozHistoryComparisonStatus`, `zlozHistoryComparisonReason`,
+The `/effect-ui` entry exports `historyComparisonControls`,
+`historyBaselineSelect`, `historyGhostToggle`,
+`historyComparisonStatus`, `historyComparisonReason`,
 `ZlozHistoryComparisonControlsParts`, `ZlozHistoryComparisonTextOptions` and
 `ZlozHistoryComparisonControlsViewOptions`.
 See the [package example](../packages/foldkit-zloz/README.md#composable-history-comparison-controls)
@@ -184,9 +180,9 @@ pair, visible entity and current host policy before returning camera-only target
 Core also exports the existing `fitNodes` geometry primitive so earlier node bounds
 can frame a camera directly without constructing an editor graph.
 
-The `/foldkit` entry exports `zlozHistoryChangeNavigator`,
-`zlozHistoryChangeFilter`, `zlozHistoryChangeButton`, `zlozHistoryChangeStatus`,
-`zlozHistoryChangeReason`, `ZlozHistoryChangeNavigatorHandlers`,
+The `/effect-ui` entry exports `historyChangeNavigator`,
+`historyChangeFilter`, `historyChangeButton`, `historyChangeStatus`,
+`historyChangeReason`, `ZlozHistoryChangeNavigatorHandlers`,
 `ZlozHistoryChangeNavigatorParts` and `ZlozHistoryChangeNavigatorViewOptions`.
 See the [package example](../packages/foldkit-zloz/README.md#composable-history-change-navigation)
 and [ADR 0029](adr/0029-navigate-history-comparison-changes.md).
@@ -217,9 +213,9 @@ Core exports `resolveEventStormingRelationshipControls` and
 `ZlozEventStormingRelationshipEditDecision`. Requests recheck current inspector
 identity, conventions, lifecycle and policy before producing an ordinary editor event.
 
-The `/foldkit` entry exports `zlozEventStormingRelationshipControls`,
-`zlozEventStormingRelationshipSelect`, `zlozEventStormingRelationshipInference`,
-`zlozEventStormingRelationshipStatus`, `zlozEventStormingRelationshipReasons`,
+The `/effect-ui` entry exports `eventStormingRelationshipControls`,
+`eventStormingRelationshipSelect`, `eventStormingRelationshipInference`,
+`eventStormingRelationshipStatus`, `eventStormingRelationshipReasons`,
 `ZlozRelationshipTextOptions`, `ZlozEventStormingRelationshipControlsParts` and
 `ZlozEventStormingRelationshipControlsViewOptions`. See the
 [package example](../packages/foldkit-zloz/README.md#composable-causal-relationship-controls)
@@ -268,12 +264,9 @@ Core exports `resolveAuditComparisonControls`, `resolveAuditComparisonRequest`,
 `ZlozAuditComparisonDecision`. The pure request resolver rechecks current scope,
 filters and policy before returning a source-aware camera navigation event.
 
-The `/foldkit` entry exports `zlozAuditComparisonControls`,
-`zlozAuditEditionSelect`, `zlozAuditFindingFilter`, `zlozAuditFindingButton`,
-`zlozAuditComparisonStatus`, `zlozAuditComparisonReason`,
-`ZlozAuditComparisonParts` and `ZlozAuditComparisonViewOptions`. Nullable slots,
-custom text/attributes/layout and numeric readout control support host styling
-and diagnostics. See the
+The `/effect-ui` entry exports `auditComparisonControls`,
+`auditEditionSelect`, `auditFindingFilter`, and `auditFindingButton`.
+Nullable slots customize layout, text, and numeric readouts. See the
 [package example](../packages/foldkit-zloz/README.md#composable-audit-comparison-controls)
 and [ADR 0034](adr/0034-compose-audit-comparison-controls.md).
 
@@ -302,7 +295,7 @@ existing command diagnostics omit it and retain their original JSON shape.
 
 The optional Mermaid package exports `createReviewReader`, `reviewReaderForScope`,
 `resolveReviewReader` and `updateReviewReader` with typed state, request, side,
-options and update contracts. Its `/foldkit` entry exports `zlozReviewReader` and
+options and update contracts. Its `/effect-ui` entry exports `reviewReader` and
 view options/parts. Hosts own bounded IO, unique model-incarnation scopes and
 detached read-only canvases. Stale, cancelled, invalid or protected reads retain
 the last accepted packet and side; opening grants no model-edit authority.
@@ -336,7 +329,7 @@ and [ADR 0061](adr/0061-decode-versioned-modelling-patch-text-strictly.md).
 
 Core exports `resolveModellingPatchReview`, `resolveModellingPatchAcknowledgement`
 and `applyModellingPatch`, plus identity, consent, options, review/request, receipt
-and Apply-result types. The optional `/foldkit` entry exposes the native review,
+and Apply-result types. The optional `/effect-ui` entry exposes the native review,
 acknowledgement and Apply helpers with nullable slots/layout and diagnostic controls.
 Apply reconstructs current source and policy, requires exact-content acknowledgement,
 and returns the editor and provenance receipt together after one Undo commit.

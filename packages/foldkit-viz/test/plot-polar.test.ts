@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
 import { paintPlot } from '../src/canvas/plot';
-import { plotChart } from '../src/foldkit/plot';
+import { plotChart } from '../src/effect-ui/plot';
 import { compilePlot } from '../src/plot';
 import type { Graphic, PlotSpec } from '../src/plot';
 import { canvasCalls } from './canvas-recorder';
@@ -81,7 +81,7 @@ describe('polar coordinates', () => {
 
   it('renders its frame in SVG and on canvas', async () => {
     const plot = compilePlot(rose);
-    const html = await renderChart<never>((h) => plotChart(h, plot));
+    const html = await renderChart((h) => plotChart(h, plot));
     expect(html).toContain('class="plot-polar"');
     expect(html).toContain('>E</text>');
     const { ctx, count } = canvasCalls();

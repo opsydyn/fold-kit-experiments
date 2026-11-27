@@ -17,6 +17,7 @@ export type Record = {
 };
 
 const prefix = '#replay=';
+const decodeFragment = Option.liftThrowable(decodeURIComponent);
 
 const number = (value: number): string => String(Number(value.toFixed(3)));
 
@@ -42,9 +43,9 @@ const shotOf = (text: string): Option.Option<Shot> => {
 /** A fragment back into a record, or nothing if it is not a well-formed one. */
 export const decode = (fragment: string): Option.Option<Record> => {
   if (!fragment.startsWith(prefix)) return Option.none();
-  const [shotsText = '', rollsText = '', extra] = decodeURIComponent(
-    fragment.slice(prefix.length),
-  ).split('|');
+  const decoded = decodeFragment(fragment.slice(prefix.length));
+  if (Option.isNone(decoded)) return Option.none();
+  const [shotsText = '', rollsText = '', extra] = decoded.value.split('|');
   if (extra !== undefined || shotsText === '') return Option.none();
   const shots = Option.all(shotsText.split(';').map(shotOf));
   const rolls = rollsText === '' ? [] : rollsText.split(',').map(Number);

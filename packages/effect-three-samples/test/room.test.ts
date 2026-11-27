@@ -1,12 +1,9 @@
-import { expect, mock, test } from 'bun:test';
+import { expect, test } from 'bun:test';
 
 import { Option } from 'effect';
 
-// The commands use the page's environment; the update logic under test never runs them.
-await mock.module('../src/labelledEnvironment', () => ({
-  environment: {},
-  sceneMount: () => undefined,
-}));
+import { SceneStart } from '../src/effect-ui-scene';
+
 const { Message } = await import('../src/room/message');
 const { init, update } = await import('../src/room/update');
 const { sceneFor } = await import('../src/room/scene');
@@ -123,7 +120,14 @@ const said = (model: Model, message: typeof Message.Type) =>
   (update(model, message).commands ?? []).map((command) => [command.name, command.args]);
 
 test('a page is named as it starts, and says where its player is once it has a name', () => {
-  expect(init().commands.map((command) => command.name)).toContain('NamePlayer');
+  expect(
+    said(
+      start,
+      Message.ReceivedSceneLifecycle({
+        lifecycle: SceneStart.StartedScene(),
+      }),
+    ).map(([name]) => name),
+  ).toContain('NamePlayer');
   // No name yet: nothing to say.
   expect(said(start, Message.ReportedPoses({ poses }))).toEqual([]);
   expect(said(named, Message.ReportedPoses({ poses }))).toEqual([

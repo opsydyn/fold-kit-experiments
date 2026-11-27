@@ -15,14 +15,13 @@ import {
   PivotControls,
   TransformGizmo,
   ViewportGizmo,
-} from '@opsydyn/effect-three-foldkit';
-import { Array as Arr, Option, Result } from 'effect';
-import type { Return } from 'foldkit/update';
+} from '@opsydyn/effect-three/browser';
+import { Array as Arr, Match, Option, Result } from 'effect';
 
-import { Message } from './message';
+import type { Message } from './message';
 import { type Model, Thing } from './model';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = { readonly model: Model };
 
 /** The snaps a snapping gizmo takes: quarter units, fifteen degrees, quarter scales. */
 const snaps = { translationSnap: 0.25, rotationSnap: Math.PI / 12, scaleSnap: 0.25 } as const;
@@ -107,7 +106,7 @@ const pressPivot = (model: Model, key: string, point: Vec3): Model =>
     onSome: ([handle, thing]) =>
       withPivot(
         { ...model, before: Option.some(model.things) },
-        PivotControls.Message.Pressed({ handle, point, placement: thing.placement }),
+        PivotControls.Message.cases.Pressed.make({ handle, point, placement: thing.placement }),
       ),
   });
 
@@ -129,7 +128,7 @@ const pressGizmo = (model: Model, key: string, origin: Vec3, direction: Vec3): M
     onSome: ([handle, thing]) =>
       withGizmo(
         { ...model, before: Option.some(model.things) },
-        TransformGizmo.Message.Pressed({
+        TransformGizmo.Message.cases.Pressed.make({
           handle,
           origin,
           direction,
@@ -144,7 +143,7 @@ const press = (model: Model, key: string, point: Vec3, origin: Vec3, direction: 
   if (Option.isSome(ViewportGizmo.axisOf(model.view, key))) {
     return withView(
       { ...model, pressedView: true },
-      ViewportGizmo.Message.Pressed({ key, camera: model.camera }),
+      ViewportGizmo.Message.cases.Pressed.make({ key, camera: model.camera }),
     );
   }
   const pressed = { ...model, pressedView: false };
@@ -210,11 +209,11 @@ const withTape = (model: Model, message: MeasuringTape.Message): Model => ({
 
 /** While measuring, the tape runs to the pointer. */
 const moveOver = (model: Model, point: Vec3): Model =>
-  model.measuring ? withTape(model, MeasuringTape.Message.Pointed({ point })) : model;
+  model.measuring ? withTape(model, MeasuringTape.Message.cases.Pointed.make({ point })) : model;
 
 /** Measuring on or off: the tape starts empty either way. */
 const toggleMeasuring = (model: Model): Model => ({
-  ...withTape(model, MeasuringTape.Message.Cleared()),
+  ...withTape(model, MeasuringTape.Message.cases.Cleared.make({})),
   measuring: !model.measuring,
 });
 
@@ -229,7 +228,7 @@ const endBox = (model: Model): Model => {
   const selectable = model.things.map(({ key, placement }) => ({ key, at: placement.position }));
   const result = BoxSelect.update(
     model.box,
-    BoxSelect.Message.Ended({ camera: model.camera, selectable }),
+    BoxSelect.Message.cases.Ended.make({ camera: model.camera, selectable }),
   );
   const selected = result.outMessage?.keys ?? model.selected;
   return { ...model, box: result.model, selected };
@@ -268,7 +267,9 @@ const select = (model: Model, key: string): Model =>
 /** While measuring, a click (not the end of an orbit) places a tape end where it hit. */
 const clickThing = (model: Model, key: string, point: Vec3): Model => {
   if (!model.measuring) return select(model, key);
-  return model.orbited ? model : withTape(model, MeasuringTape.Message.Placed({ point }));
+  return model.orbited
+    ? model
+    : withTape(model, MeasuringTape.Message.cases.Placed.make({ point }));
 };
 
 /** A drag or release goes to the gizmo only while it is held. */
@@ -278,24 +279,27 @@ const whileHeld = (model: Model, message: TransformGizmo.Message): Model =>
 /** A drag goes to the pivot controls while they are held, else to the gizmo. */
 const drag = (model: Model, origin: Vec3, direction: Vec3): Model =>
   PivotControls.held(model.pivot)
-    ? withPivot(model, PivotControls.Message.Dragged({ origin, direction, snap: model.snapping }))
-    : whileHeld(model, TransformGizmo.Message.Dragged({ origin, direction }));
+    ? withPivot(
+        model,
+        PivotControls.Message.cases.Dragged.make({ origin, direction, snap: model.snapping }),
+      )
+    : whileHeld(model, TransformGizmo.Message.cases.Dragged.make({ origin, direction }));
 
 const release = (model: Model): Model =>
   PivotControls.held(model.pivot)
-    ? withPivot(model, PivotControls.Message.Released())
-    : whileHeld(model, TransformGizmo.Message.Released());
+    ? withPivot(model, PivotControls.Message.cases.Released.make({}))
+    : whileHeld(model, TransformGizmo.Message.cases.Released.make({}));
 
 /** Over a pivot handle: highlighted. */
 const hoverPivot = (model: Model, key: string): Model =>
   Option.match(PivotControls.handleOf(model.pivot, key), {
     onNone: () => model,
-    onSome: (handle) => withPivot(model, PivotControls.Message.Hovered({ handle })),
+    onSome: (handle) => withPivot(model, PivotControls.Message.cases.Hovered.make({ handle })),
   });
 
 const leavePivot = (model: Model, key: string): Model =>
   Option.isSome(PivotControls.handleOf(model.pivot, key))
-    ? withPivot(model, PivotControls.Message.Hovered({ handle: null }))
+    ? withPivot(model, PivotControls.Message.cases.Hovered.make({ handle: null }))
     : model;
 
 const otherStyle = { transform: 'pivot', pivot: 'transform' } as const;
@@ -304,13 +308,13 @@ const otherStyle = { transform: 'pivot', pivot: 'transform' } as const;
 const hover = (model: Model, key: string): Model =>
   Option.match(TransformGizmo.handleOf(model.gizmo, key), {
     onNone: () => model,
-    onSome: (handle) => withGizmo(model, TransformGizmo.Message.Hovered({ handle })),
+    onSome: (handle) => withGizmo(model, TransformGizmo.Message.cases.Hovered.make({ handle })),
   });
 
 /** Leaving a gizmo handle clears its highlight. */
 const leave = (model: Model, key: string): Model =>
   Option.isSome(TransformGizmo.handleOf(model.gizmo, key))
-    ? withGizmo(model, TransformGizmo.Message.Hovered({ handle: null }))
+    ? withGizmo(model, TransformGizmo.Message.cases.Hovered.make({ handle: null }))
     : model;
 
 const otherSpace = { world: 'local', local: 'world' } as const;
@@ -328,41 +332,52 @@ const toggleSnapping = (model: Model): Model => {
 };
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    PressedScene: ({ key, point, origin, direction }) => ({
-      model: press({ ...model, orbited: false }, key, point, origin, direction),
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      PressedScene: ({ key, point, origin, direction }) => ({
+        model: press({ ...model, orbited: false }, key, point, origin, direction),
+      }),
+      DraggedScene: ({ origin, direction }) => ({ model: drag(model, origin, direction) }),
+      ReleasedScene: () => ({ model: release(model) }),
+      ClickedThing: ({ key, point }) => ({ model: clickThing(model, key, point) }),
+      MovedOver: ({ point }) => ({ model: moveOver(model, point) }),
+      ClickedNothing: () => ({ model: clickNothing(model) }),
+      HoveredScene: ({ key }) => ({
+        model: withView(
+          hoverPivot(hover(model, key), key),
+          ViewportGizmo.Message.cases.Entered.make({ key }),
+        ),
+      }),
+      LeftScene: ({ key }) => ({
+        model: withTape(
+          withView(
+            leavePivot(leave(model, key), key),
+            ViewportGizmo.Message.cases.Left.make({ key }),
+          ),
+          MeasuringTape.Message.cases.Pointed.make({ point: null }),
+        ),
+      }),
+      MadeGesture: ({ gesture: made }) => ({ model: gesture(model, made) }),
+      EndedGesture: () => ({ model: endBox(model) }),
+      ChoseMode: ({ mode }) => ({
+        model: withGizmo(model, TransformGizmo.Message.cases.ChoseMode.make({ mode })),
+      }),
+      ClickedSpace: () => ({
+        model: withGizmo(
+          model,
+          TransformGizmo.Message.cases.ChoseSpace.make({
+            space: otherSpace[model.gizmo.gizmo.space],
+          }),
+        ),
+      }),
+      ClickedSnapping: () => ({ model: toggleSnapping(model) }),
+      ClickedPivot: () => ({ model: { ...model, style: otherStyle[model.style] } }),
+      ClickedMeasure: () => ({ model: toggleMeasuring(model) }),
+      EditedThing: ({ key, path, value }) => ({ model: editThing(model, key, path, value) }),
+      ClickedUndo: () => ({ model: undo(model) }),
+      ClickedRedo: () => ({ model: redo(model) }),
+      ClickedBranch: () => ({ model: nextBranch(model) }),
+      ReceivedSceneLifecycle: () => ({ model }),
     }),
-    DraggedScene: ({ origin, direction }) => ({ model: drag(model, origin, direction) }),
-    ReleasedScene: () => ({ model: release(model) }),
-    ClickedThing: ({ key, point }) => ({ model: clickThing(model, key, point) }),
-    MovedOver: ({ point }) => ({ model: moveOver(model, point) }),
-    ClickedNothing: () => ({ model: clickNothing(model) }),
-    HoveredScene: ({ key }) => ({
-      model: withView(hoverPivot(hover(model, key), key), ViewportGizmo.Message.Entered({ key })),
-    }),
-    LeftScene: ({ key }) => ({
-      model: withTape(
-        withView(leavePivot(leave(model, key), key), ViewportGizmo.Message.Left({ key })),
-        MeasuringTape.Message.Pointed({ point: null }),
-      ),
-    }),
-    MadeGesture: ({ gesture: made }) => ({ model: gesture(model, made) }),
-    EndedGesture: () => ({ model: endBox(model) }),
-    ChoseMode: ({ mode }) => ({
-      model: withGizmo(model, TransformGizmo.Message.ChoseMode({ mode })),
-    }),
-    ClickedSpace: () => ({
-      model: withGizmo(
-        model,
-        TransformGizmo.Message.ChoseSpace({ space: otherSpace[model.gizmo.gizmo.space] }),
-      ),
-    }),
-    ClickedSnapping: () => ({ model: toggleSnapping(model) }),
-    ClickedPivot: () => ({ model: { ...model, style: otherStyle[model.style] } }),
-    ClickedMeasure: () => ({ model: toggleMeasuring(model) }),
-    EditedThing: ({ key, path, value }) => ({ model: editThing(model, key, path, value) }),
-    ClickedUndo: () => ({ model: undo(model) }),
-    ClickedRedo: () => ({ model: redo(model) }),
-    ClickedBranch: () => ({ model: nextBranch(model) }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  );

@@ -28,7 +28,8 @@ test('discoverable shell and genuinely retained Astro island', async ({
     'data-astro-transition-persist',
     'agent-analysis',
   );
-  await expect(shell.locator('[data-testid="status"]')).toHaveCount(0);
+  await expect(shell.getByTestId('status')).toHaveText('Idle');
+  await expect(shell.getByRole('button', { name: 'Run analysis' })).toBeVisible();
   const uid = await shell.locator('astro-island').getAttribute('uid');
   const props = await shell.locator('astro-island').getAttribute('props');
   expect(uid).toBeTruthy();
@@ -44,6 +45,7 @@ test('discoverable shell and genuinely retained Astro island', async ({
   await page.goto('/charts');
   await page.getByRole('link', { name: 'Service Incident Lab', exact: true }).click();
   await expect(page.getByTestId('status')).toHaveText('Idle');
+  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
   expect(posts).toHaveLength(0);
   await testInfo.attach('hydrated-host-evidence', {
     body: Buffer.from(
@@ -61,9 +63,7 @@ test('discoverable shell and genuinely retained Astro island', async ({
           return {
             ancestors,
             identityHosts: [
-              ...document.querySelectorAll(
-                '[uid], [data-foldkit-island], [data-astro-transition-persist]',
-              ),
+              ...document.querySelectorAll('[uid], [data-astro-transition-persist]'),
             ].map((host) => ({
               tag: host.tagName,
               attributes: Object.fromEntries(
@@ -85,7 +85,10 @@ test('discoverable shell and genuinely retained Astro island', async ({
   await expect(page.locator('tbody tr')).toHaveCount(3);
   const api = page.locator('button[data-service-id="api"]');
   await api.focus();
-  await api.press('Enter');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(api).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(api).toHaveAttribute('aria-pressed', 'true');
   await expect(api).toBeFocused();
   expect(await api.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe('none');
@@ -177,13 +180,17 @@ test('renders real service geometry, keyboard selection and responsive charts in
   });
   await page.goto('/agent-analysis');
   await expect(page.getByTestId('status')).toHaveText('Idle');
+  await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
   expect(posts).toHaveLength(0);
   await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
   await expect(page.getByTestId('status')).toHaveText('Completed', { timeout: 10000 });
   await expect(page.locator('tbody tr')).toHaveCount(4);
   const api = page.locator('button[data-service-id="api"]');
   await api.focus();
-  await api.press('Enter');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(api).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(api).toHaveAttribute('aria-pressed', 'true');
   await expect(api).toBeFocused();
   expect(await api.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe('none');

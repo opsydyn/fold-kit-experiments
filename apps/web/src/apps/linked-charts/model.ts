@@ -1,11 +1,9 @@
 import { marksFor } from '@opsydyn/foldkit-viz/effect/plot';
 import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
 import { Option, Schema } from 'effect';
-import { foldChildInits } from 'foldkit/update';
 
-import * as PlotPanel from '../../ui/plot-panel';
-import type { Inspection, KeyedPoint } from '../../ui/shared/inspection';
-import { Message } from './message';
+import * as PlotPanel from '../../ui/plot-panel/core';
+import type { KeyedPoint } from '../../ui/shared/inspection';
 
 // 30 salary vs experience data points
 export const POINTS: ReadonlyArray<KeyedPoint> = [
@@ -84,40 +82,32 @@ export const histogramSpec: PlotSpec = {
   ],
 };
 
+const Inspection = Schema.Union([
+  Schema.TaggedStruct('Point', { key: Schema.String }),
+  Schema.TaggedStruct('Range', {
+    lower: Schema.Number,
+    upper: Schema.Number,
+    includeEnd: Schema.Boolean,
+  }),
+]);
+
 export const Model = Schema.Struct({
-  scatter: Schema.Unknown,
-  histogram: Schema.Unknown,
-  inspection: Schema.Unknown,
+  scatter: PlotPanel.PortableModel,
+  histogram: PlotPanel.PortableModel,
+  inspection: Schema.Option(Inspection),
   minimumExperience: Schema.Number,
 });
-export type Model = Omit<typeof Model.Type, 'scatter' | 'histogram' | 'inspection'> & {
-  readonly scatter: PlotPanel.Model;
-  readonly histogram: PlotPanel.Model;
-  readonly inspection: Option.Option<Inspection>;
-};
+export type Model = typeof Model.Type;
 
-export const initChartModels = () =>
-  foldChildInits(
-    {
-      scatter: PlotPanel.init({ spec: scatterSpec }),
-      histogram: PlotPanel.init({ spec: histogramSpec }),
-    },
-    {
-      toParentModel: ({ scatter, histogram }): Model => ({
-        scatter,
-        histogram,
-        inspection: Option.none(),
-        minimumExperience: 0,
-      }),
-      folds: {
-        scatter: {
-          toParentMessage: (message) => Message.ReceivedScatterMessage({ message }),
-        },
-        histogram: {
-          toParentMessage: (message) => Message.ReceivedHistogramMessage({ message }),
-        },
-      },
-    },
-  );
+interface Initial {
+  readonly model: Model;
+}
 
-export const init = () => initChartModels();
+export const init = (): Initial => ({
+  model: {
+    scatter: PlotPanel.init({ spec: scatterSpec }).model,
+    histogram: PlotPanel.init({ spec: histogramSpec }).model,
+    inspection: Option.none(),
+    minimumExperience: 0,
+  },
+});

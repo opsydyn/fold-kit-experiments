@@ -1,9 +1,14 @@
 ---
+import { Buffer } from 'node:buffer';
+
+import '@opsydyn/foldkit-zloz/effect-ui.css';
+
 import { loginPath } from '../../../../server/continuation';
 import { loadTeam } from '../../../../server/onboarding';
 import { questmancerPreviewEnabled, questmancerPath } from '../../../../server/questmancer';
 import backdrop from '../../../../questmancer/fixtures/backdrop.png?inline';
 import pip from '../../../../questmancer/fixtures/sprite.png?inline';
+import Preview from '../../../../questmancer/preview-app';
 import '../../../../questmancer/scene.css';
 import '../../../../questmancer/live.css';
 
@@ -20,6 +25,12 @@ if (team._tag !== 'Ready' && team.status === 401) {
 }
 if (team._tag !== 'Ready' || team.value.role !== 'owner')
   return new Response('Preview unavailable', { status: 404, headers });
+if (Astro.url.searchParams.get('art') === 'backdrop') {
+  const bytes = Buffer.from(backdrop.slice('data:image/png;base64,'.length), 'base64');
+  return new Response(Astro.request.method === 'HEAD' ? null : bytes, {
+    headers: { ...headers, 'Content-Type': 'image/png', 'Content-Length': String(bytes.byteLength) },
+  });
+}
 ---
 <!doctype html>
 <html lang="en">
@@ -30,7 +41,6 @@ if (team._tag !== 'Ready' || team.value.role !== 'owner')
   </head>
   <body>
     <a class="questmancer-home" href="/app">Your workspace</a>
-    <div id="questmancer-preview" data-backdrop={backdrop} data-pip={pip}></div>
-    <script>import '../../../../questmancer/preview';</script>
+    <Preview client:load backdrop="?art=backdrop" pip={pip} />
   </body>
 </html>

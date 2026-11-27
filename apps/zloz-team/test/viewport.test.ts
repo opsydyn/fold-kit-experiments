@@ -1,10 +1,9 @@
 import { expect, test } from 'bun:test';
 
 import { createOperationDocument, decideOperation } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
 
-import { init, Message, update, view, type Model } from '../src/editor/main';
+import { init, Message, update, type Model } from '../src/editor/main';
+import { renderBoard } from './render-native';
 
 const graph = {
   nodes: ['near', 'far', 'last'].map((id, index) => ({
@@ -23,12 +22,7 @@ const graph = {
   ],
 };
 async function render(model: Model) {
-  const { html } = await Effect.runPromise(
-    renderToString(
-      { Flags: Schema.Struct({}), init: () => ({ model }), view },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const { html } = await renderBoard(model);
   return html;
 }
 const event = (model: Model, input: Parameters<typeof Message.ObservedEditorInput>[0]['event']) =>

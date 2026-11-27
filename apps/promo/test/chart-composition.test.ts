@@ -1,8 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import { Html, HtmlServer } from '@effect/ui/html';
+import { Effect } from 'effect';
 
 import { histogramGeometry } from '../src/examples/histogram/chart';
 import * as Histogram from '../src/examples/histogram/main';
@@ -12,19 +11,16 @@ import { scatterGeometry } from '../src/examples/scatter/chart';
 import * as Scatter from '../src/examples/scatter/main';
 
 const frame = { width: 324, height: 290, margins: { top: 30, right: 24, bottom: 60, left: 48 } };
-async function render<M>(view: (h: HtmlBuilder<M>) => Document): Promise<string> {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({ test: Schema.Boolean }),
-        init: () => ({ model: 0 }),
-        view: (_model: number, h: HtmlBuilder<M>) => view(h),
-      },
-      { flags: { test: true }, isHydratable: false },
-    ),
-  );
-  return result.html;
-}
+const LineFixture = Html.component({
+  name: 'LineFixture',
+  model: Line.Model,
+  props: Line.Model,
+  message: Line.Message,
+}).make({
+  init: ({ props }) => props,
+  update: ($) => $.model,
+  view: Line.view,
+});
 
 test('wrappers project unrelated custom data through caller frames and domains', () => {
   const line = chartGeometry(
@@ -73,7 +69,7 @@ test('reference views use measured frames and expose raw data alternatives', asy
     Line.init({ sources: [], templateUrl: null }).model,
     Line.Message.RecordedChartWidth({ width: 324 }),
   ).model;
-  const lineHtml = await render<Line.Message>((h) => Line.view(line, h));
+  const { html: lineHtml } = await Effect.runPromise(HtmlServer.renderToHtml(LineFixture, line));
   expect(lineHtml).toContain('viewBox="0 0 324 290"');
   expect(lineHtml).toContain('font-size="12"');
   expect(lineHtml).toContain('Threshold 80');
@@ -83,7 +79,19 @@ test('reference views use measured frames and expose raw data alternatives', asy
     Scatter.init({ sources: [], templateUrl: null }).model,
     Scatter.Message.RecordedChartWidth({ width: 324 }),
   ).model;
-  const scatterHtml = await render<Scatter.Message>((h) => Scatter.view(scatter, h));
+  const ScatterFixture = Html.component({
+    name: 'ScatterFixture',
+    model: Scatter.Model,
+    props: Scatter.Model,
+    message: Scatter.Message,
+  }).make({
+    init: ({ props }) => props,
+    update: ($) => $.model,
+    view: Scatter.view,
+  });
+  const { html: scatterHtml } = await Effect.runPromise(
+    HtmlServer.renderToHtml(ScatterFixture, scatter),
+  );
   expect(scatterHtml).toContain('viewBox="0 0 324 320"');
   expect(scatterHtml.match(/tabindex="0"/g)?.length).toBe(2); // chart navigation and source preview, not per-datum stops
   expect(scatterHtml).toContain('data-symbol="square"');
@@ -92,15 +100,28 @@ test('reference views use measured frames and expose raw data alternatives', asy
     Histogram.init({ sources: [], templateUrl: null }).model,
     Histogram.Message.RecordedChartWidth({ width: 324 }),
   ).model;
-  const histogramHtml = await render<Histogram.Message>((h) => Histogram.view(histogram, h));
+  const HistogramFixture = Html.component({
+    name: 'HistogramFixture',
+    model: Histogram.Model,
+    props: Histogram.Model,
+    message: Histogram.Message,
+  }).make({
+    init: ({ props }) => props,
+    update: ($) => $.model,
+    view: Histogram.view,
+  });
+  const { html: histogramHtml } = await Effect.runPromise(
+    HtmlServer.renderToHtml(HistogramFixture, histogram),
+  );
+
   expect(histogramHtml).toContain('viewBox="0 0 324 290"');
   expect(histogramHtml).toContain('Illustrative histogram values');
 });
 
 test('empty reference data shows visible feedback and accepted finite geometry', async () => {
   const model = Line.init({ sources: [], templateUrl: null }).model;
-  const html = await render<Line.Message>((h) =>
-    Line.view({ ...model, settings: { ...model.settings, values: [] } }, h),
+  const { html } = await Effect.runPromise(
+    HtmlServer.renderToHtml(LineFixture, { ...model, settings: { ...model.settings, values: [] } }),
   );
   expect(html).toContain('No values to display');
   expect(html).not.toMatch(/NaN|Infinity/);

@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Option } from 'effect';
+import { Option, Schema } from 'effect';
 
 import { tourFrom } from '../../src/radar/three/command';
 import { Message } from '../../src/radar/three/message';
-import type { Model } from '../../src/radar/three/model';
+import { Model } from '../../src/radar/three/model';
 import { captionOf, leadIn, recordable, type Recording } from '../../src/radar/three/tour';
 import { init, update } from '../../src/radar/three/update';
 import { demoRadar } from '../../src/test/fixture';
@@ -52,6 +52,36 @@ const session: ReadonlyArray<Message> = [
 ];
 
 describe('the flight recorder', () => {
+  test('round-trips the Markdown dataset and a running tour through island state', () => {
+    const recording = { start: 'theme=paper', steps: session, captions: ['Start here'] };
+    const model = step(
+      step(start, Message.SucceededLoadTour({ recording })),
+      Message.ClickedPlayTour(),
+    );
+    const json = Schema.fromJsonString(Schema.toCodecJson(Model));
+    expect(Schema.decodeUnknownSync(json)(Schema.encodeSync(json)(model))).toEqual(model);
+  });
+
+  test('hydration rejects malformed datasets and playback positions', () => {
+    const codec = Schema.toCodecJson(Model);
+    const decode = Schema.decodeUnknownOption(codec);
+    const encoded = Schema.encodeSync(codec)(start);
+    expect(decode(encoded)).toEqual(Option.some(start));
+    expect(decode({ ...encoded, data: { _tag: 'Ready', dataset: {} } })).toEqual(Option.none());
+    expect(
+      decode({
+        ...encoded,
+        tour: {
+          _tag: 'Playing',
+          recording: { start: '', steps: [] },
+          next: 'second',
+          wait: 0,
+          caption: '',
+        },
+      }),
+    ).toEqual(Option.none());
+  });
+
   test('records the reader’s moves, not hovers; a search typed is one move', () => {
     const recorded = steps(step(start, Message.ClickedRecord()), session);
     const moves = recordingOf(recorded)?.steps ?? [];

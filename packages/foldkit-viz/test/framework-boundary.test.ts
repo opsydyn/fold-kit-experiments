@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 
 /**
  * foldkit-viz keeps its interaction state and math framework-agnostic: only
- * optional adapters under src/foldkit and src/effect may import their peers, and no
+ * optional adapters under src/foldkit, src/effect and src/effect-ui may import their peers, and no
  * module touches the DOM or installs listeners (the roadmap's deliberate
  * non-goals). This scans the source so a stray import fails here.
  */
@@ -22,7 +22,9 @@ const outsideAdapters = sourcesUnder(SRC)
   .map((path) => ({ file: relative(SRC, path), text: readFileSync(path, 'utf8') }))
   .filter(({ file }) => !file.startsWith('foldkit/'));
 
-const FRAMEWORK_IMPORT = /from\s+['"](foldkit|effect)(\/[^'"]*)?['"]/;
+const FOLDKIT_IMPORT = /from\s+['"]foldkit(?:\/[^'"]*)?['"]/;
+const EFFECT_IMPORT = /from\s+['"]effect(?:\/[^'"]*)?['"]/;
+const EFFECT_UI_IMPORT = /from\s+['"]@effect\/ui(?:\/[^'"]*)?['"]/;
 // Globals and APIs that would make a module a DOM or event runtime.
 const DOM_USE =
   /\b(document|window|navigator)\.|\baddEventListener\b|\brequestAnimationFrame\b|\bHTMLElement\b/;
@@ -36,8 +38,11 @@ describe('framework boundary', () => {
   it('keeps FoldKit and Effect imports inside the optional adapters', () => {
     const offenders = outsideAdapters.filter(
       ({ file, text }) =>
-        FRAMEWORK_IMPORT.test(text) &&
-        !(file.startsWith('effect/') && !/from\s+['"]foldkit/.test(text)),
+        FOLDKIT_IMPORT.test(text) ||
+        (EFFECT_IMPORT.test(text) &&
+          !file.startsWith('effect/') &&
+          !file.startsWith('effect-ui/')) ||
+        (EFFECT_UI_IMPORT.test(text) && !file.startsWith('effect-ui/')),
     );
     expect(offenders.map(({ file }) => file)).toEqual([]);
   });

@@ -9,7 +9,7 @@ import { expect, test } from 'bun:test';
 import { Option } from 'effect';
 
 import { Message } from '../src/tabletop/message';
-import { fresh, init, type Model } from '../src/tabletop/model';
+import { fresh, type Model } from '../src/tabletop/model';
 import { fragmentOf, recordIn, recordOf } from '../src/tabletop/replay';
 import { snapshotAtOf, throwAt, untilOf, update } from '../src/tabletop/update';
 import { checkEvery, stepsPerTurn, type Wire } from '../src/tabletop/wire';
@@ -102,7 +102,7 @@ const exchange = (peers: ReadonlyArray<Peer>, times: number, delay = 0) => {
 
 const opened = (name: string, predict = false): Peer => {
   const peer: Peer = {
-    model: init().model,
+    model: fresh,
     outbox: [],
     commands: [],
     world: { run: 0, step: null },
@@ -324,7 +324,7 @@ test('a game becomes a record in a link, and replaying it meets every check', ()
 
   // A page opened with the link replays: no session, the world on the record, checked.
   const r: Peer = {
-    model: init().model,
+    model: fresh,
     outbox: [],
     commands: [],
     world: { run: 0, step: null },
@@ -349,7 +349,7 @@ test('a game becomes a record in a link, and replaying it meets every check', ()
   expect(r.model.diverged).toEqual(Option.none());
   // A record that does not match the world is found out at its first check.
   const forged = { ...record, checks: record.checks.map((check) => ({ ...check, checksum: 'x' })) };
-  const f: Peer = { ...r, model: init().model, outbox: [], world: { run: 0, step: null } };
+  const f: Peer = { ...r, model: fresh, outbox: [], world: { run: 0, step: null } };
   run(
     f,
     Message.NamedTab({

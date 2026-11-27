@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseModelDocument } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,8 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1200 },
@@ -80,6 +81,9 @@ async function run() {
   const initial = await download();
   await section('Inspect');
   await inspect.selectOption('orders-billing');
+  await expect(
+    page.locator('[data-architecture-effect-ui="ddd-relationship-inspector"]'),
+  ).toContainText('DDD relationship');
   await expect(pattern).toHaveValue('strategic:upstream-downstream');
   await expect(ohs).toBeChecked();
   await expect(pl).toBeChecked();
@@ -87,6 +91,7 @@ async function run() {
   await downstream.focus();
   await downstream.selectOption('conformist');
   await expect(label.getByLabel('Conformist', { exact: true })).toHaveText('CF');
+  await expect(downstream).toBeFocused();
   await undo();
   await expect(downstream).toHaveValue('anti-corruption-layer');
   await section('Diagram');
@@ -99,8 +104,9 @@ async function run() {
   await ohs.focus();
   await ohs.press('Space');
   await expect(ohs).not.toBeChecked();
+  await expect(ohs).toBeFocused();
   await expect(label.getByLabel('Open host service', { exact: true })).toHaveCount(0);
-  await pl.uncheck();
+  await pl.click();
   await expect(pl).not.toBeChecked();
   await expect(label.getByLabel('Published language', { exact: true })).toHaveCount(0);
   await downstream.selectOption('');
@@ -144,13 +150,25 @@ async function run() {
   await expect(page.locator('#flow-demo-edge-actions')).toBeVisible();
   await page.getByRole('button', { name: 'Show controls', exact: true }).click();
   await expect(page.locator('#flow-demo-edge-actions')).toHaveCount(0);
+  const availability = controls.getByRole('group', {
+    name: 'DDD relationship availability',
+    exact: true,
+  });
+  await controls.getByText('Pattern compatibility details', { exact: true }).click();
+  await expect(availability).toBeVisible();
   for (const theme of ['light', 'dark']) {
     await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption(theme);
     await controls.scrollIntoViewIfNeeded();
-    await page.screenshot({
-      path: fileURLToPath(new URL(`./ddd-relationship-controls-${theme}.png`, import.meta.url)),
-    });
+    if (process.env.ZLOZ_CAPTURE_DIR) {
+      await page.screenshot({
+        path: resolve(
+          process.env.ZLOZ_CAPTURE_DIR,
+          `ddd-relationship-controls-${engine}-${theme}.png`,
+        ),
+      });
+    }
   }
+  await expect(availability).toBeVisible();
   await protect.uncheck();
   await expect(pattern).toBeEnabled();
   await section('Diagnostics');
@@ -183,6 +201,8 @@ async function run() {
   await section('Inspect');
   await inspect.selectOption('orders-billing');
   await expect(pattern).toBeDisabled();
+  await expect(ohs).toBeDisabled();
+  await expect(protect).toBeDisabled();
   await expect(downstream).toBeDisabled();
   await expect(controls.getByLabel('DDD protection reason', { exact: true })).toContainText(
     'Return to the working model',
@@ -198,14 +218,14 @@ async function run() {
         result: 'passed',
         browser: browser.version(),
         checks: [
-          'public custom-composed inspector controls',
+          'Effect UI inspector and focus after relationship updates',
           'downstream selection and Undo/Redo',
           'native keyboard upstream toggle',
           'empty role fields omitted from canonical JSON',
           'explicit symmetric transition removes side fields in one Undo',
           'directional transitions preserve authored roles',
           'owner policy disables fields with visible/accessible reasons',
-          'light/dark protection captures with persistent canvas',
+          'light/dark protection captures with persistent canvas and disclosure',
           'floating toolbar suppressed in inspector and restored when collapsed',
           'minimal/global diagnostic independence',
           'historical inspection stays read-only and working snapshot preserved',

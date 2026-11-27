@@ -1,5 +1,5 @@
 {
-  "name": "astro-foldkit-skill-counter",
+  "name": "astro-effect-ui-skill-counter",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,11 +9,10 @@
     "build": "astro build"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.1.0",
-    "@opsydyn/astro-foldkit": "0.13.0",
+    "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
+    "@opsydyn/astro-effect-ui": "1.0.0-next.0",
     "astro": "7.4.11",
-    "effect": "4.1.0",
-    "foldkit": "0.171.0"
+    "effect": "4.1.6"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",

@@ -35,6 +35,7 @@ export const Vr = Schema.Literals(['checking', 'unavailable', 'ready', 'entering
 export type Vr = typeof Vr.Type;
 
 export const Model = Schema.Struct({
+  sceneFailure: Schema.NullOr(Schema.String),
   toys: Schema.Array(Toy),
   nextId: Schema.Number,
   /** Tidying up starts a new round: every toy gets a new key and drops again. */
@@ -84,6 +85,7 @@ export const homeCamera = perspectiveCamera({
 });
 
 export const initialModel: Model = {
+  sceneFailure: null,
   toys: Array.from({ length: firstToys }, (_, id) => toyAt(id)),
   nextId: firstToys,
   round: 0,

@@ -1,13 +1,13 @@
 /**
- * Foldkit adapter for `@opsydyn/effect-three`.
+ * Effect UI adapter for `@opsydyn/effect-three`.
  *
  * ```ts
  * // entry.ts: once per app
- * const environment = EffectThreeFoldkit.makeEnvironment(window);
- * export const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
+ * const environment = EffectThreeUi.makeEnvironment(window);
+ * export const sceneMount = EffectThreeUi.makeSceneMount(environment);
  *
  * // view.ts
- * EffectThreeFoldkit.view(
+ * EffectThreeUi.view(
  *   { scene: sceneFor(model), mount: sceneMount, onLifecycle: GotSceneLifecycle, onClick: ClickedNode },
  *   h,
  * );
@@ -15,18 +15,27 @@
  *
  * @module
  */
-export { AssetLoadError, type Assets, makeAssets, type ModelInfo } from './assets.ts';
-export { animationFrameScheduler, type AnimationFrameHost } from './dom/animationFrames.ts';
+export {
+  AssetLoadError,
+  type Assets,
+  makeAssets,
+  type ModelInfo,
+} from '@opsydyn/effect-three/browser';
+export { animationFrameScheduler, type AnimationFrameHost } from '@opsydyn/effect-three/browser';
 export {
   capturesPointer,
   claimsContextMenu,
   type Rect,
   toNdc,
   toPointerInput,
-} from './dom/pointer.ts';
-export { defaultPixelRatio, type PixelRatio, resolvePixelRatio } from './dom/viewport.ts';
-export { webglRendererFactory, type WebGLOptions } from './dom/webgl.ts';
-export { type WebGPUOptions, webgpuRendererFactory } from './dom/webgpu.ts';
+} from '@opsydyn/effect-three/browser';
+export {
+  defaultPixelRatio,
+  type PixelRatio,
+  resolvePixelRatio,
+} from '@opsydyn/effect-three/browser';
+export { webglRendererFactory, type WebGLOptions } from '@opsydyn/effect-three/browser';
+export { type WebGPUOptions, webgpuRendererFactory } from '@opsydyn/effect-three/browser';
 export {
   domEventName,
   ReconciledDetail,
@@ -35,23 +44,28 @@ export {
   SceneLifecycle,
   XrSessionDetail,
 } from './element.ts';
-export { type XrMode } from './dom/xrHub.ts';
-export { type XrControls, XrUnavailable } from './xr.ts';
-export { summarise } from './dom/reconciled.ts';
+export { type XrMode } from '@opsydyn/effect-three/browser';
+export { type XrControls, XrUnavailable } from '@opsydyn/effect-three/browser';
+export { summarise } from '@opsydyn/effect-three/browser';
 export {
   type Environment,
   type EnvironmentHost,
   type EnvironmentOptions,
   makeEnvironment,
-} from './environment.ts';
+} from '@opsydyn/effect-three/browser';
 export { inspectorView, type OnEdit } from './inspector.ts';
-export { makeSceneMount, type SceneMount } from './mount.ts';
+export {
+  defineScopedSceneMount,
+  makeSceneMount,
+  type SceneMount,
+  type SceneMountArgs,
+} from './mount.ts';
 export * as BoxSelect from './boxSelect.ts';
 export * as MeasuringTape from './measuringTape.ts';
 export * as PivotControls from './pivotControls.ts';
 export * as TransformGizmo from './transformGizmo.ts';
 export * as ViewportGizmo from './viewportGizmo.ts';
-export { type OverlayView } from './overlayView.ts';
+export { overlayLayer, type OverlayView, withOverlays } from './overlayView.ts';
 export {
   type AssetFailedDetail,
   type AssetLoadedDetail,

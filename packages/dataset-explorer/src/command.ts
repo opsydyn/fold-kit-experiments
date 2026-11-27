@@ -1,35 +1,38 @@
+import { Command } from '@effect/ui';
 import { Effect, Schema } from 'effect';
-import { Command } from 'foldkit';
 
-import { SourceHighlighter, highlightedTree } from './highlighting';
+import { Request } from './data';
 import { Message } from './message';
-import { SourceLine, focusSourceLine } from './source-lines';
+import { execute, DatasetQuery } from './query';
+import { SourceLine } from './source-line-core';
+import { focusSourceLine, highlightSource } from './source-ui';
 
-export const HighlightSource = Command.define('HighlightSource', {
-  args: { source: Schema.String, language: Schema.String },
-  messages: [Message.SettledHighlightedSource],
-  execute: ({ source, language }) =>
-    SourceHighlighter.get.pipe(
-      Effect.match({
-        onSuccess: (engine) =>
-          Message.SettledHighlightedSource({
-            highlightedSource: {
-              source,
-              language,
-              tree: highlightedTree(source, language, engine),
-            },
-          }),
-        onFailure: () =>
-          Message.SettledHighlightedSource({
-            highlightedSource: { source, language, tree: highlightedTree(source, language) },
-          }),
-      }),
+export const FetchDatasetSnapshot = Command.make(
+  'FetchDatasetSnapshot',
+  { args: { args: Request, generation: Schema.Number } },
+  ({ args, generation }) =>
+    execute(args).pipe(
+      Effect.result,
+      Effect.map((result) =>
+        Message.GotDatasetMessage({
+          message: DatasetQuery.Message.CompletedFetch({ args, generation, result }),
+        }),
+      ),
     ),
-});
+);
 
-export const FocusSourceLine = Command.define('FocusSourceLine', {
-  args: SourceLine.fields,
-  messages: [Message.CompletedSourceLineFocus],
-  execute: (location) =>
+export const HighlightSource = Command.make(
+  'HighlightSource',
+  { args: { source: Schema.String, language: Schema.String } },
+  ({ source, language }) =>
+    highlightSource(source, language).pipe(
+      Effect.map((highlightedSource) => Message.SettledHighlightedSource({ highlightedSource })),
+    ),
+);
+
+export const FocusSourceLine = Command.make(
+  'FocusSourceLine',
+  { args: SourceLine.fields },
+  (location) =>
     focusSourceLine(location).pipe(Effect.map(() => Message.CompletedSourceLineFocus())),
-});
+);

@@ -1,21 +1,16 @@
 import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import {
-  zlozAuditComparisonControls,
-  zlozAuditFindingButton,
+  auditComparisonControls,
+  auditFindingButton,
   type ZlozAuditComparisonViewOptions,
-} from '../src/foldkit';
-import {
-  createEventStormingPattern,
-  resolveAuditComparisonControls,
-  type ZlozAuditComparisonRequest,
-} from '../src/index';
+} from '../src/effect-ui';
+import { createEventStormingPattern, resolveAuditComparisonControls } from '../src/index';
 
 const graph = createEventStormingPattern(),
   first = graph.edges[0];
@@ -39,28 +34,22 @@ const state = {
   selectedId: null,
   filters: { introduced: true, resolved: true, persisting: true },
 };
-async function render(
-  options: ZlozAuditComparisonViewOptions<ZlozAuditComparisonRequest> = {},
-  unavailable = false,
-) {
+async function render(options: ZlozAuditComparisonViewOptions<string> = {}, unavailable = false) {
   const context = resolveAuditComparisonControls(
     document,
     unavailable ? { ...state, baselineId: 'missing' } : state,
     { focusReason: () => 'Protected focus' },
   );
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: context }),
-        view: (model, h: HtmlBuilder<ZlozAuditComparisonRequest>) => ({
-          title: 'Audit controls',
-          body: zlozAuditComparisonControls(h, model, (request) => request, options),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const Audit = Html.component({
+    name: 'auditComparisonControls',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) => auditComparisonControls(h, context, (request) => request.type, options),
+  });
+  const result = await Effect.runPromise(HtmlServer.renderToHtml(Audit, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = result.html;
   return window.document;
@@ -90,11 +79,13 @@ test('custom badges, omitted slots, layout, ordered filters and count-free defau
     renderStatus: () => null,
     renderReason: () => null,
     renderEntry: (entry, h, onRequest) =>
-      h.li(
-        [],
-        [zlozAuditFindingButton(h, entry, onRequest, [], ['Custom badge'], 'Inspect finding')],
+      h.li.children(
+        auditFindingButton(h, entry, onRequest, {
+          content: 'Custom badge',
+          label: 'Inspect finding',
+        }),
       ),
-    renderLayout: (parts, _context, h) => [...parts.filters, h.ul([], parts.entries)],
+    renderLayout: (parts, _context, h) => [...parts.filters, h.ul.children(...parts.entries)],
   });
   expect(custom.querySelectorAll('input')).toHaveLength(1);
   expect(custom.querySelector('[role="status"]')).toBeNull();

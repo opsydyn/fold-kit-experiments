@@ -39,7 +39,7 @@ import type { WebGPURenderer } from 'three/webgpu';
 
 type ThreeRenderer = WebGLRenderer | WebGPURenderer;
 
-import { threeRendererOf } from '../../src/dom/renderSettings.ts';
+import { threeRendererOf } from '@opsydyn/effect-three/browser';
 
 const offsetSpace = Reflect.get(XRReferenceSpace.prototype, 'getOffsetReferenceSpace');
 

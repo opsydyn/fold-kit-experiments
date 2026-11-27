@@ -1,4 +1,7 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
-// The Astro integration uses this import as the client island entry.
-// oxlint-disable-next-line linteffect/prevent-dynamic-imports
-export default lazyApp(() => import('./main'));
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
+
+import '@opsydyn/foldkit-zloz/effect-ui.css';
+
+import Editor from './main';
+
+export default astroComponent(Editor);

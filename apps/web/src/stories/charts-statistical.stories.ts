@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/html';
 
-import * as BoxPlotApp from '../apps/box-plot/main';
-import * as CalendarHeatmapApp from '../apps/calendar-heatmap/main';
-import * as DensityContourApp from '../apps/density-contour/main';
-import * as HeatmapApp from '../apps/heatmap/main';
-import * as HistogramApp from '../apps/histogram/main';
-import * as ViolinApp from '../apps/violin/main';
-import { mountFoldkit } from './mount';
+import { Chart as BoxPlotApp } from '../apps/box-plot/main';
+import { Chart as CalendarHeatmapApp } from '../apps/calendar-heatmap/main';
+import { Chart as DensityContourApp } from '../apps/density-contour/main';
+import { Chart as HeatmapApp } from '../apps/heatmap/main';
+import { Chart as HistogramApp } from '../apps/histogram/main';
+import { Chart as ViolinApp } from '../apps/violin/main';
+import { mountStaticChart } from './mount-effect-ui';
 
 export default {
   title: 'Charts/Statistical',
@@ -14,7 +14,7 @@ export default {
 
 export const BoxPlot: StoryObj = {
   name: 'Box plot',
-  render: () => mountFoldkit(BoxPlotApp),
+  render: () => mountStaticChart(BoxPlotApp),
   parameters: {
     docs: { description: { story: 'Salary distribution by level — IQR, whiskers, outliers.' } },
   },
@@ -22,7 +22,7 @@ export const BoxPlot: StoryObj = {
 
 export const Histogram: StoryObj = {
   name: 'Histogram',
-  render: () => mountFoldkit(HistogramApp),
+  render: () => mountStaticChart(HistogramApp),
   parameters: {
     docs: { description: { story: 'Salary distribution — bin-based frequency chart.' } },
   },
@@ -30,19 +30,19 @@ export const Histogram: StoryObj = {
 
 export const Violin: StoryObj = {
   name: 'Violin chart',
-  render: () => mountFoldkit(ViolinApp),
+  render: () => mountStaticChart(ViolinApp),
   parameters: { docs: { description: { story: 'KDE-smoothed salary distribution by level.' } } },
 };
 
 export const Heatmap: StoryObj = {
   name: 'Heatmap',
-  render: () => mountFoldkit(HeatmapApp),
+  render: () => mountStaticChart(HeatmapApp),
   parameters: { docs: { description: { story: 'Traffic by hour and day of week.' } } },
 };
 
 export const DensityContour: StoryObj = {
   name: 'Density contour',
-  render: () => mountFoldkit(DensityContourApp),
+  render: () => mountStaticChart(DensityContourApp),
   parameters: {
     docs: { description: { story: 'Bivariate density using marching-squares + KDE.' } },
   },
@@ -50,6 +50,6 @@ export const DensityContour: StoryObj = {
 
 export const CalendarHeatmap: StoryObj = {
   name: 'Calendar heatmap',
-  render: () => mountFoldkit(CalendarHeatmapApp),
+  render: () => mountStaticChart(CalendarHeatmapApp),
   parameters: { docs: { description: { story: 'GitHub-style commit activity calendar.' } } },
 };

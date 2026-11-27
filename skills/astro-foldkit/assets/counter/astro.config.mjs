@@ -1,4 +1,4 @@
-import foldkit from '@opsydyn/astro-foldkit';
+import effectUi from '@opsydyn/astro-effect-ui';
 import { defineConfig } from 'astro/config';
 
-export default defineConfig({ integrations: [foldkit()] });
+export default defineConfig({ integrations: [effectUi()] });

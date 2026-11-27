@@ -1,13 +1,14 @@
+import type { Html } from '@effect/ui/html';
 import { scatterGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { lightTheme, resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
-import { axis, chartFrame, grid, pointSeries } from '@opsydyn/foldkit-viz/foldkit/cartesian';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
+import { axis, chartFrame, grid, pointSeries } from '@opsydyn/foldkit-viz/effect-ui/cartesian';
 
 import { Filter, Scenario } from './contract';
 import type { Service } from './contract';
 import { Message } from './message';
 import { activeRun, Session, visibleServices } from './model';
 import type { Model } from './model';
+import { ObserveAgentEnvironment } from './navigation';
 
 import * as styles from './agent-analysis.css';
 
@@ -45,7 +46,7 @@ function headline(model: Model, above: number): string {
   });
 }
 
-function chart(model: Model, h: HtmlBuilder<Message>): Html {
+function chart(model: Model, h: Html.H<Message>) {
   const geometry = scatterGeometry(
     visibleServices(model),
     {
@@ -83,35 +84,32 @@ function chart(model: Model, h: HtmlBuilder<Message>): Html {
     const x = layout.x(baseline.volume);
     const y = layout.y(baseline.latency);
     return [
-      h.g(
-        [h.Key(`baseline-${point.key}`), h.AriaHidden(true)],
-        [
-          h.line(
-            [
-              h.X1(String(x)),
-              h.Y1(String(y)),
-              h.X2(String(point.x)),
-              h.Y2(String(point.y)),
-              h.Stroke(colourFor(point.datum)),
-              h.StrokeWidth('2'),
-              h.StrokeDasharray('3 4'),
-            ],
-            [],
-          ),
-          h.circle(
-            [
-              h.DataAttribute('baseline', 'true'),
-              h.Cx(String(x)),
-              h.Cy(String(y)),
-              h.R('7'),
-              h.Fill('var(--page-bg)'),
-              h.Stroke(colourFor(point.datum)),
-              h.StrokeWidth('2'),
-            ],
-            [],
-          ),
-        ],
-      ),
+      h
+        .el('g')
+        .key(`baseline-${point.key}`)
+        .attr('aria-hidden', 'true')
+        .children(
+          h
+            .el('line')
+            .attr('x1', String(x))
+            .attr('y1', String(y))
+            .attr('x2', String(point.x))
+            .attr('y2', String(point.y))
+            .attr('stroke', colourFor(point.datum))
+            .attr('stroke-width', '2')
+            .attr('stroke-dasharray', '3 4')
+            .children(),
+          h
+            .el('circle')
+            .attr('data-baseline', 'true')
+            .attr('cx', String(x))
+            .attr('cy', String(y))
+            .attr('r', '7')
+            .attr('fill', 'var(--page-bg)')
+            .attr('stroke', colourFor(point.datum))
+            .attr('stroke-width', '2')
+            .children(),
+        ),
     ];
   });
   return chartFrame(
@@ -141,25 +139,25 @@ function chart(model: Model, h: HtmlBuilder<Message>): Html {
         format: String,
         theme,
       }),
-      h.line(
-        [
-          h.DataAttribute('budget', 'true'),
-          h.X1(String(layout.plot.left)),
-          h.X2(String(layout.plot.right)),
-          h.Y1(String(layout.y(demoBudget))),
-          h.Y2(String(layout.y(demoBudget))),
-          h.Stroke('var(--incident-budget)'),
-          h.StrokeDasharray('5 5'),
-          h.StrokeWidth('2'),
-          h.AriaHidden(true),
-        ],
-        [],
-      ),
+      h
+        .el('line')
+        .attr('data-budget', 'true')
+        .attr('x1', String(layout.plot.left))
+        .attr('x2', String(layout.plot.right))
+        .attr('y1', String(layout.y(demoBudget)))
+        .attr('y2', String(layout.y(demoBudget)))
+        .attr('stroke', 'var(--incident-budget)')
+        .attr('stroke-dasharray', '5 5')
+        .attr('stroke-width', '2')
+        .attr('aria-hidden', 'true')
+        .children(),
       ...trails,
       ...geometry.points.map((point) =>
-        h.g(
-          [h.Key(point.key), h.DataAttribute('latency', String(point.datum.latency))],
-          [
+        h
+          .el('g')
+          .key(point.key)
+          .attr('data-latency', String(point.datum.latency))
+          .children(
             pointSeries(h, {
               points: [point],
               activeKey: model.selectedId,
@@ -177,217 +175,176 @@ function chart(model: Model, h: HtmlBuilder<Message>): Html {
               labelFor: (service) =>
                 `${service.name}: ${service.volume} requests/minute, ${service.latency} p95 milliseconds`,
             }),
-          ],
-        ),
+          ),
       ),
       ...geometry.points
         .filter((point) => point.key === model.selectedId)
         .map((point) =>
-          h.circle(
-            [
-              h.DataAttribute('selected', 'true'),
-              h.Cx(String(point.x)),
-              h.Cy(String(point.y)),
-              h.R('15'),
-              h.Fill('none'),
-              h.Stroke('var(--page-text)'),
-              h.StrokeWidth('2'),
-              h.StrokeDasharray('3 2'),
-              h.AriaHidden(true),
-            ],
-            [],
-          ),
+          h
+            .el('circle')
+            .attr('data-selected', 'true')
+            .attr('cx', String(point.x))
+            .attr('cy', String(point.y))
+            .attr('r', '15')
+            .attr('fill', 'none')
+            .attr('stroke', 'var(--page-text)')
+            .attr('stroke-width', '2')
+            .attr('stroke-dasharray', '3 2')
+            .attr('aria-hidden', 'true')
+            .children(),
         ),
       ...geometry.points.map((point) =>
-        h.text(
-          [
-            h.Key(`label-${point.key}`),
-            h.X(String(point.x)),
-            h.Y(String(point.y - 22)),
-            h.TextAnchor('middle'),
-            h.FontSize('12'),
-            h.Fill('var(--page-text)'),
-            h.AriaHidden(true),
-          ],
-          [point.datum.name],
-        ),
+        h
+          .el('text')
+          .key(`label-${point.key}`)
+          .attr('x', String(point.x))
+          .attr('y', String(point.y - 22))
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '12')
+          .attr('fill', 'var(--page-text)')
+          .attr('aria-hidden', 'true')
+          .children(point.datum.name),
       ),
     ],
   );
 }
 
-function inspector(model: Model, h: HtmlBuilder<Message>): Html {
+function inspector(model: Model, h: Html.H<Message>) {
   const selected = visibleServices(model).find(({ id }) => id === model.selectedId);
   if (selected === undefined)
-    return h.aside(
-      [h.Class(styles.inspector), h.AriaLabel('Selected service')],
-      [
-        h.p([h.Class(styles.eyebrow)], ['Selected service']),
-        h.p([h.Class(styles.empty)], ['No service selected']),
-      ],
-    );
+    return h.aside
+      .class(styles.inspector)
+      .attr('aria-label', 'Selected service')
+      .children(
+        h.p.class(styles.eyebrow).children('Selected service'),
+        h.p.class(styles.empty).children('No service selected'),
+      );
   const baseline = baselineFor(model, selected);
   const above = selected.latency > demoBudget;
   const comparison = baseline === undefined ? 'New' : `${baseline.latency}ms`;
-  return h.aside(
-    [h.Class(styles.inspector), h.AriaLabel('Selected service')],
-    [
-      h.p([h.Class(styles.eyebrow)], ['Selected service']),
-      h.h3([h.Class(styles.serviceName)], [selected.name]),
-      h.p([h.Class(styles.muted)], [selected.series]),
-      h.p(
-        [h.Class(styles.measurement)],
-        [
-          h.span([h.DataAttribute('testid', 'current-latency')], [String(selected.latency)]),
-          h.span([h.Class(styles.unit), h.AriaLabel('p95 milliseconds')], [' ms p95']),
-        ],
-      ),
-      h.p(
-        [h.Class(above ? styles.alert : styles.good)],
-        [above ? 'Above demo budget' : 'Within demo budget'],
-      ),
-      h.p(
-        [h.Class(styles.comparison)],
-        [
+  return h.aside
+    .class(styles.inspector)
+    .attr('aria-label', 'Selected service')
+    .children(
+      h.p.class(styles.eyebrow).children('Selected service'),
+      h.h3.class(styles.serviceName).children(selected.name),
+      h.p.class(styles.muted).children(selected.series),
+      h.p
+        .class(styles.measurement)
+        .children(
+          h.span.attr('data-testid', 'current-latency').children(String(selected.latency)),
+          h.span.class(styles.unit).attr('aria-label', 'p95 milliseconds').children(' ms p95'),
+        ),
+      h.p
+        .class(above ? styles.alert : styles.good)
+        .children(above ? 'Above demo budget' : 'Within demo budget'),
+      h.p
+        .class(styles.comparison)
+        .children(
           'Baseline: ',
-          h.span([h.DataAttribute('testid', 'baseline-latency')], [comparison]),
+          h.span.attr('data-testid', 'baseline-latency').children(comparison),
           ...(baseline === undefined
             ? []
             : [` / ${difference(selected.latency, baseline.latency)}`]),
-        ],
-      ),
-      h.dl(
-        [h.Class(styles.facts)],
-        [
-          h.dt([], ['Traffic']),
-          h.dd([h.AriaLabel(`${selected.volume} requests/minute`)], [`${selected.volume} req/min`]),
-          h.dt([], ['Budget margin']),
-          h.dd([], [`${Math.abs(selected.latency - demoBudget)}ms ${above ? 'above' : 'below'}`]),
-          h.dt([], ['Service ID']),
-          h.dd([], [selected.id]),
-        ],
-      ),
-      h.p(
-        [h.Class(styles.evidenceNote)],
-        [
+        ),
+      h.dl
+        .class(styles.facts)
+        .children(
+          h.dt.children('Traffic'),
+          h.dd
+            .attr('aria-label', `${selected.volume} requests/minute`)
+            .children(`${selected.volume} req/min`),
+          h.dt.children('Budget margin'),
+          h.dd.children(
+            `${Math.abs(selected.latency - demoBudget)}ms ${above ? 'above' : 'below'}`,
+          ),
+          h.dt.children('Service ID'),
+          h.dd.children(selected.id),
+        ),
+      h.p
+        .class(styles.evidenceNote)
+        .children(
           model.rejection !== null
             ? 'Last valid measurements retained. No rejected operation was applied.'
             : 'Validated measurements, not a diagnosis. The cause of a change is not established.',
-        ],
-      ),
-    ],
-  );
+        ),
+    );
 }
 
-function table(model: Model, h: HtmlBuilder<Message>): Html {
-  return h.div(
-    [
-      h.Class(styles.scroll),
-      h.DataAttribute('testid', 'table-scroll'),
-      h.Tabindex(0),
-      h.AriaLabel('Service table'),
-    ],
-    [
-      h.table(
-        [h.Class(styles.table)],
-        [
-          h.caption([h.Class(styles.srOnly)], ['Synthetic service measurements']),
-          h.thead(
-            [],
-            [
-              h.tr(
-                [],
-                [
-                  h.th([h.Attribute('scope', 'col')], ['Service']),
-                  h.th(
-                    [h.Attribute('scope', 'col')],
-                    [h.abbr([h.Title('requests/minute')], ['Req/min'])],
-                  ),
-                  h.th(
-                    [h.Attribute('scope', 'col')],
-                    [h.abbr([h.Title('p95 milliseconds')], ['p95'])],
-                  ),
-                  h.th([h.Attribute('scope', 'col')], ['vs. baseline']),
-                ],
-              ),
-            ],
+function table(model: Model, h: Html.H<Message>) {
+  return h.div
+    .class(styles.scroll)
+    .attr('data-testid', 'table-scroll')
+    .attr('tabindex', '0')
+    .attr('aria-label', 'Service table')
+    .children(
+      h.table.class(styles.table).children(
+        h.caption.class(styles.srOnly).children('Synthetic service measurements'),
+        h.thead.children(
+          h.tr.children(
+            h.th.attr('scope', 'col').children('Service'),
+            h.th
+              .attr('scope', 'col')
+              .children(h.el('abbr').attr('title', 'requests/minute').children('Req/min')),
+            h.th
+              .attr('scope', 'col')
+              .children(h.el('abbr').attr('title', 'p95 milliseconds').children('p95')),
+            h.th.attr('scope', 'col').children('vs. baseline'),
           ),
-          h.tbody(
-            [],
-            visibleServices(model).map((service) => {
-              const baseline = baselineFor(model, service);
-              return h.tr(
-                [
-                  h.Key(service.id),
-                  h.DataAttribute('service-id', service.id),
-                  h.DataAttribute('selected', String(service.id === model.selectedId)),
-                ],
-                [
-                  h.th(
-                    [h.Attribute('scope', 'row')],
-                    [
-                      h.button(
-                        [
-                          h.Class(styles.serviceButton),
-                          h.DataAttribute('service-id', service.id),
-                          h.AriaPressed(String(model.selectedId === service.id)),
-                          h.OnClick(Message.ClickedService({ id: service.id })),
-                        ],
-                        [service.name],
-                      ),
-                    ],
-                  ),
-                  h.td(
-                    [h.AriaLabel(`${service.volume} requests/minute`)],
-                    [String(service.volume)],
-                  ),
-                  h.td(
-                    [
-                      h.Class(service.latency > demoBudget ? styles.alert : styles.good),
-                      h.AriaLabel(`${service.latency} p95 milliseconds`),
-                    ],
-                    [`${service.latency}ms`],
-                  ),
-                  h.td(
-                    [],
-                    [
-                      baseline === undefined
-                        ? 'New'
-                        : difference(service.latency, baseline.latency),
-                    ],
-                  ),
-                ],
+        ),
+        h.tbody.children(
+          visibleServices(model).map((service) => {
+            const baseline = baselineFor(model, service);
+            return h.tr
+              .key(service.id)
+              .attr('data-service-id', service.id)
+              .attr('data-selected', String(service.id === model.selectedId))
+              .children(
+                h.th.attr('scope', 'row').children(
+                  h.button
+                    .class(styles.serviceButton)
+                    .attr('data-service-id', service.id)
+                    .attr('aria-pressed', String(model.selectedId === service.id))
+                    .on('click', Message.ClickedService({ id: service.id }))
+                    .children(service.name),
+                ),
+                h.td
+                  .attr('aria-label', `${service.volume} requests/minute`)
+                  .children(String(service.volume)),
+                h.td
+                  .class(service.latency > demoBudget ? styles.alert : styles.good)
+                  .attr('aria-label', `${service.latency} p95 milliseconds`)
+                  .children(`${service.latency}ms`),
+                h.td.children(
+                  baseline === undefined ? 'New' : difference(service.latency, baseline.latency),
+                ),
               );
-            }),
-          ),
-        ],
+          }),
+        ),
       ),
-    ],
-  );
+    );
 }
 
-export function body(model: Model, h: HtmlBuilder<Message>): Html {
+export function view(h: Html.H<Message>, model: Model) {
   const active = activeRun(model) !== null;
   const services = model.wire?.services ?? [];
   const above = services.filter(({ latency }) => latency > demoBudget).length;
-  return h.section(
-    [h.Class(styles.root), h.AriaLabel('Service analysis')],
-    [
-      h.div(
-        [h.Class(styles.controls)],
-        [
-          h.label([h.For('agent-scenario'), h.Class(styles.eyebrow)], ['Scenario']),
-          h.select(
-            [
-              h.Id('agent-scenario'),
-              h.Class(styles.control),
-              h.OnChange((value) =>
-                Message.SelectedScenario({
-                  scenario:
-                    Scenario.literals.find((scenario) => scenario === value) ?? model.scenario,
-                }),
-              ),
-            ],
+  return h.section
+    .onMount(ObserveAgentEnvironment())
+    .class(styles.root)
+    .attr('aria-label', 'Service analysis')
+    .children(
+      h.div.class(styles.controls).children(
+        h.label.attr('for', 'agent-scenario').class(styles.eyebrow).children('Scenario'),
+        h.select
+          .id('agent-scenario')
+          .class(styles.control)
+          .on('change', ({ value }) =>
+            Message.SelectedScenario({
+              scenario: Scenario.literals.find((scenario) => scenario === value) ?? model.scenario,
+            }),
+          )
+          .children(
             (
               [
                 ['normal', 'Normal'],
@@ -395,224 +352,164 @@ export function body(model: Model, h: HtmlBuilder<Message>): Html {
                 ['slow', 'Slow'],
               ] as const
             ).map(([value, label]) =>
-              h.option([h.Value(value), h.Selected(model.scenario === value)], [label]),
+              h.option
+                .attr('value', value)
+                .selected(model.scenario === value)
+                .children(label),
             ),
           ),
-          h.button(
-            [
-              h.Id('agent-run'),
-              h.Class(styles.primary),
-              h.Disabled(active),
-              h.OnClick(Message.ClickedRun()),
-            ],
-            ['Run analysis'],
-          ),
-          h.button(
-            [
-              h.Id('agent-cancel'),
-              h.Class(styles.control),
-              h.Disabled(!active),
-              h.OnClick(Message.ClickedCancel()),
-            ],
-            ['Cancel'],
-          ),
-          h.span([h.Class(styles.labLabel)], ['Synthetic fixture / no live agent']),
-        ],
+        h.button
+          .id('agent-run')
+          .class(styles.primary)
+          .disabled(active)
+          .on('click', Message.ClickedRun())
+          .children('Run analysis'),
+        h.button
+          .id('agent-cancel')
+          .class(styles.control)
+          .disabled(!active)
+          .on('click', Message.ClickedCancel())
+          .children('Cancel'),
+        h.span.class(styles.labLabel).children('Synthetic fixture / no live agent'),
       ),
-      h.div(
-        [h.Class(styles.summary)],
-        [
-          h.div(
-            [],
-            [
-              h.p(
-                [h.Class(styles.eyebrow)],
-                [
-                  h.span(
-                    [h.DataAttribute('testid', 'status'), h.AriaLive('polite'), h.Role('status')],
-                    [model.session._tag],
-                  ),
-                ],
+      h.div
+        .class(styles.summary)
+        .children(
+          h.div.children(
+            h.p
+              .class(styles.eyebrow)
+              .children(
+                h.span
+                  .attr('data-testid', 'status')
+                  .attr('aria-live', 'polite')
+                  .attr('role', 'status')
+                  .children(model.session._tag),
               ),
-              h.h2(
-                [h.Class(styles.headline), h.DataAttribute('testid', 'summary-headline')],
-                [headline(model, above)],
+            h.h2
+              .class(styles.headline)
+              .attr('data-testid', 'summary-headline')
+              .children(headline(model, above)),
+            h.p
+              .class(styles.muted)
+              .children(
+                model.wire === null
+                  ? 'No service measurements'
+                  : `${services.length} synthetic services. Last valid data is visible.`,
               ),
-              h.p(
-                [h.Class(styles.muted)],
-                [
-                  model.wire === null
-                    ? 'No service measurements'
-                    : `${services.length} synthetic services. Last valid data is visible.`,
-                ],
-              ),
-            ],
           ),
-          h.div(
-            [],
-            [
-              h.p([h.Class(styles.eyebrow)], ['Above budget']),
-              h.p(
-                [h.Class(styles.stat)],
-                [
-                  h.span([h.DataAttribute('testid', 'above-budget-count')], [String(above)]),
-                  h.span([h.Class(styles.unit)], [` / ${services.length} services`]),
-                ],
+          h.div.children(
+            h.p.class(styles.eyebrow).children('Above budget'),
+            h.p
+              .class(styles.stat)
+              .children(
+                h.span.attr('data-testid', 'above-budget-count').children(String(above)),
+                h.span.class(styles.unit).children(` / ${services.length} services`),
               ),
-              h.p([h.Class(styles.muted)], ['Demo budget: p95 <= 100ms']),
-            ],
+            h.p.class(styles.muted).children('Demo budget: p95 <= 100ms'),
           ),
-          h.div(
-            [],
-            [
-              h.p([h.Class(styles.eyebrow)], ['Validated state updates']),
-              h.p(
-                [h.Class(styles.stat), h.DataAttribute('testid', 'accepted')],
-                [String(model.accepted)],
-              ),
-              h.p([h.Class(styles.muted)], ['Accepted after full validation']),
-            ],
+          h.div.children(
+            h.p.class(styles.eyebrow).children('Validated state updates'),
+            h.p.class(styles.stat).attr('data-testid', 'accepted').children(String(model.accepted)),
+            h.p.class(styles.muted).children('Accepted after full validation'),
           ),
-        ],
-      ),
+        ),
       ...(model.session._tag === 'Failed'
         ? [
-            h.div(
-              [h.Class(styles.rejection), h.Role('status')],
-              [
-                h.div(
-                  [],
-                  [
-                    h.p(
-                      [],
-                      [
-                        model.rejection === null
-                          ? 'Analysis stopped. Last valid data retained.'
-                          : 'Unsafe update rejected. Measurements unchanged.',
-                      ],
-                    ),
-                    ...(model.rejection === null
-                      ? [h.p([h.Class(styles.muted)], [model.session.failure.reason.slice(0, 400)])]
-                      : [
-                          h.pre(
-                            [h.DataAttribute('testid', 'rejected-update')],
-                            [model.rejection.detail],
-                          ),
-                        ]),
-                  ],
+            h.div
+              .class(styles.rejection)
+              .attr('role', 'status')
+              .children(
+                h.div.children(
+                  h.p.children(
+                    model.rejection === null
+                      ? 'Analysis stopped. Last valid data retained.'
+                      : 'Unsafe update rejected. Measurements unchanged.',
+                  ),
+                  ...(model.rejection === null
+                    ? [h.p.class(styles.muted).children(model.session.failure.reason.slice(0, 400))]
+                    : [
+                        h.pre
+                          .attr('data-testid', 'rejected-update')
+                          .children(model.rejection.detail),
+                      ]),
                 ),
-                h.button(
-                  [
-                    h.Id('agent-recover'),
-                    h.Class(styles.control),
-                    h.OnClick(Message.ClickedRecover()),
-                  ],
-                  ['Restart analysis'],
-                ),
-              ],
-            ),
+                h.button
+                  .id('agent-recover')
+                  .class(styles.control)
+                  .on('click', Message.ClickedRecover())
+                  .children('Restart analysis'),
+              ),
           ]
         : [
-            h.button(
-              [h.Id('agent-recover'), h.Class(styles.srOnly), h.Disabled(true)],
-              ['Restart analysis'],
-            ),
+            h.button
+              .id('agent-recover')
+              .class(styles.srOnly)
+              .disabled(true)
+              .children('Restart analysis'),
           ]),
-      h.div(
-        [h.Class(styles.workspace)],
-        [
-          h.div(
-            [h.Class(styles.plotRegion)],
-            [
-              h.div(
-                [h.Class(styles.sectionHeader)],
-                [
-                  h.h3([h.Class(styles.heading)], ['Traffic vs. latency']),
-                  h.p([h.Class(styles.legend)], ['Core (circle) / Platform (diamond)']),
-                ],
-              ),
-              h.div(
-                [
-                  h.Class(styles.chart),
-                  h.DataAttribute('testid', 'chart-scroll'),
-                  h.Tabindex(0),
-                  h.AriaLabel('Service chart'),
-                ],
-                [chart(model, h)],
-              ),
-              h.p(
-                [h.Class(styles.muted)],
-                [
+      h.div
+        .class(styles.workspace)
+        .children(
+          h.div
+            .class(styles.plotRegion)
+            .children(
+              h.div
+                .class(styles.sectionHeader)
+                .children(
+                  h.h3.class(styles.heading).children('Traffic vs. latency'),
+                  h.p.class(styles.legend).children('Core (circle) / Platform (diamond)'),
+                ),
+              h.div
+                .class(styles.chart)
+                .attr('data-testid', 'chart-scroll')
+                .attr('tabindex', '0')
+                .attr('aria-label', 'Service chart')
+                .children(chart(model, h)),
+              h.p
+                .class(styles.muted)
+                .children(
                   'Outline: baseline / dashed trail: validated change / dashed line: 100ms demo budget',
-                ],
-              ),
-            ],
-          ),
+                ),
+            ),
           inspector(model, h),
-        ],
-      ),
-      h.div(
-        [h.Class(styles.lower)],
-        [
-          h.div(
-            [h.Class(styles.tableRegion)],
-            [
-              h.div(
-                [h.Class(styles.sectionHeader)],
-                [
-                  h.h3([h.Class(styles.heading)], ['Service measurements']),
-                  h.div(
-                    [h.Class(styles.filters), h.Role('group'), h.AriaLabel('Service series')],
-                    Filter.literals.map((filter) =>
-                      h.button(
-                        [
-                          h.Class(styles.filter),
-                          h.DataAttribute('filter', filter),
-                          h.AriaPressed(String(model.filter === filter)),
-                          h.OnClick(Message.ClickedFilter({ filter })),
-                        ],
-                        [filter],
-                      ),
-                    ),
-                  ),
-                ],
+        ),
+      h.div.class(styles.lower).children(
+        h.div.class(styles.tableRegion).children(
+          h.div.class(styles.sectionHeader).children(
+            h.h3.class(styles.heading).children('Service measurements'),
+            h.div
+              .class(styles.filters)
+              .attr('role', 'group')
+              .attr('aria-label', 'Service series')
+              .children(
+                Filter.literals.map((filter) =>
+                  h.button
+                    .class(styles.filter)
+                    .attr('data-filter', filter)
+                    .attr('aria-pressed', String(model.filter === filter))
+                    .on('click', Message.ClickedFilter({ filter }))
+                    .children(filter),
+                ),
               ),
-              table(model, h),
-            ],
           ),
-          h.section(
-            [h.Class(styles.activity), h.AriaLabel('Run evidence')],
-            [
-              h.h3([h.Class(styles.heading)], ['Run evidence']),
-              h.ol(
-                [],
-                model.activity.slice(-12).map((entry) => h.li([], [entry])),
+          table(model, h),
+        ),
+        h.section
+          .class(styles.activity)
+          .attr('aria-label', 'Run evidence')
+          .children(
+            h.h3.class(styles.heading).children('Run evidence'),
+            h.ol.children(model.activity.slice(-12).map((entry) => h.li.children(entry))),
+            h.details.children(
+              h.summary.children('Protocol details'),
+              h.p.children(
+                `Run generation: ${model.generation}. Validated state updates: ${model.accepted}. AG-UI state snapshots and atomic JSON Patch deltas.`,
               ),
-              h.details(
-                [],
-                [
-                  h.summary([], ['Protocol details']),
-                  h.p(
-                    [],
-                    [
-                      `Run generation: ${model.generation}. Validated state updates: ${model.accepted}. AG-UI state snapshots and atomic JSON Patch deltas.`,
-                    ],
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-        ],
       ),
-      h.p(
-        [h.Class(styles.footer)],
-        ['AG-UI / FoldKit / Astro. Demo budget is illustrative, not a production SLO.'],
-      ),
-    ],
-  );
+      h.p
+        .class(styles.footer)
+        .children('AG-UI / Effect UI / Astro. Demo budget is illustrative, not a production SLO.'),
+    );
 }
-
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'Service Incident Lab',
-  body: body(model, h),
-});

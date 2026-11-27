@@ -5,7 +5,7 @@ import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -32,7 +32,12 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const evidence = (name) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${name}`)
+    : fileURLToPath(new URL(name, import.meta.url));
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1200 },
@@ -40,7 +45,7 @@ async function run() {
   });
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  const file = (name) => fileURLToPath(new URL(name, import.meta.url));
+  const file = evidence;
   const button = (name) => page.getByRole('button', { name, exact: true }).first();
   const section = (name) =>
     page
@@ -90,6 +95,7 @@ async function run() {
   await button('Open workshop semantics example').click();
   const before = await model();
   await section('C4 mapping review');
+  await expect(page.locator('[data-architecture-effect-ui="c4-mapping-review"]')).toBeVisible();
   for (const [id, role] of [
     ['request', 'container'],
     ['provider', 'software-system'],
@@ -126,15 +132,18 @@ async function run() {
   await expect(ack).toBeChecked();
   await expect(apply).toBeEnabled();
   const lock = page.getByRole('checkbox', { name: 'Protect C4 conversion Apply', exact: true });
-  await lock.check();
+  await lock.click();
+  await expect(lock).toBeChecked();
   await expect(apply).toBeDisabled();
   await expect(
     page.getByRole('status', { name: 'C4 Apply availability', exact: true }),
   ).toContainText('protected');
   await expect(ack).not.toBeChecked();
-  await lock.uncheck();
+  await lock.click();
+  await expect(lock).not.toBeChecked();
   await expect(apply).toBeDisabled();
-  await ack.check();
+  await ack.click();
+  await expect(ack).toBeChecked();
   await expect(apply).toBeEnabled();
   for (const scheme of ['light', 'dark']) {
     await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption(scheme);

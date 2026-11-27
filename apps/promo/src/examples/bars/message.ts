@@ -1,11 +1,11 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
-import { Mode, Orientation } from './model';
-export const Message = defineMessageUnion({
+import { Mode, Orientation, Paint } from './model';
+export const Message = UiSchema.TaggedEnum({
   SelectedMode: { mode: Mode },
   SelectedOrientation: { orientation: Orientation },
-  SelectedPaint: { paint: Schema.Literals(['solid', 'dots', 'hatch', 'gradient']) },
+  SelectedPaint: { paint: Paint },
   RecordedWidth: { width: Schema.Number },
   InspectedBar: { key: Schema.String },
   ClickedReset: {},

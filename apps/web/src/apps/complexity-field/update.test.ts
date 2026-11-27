@@ -4,26 +4,26 @@ import { Message } from './message';
 import { init, riskTier, summarise } from './model';
 import { update } from './update';
 
-const { model } = init({});
+const model = init;
 
 describe('complexity field update', () => {
   it('inspects a module on hover or focus and clears it on leave', () => {
-    const inspected = update(model, Message.InspectedModule({ key: 'm3' })).model;
+    const inspected = update(model, Message.InspectedModule({ key: 'm3' }));
     expect(inspected.inspected).toBe('m3');
-    expect(update(inspected, Message.InspectedModule({ key: null })).model.inspected).toBeNull();
+    expect(update(inspected, Message.InspectedModule({ key: null })).inspected).toBeNull();
   });
 
   it('selects a module, and selecting it again clears the selection', () => {
-    const selected = update(model, Message.SelectedModule({ key: 'm5' })).model;
+    const selected = update(model, Message.SelectedModule({ key: 'm5' }));
     expect(selected.selected).toBe('m5');
-    expect(update(selected, Message.SelectedModule({ key: 'm5' })).model.selected).toBeNull();
+    expect(update(selected, Message.SelectedModule({ key: 'm5' })).selected).toBeNull();
   });
 });
 
 describe('complexity field model', () => {
   it('seeds a deterministic system of 42 modules', () => {
     expect(model.modules).toHaveLength(42);
-    expect(init({}).model.modules).toEqual(model.modules);
+    expect(init.modules).toEqual(model.modules);
     expect(new Set(model.modules.map(({ id }) => id)).size).toBe(42);
   });
 

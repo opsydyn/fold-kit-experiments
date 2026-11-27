@@ -1,7 +1,6 @@
+import type { Command } from '@effect/ui';
 import { type Camera, type Gesture, orbit, orbitOptions, type Vec3 } from '@opsydyn/effect-three';
-import { Match, Option } from 'effect';
-import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { Match, Option, Struct } from 'effect';
 
 import { advanceComet } from './comet';
 import {
@@ -49,7 +48,10 @@ import {
   type Tour,
 } from './tour';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Command<Message>>;
+};
 
 /** Look round the radar from outside its labels; it stays centred, so no panning. */
 const orbitLimits = orbitOptions({
@@ -71,7 +73,7 @@ const turnStep = Math.PI / 6;
 const reconcile = (model: Model): Model => {
   const keepVisible = (id: Option.Option<string>) =>
     Option.filter(id, (current) => isVisible(model, current));
-  return modifyFields(model, { hovered: keepVisible, selected: keepVisible });
+  return Struct.evolve(model, { hovered: keepVisible, selected: keepVisible });
 };
 
 /** Pins a blip, or unpins it when it is already pinned. */
@@ -327,7 +329,7 @@ export const init = (props: RadarProps = {}): AppReturn => {
     link,
   );
   const commands = Option.match(link.theme, {
-    onNone: () => [LoadThemeChoice()],
+    onNone: () => [LoadThemeChoice.make()],
     onSome: () => [],
   });
   return { model, commands };
@@ -363,132 +365,139 @@ const decomposed = {
 } as const satisfies Readonly<Record<MonolithState, MonolithState>>;
 
 const step = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    HoveredBlip: ({ key }) =>
-      hovering(model, () =>
-        withBlip(key, model, (id) => modifyFields(model, { hovered: () => Option.some(id) })),
-      ),
-    LeftBlip: ({ key }) =>
-      hovering(model, () =>
-        withBlip(key, model, (id) =>
-          modifyFields(model, {
-            hovered: (hovered) => Option.filter(hovered, (current) => current !== id),
-          }),
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      HoveredBlip: ({ key }) =>
+        hovering(model, () =>
+          withBlip(key, model, (id) => Struct.evolve(model, { hovered: () => Option.some(id) })),
         ),
-      ),
-    ClickedBlip: ({ key }) => withBlip(key, model, (id) => pin(model, id)),
-    DoubleClickedBlip: ({ key }) => withBlip(key, model, (id) => flyTo(model, id)),
-    ClickedEmptySpace: () => ({
-      model: modifyFields(model, {
-        selected: () => Option.none(),
-        hoveredEgg: () => Option.none(),
-      }),
-    }),
-    ClickedEntry: ({ id }) => ({ model: chooseEntry(model, id) }),
-    ClickedFlyTo: ({ id }) => ({ model: flyTo(model, id) }),
-    ChangedQuery: ({ query }) => ({
-      model: reconcile({
-        ...model,
-        query,
-        monolith: Option.getOrElse(summonedMonolith(query), () => model.monolith),
-      }),
-    }),
-    ChangedCategory: ({ category }) => ({ model: reconcile({ ...model, category }) }),
-    ClickedRing: ({ ring }) => ({ model: toggleRing(model, ring) }),
-    ClickedClearFilters: () => ({
-      model: { ...model, query: '', category: 'all', enabledRings: ringIds },
-    }),
-    ClickedTurn: ({ direction }) => ({
-      model: modifyFields(model, { camera: (camera) => turned(camera, direction) }),
-    }),
-    ClickedResetView: () => ({ model: { ...model, cluster: Option.none(), camera: homeCamera } }),
-    ClickedUniverse: () => ({
-      model: { ...model, cluster: Option.none(), camera: universeCamera(model.camera.position) },
-    }),
-    ClickedCluster: ({ category }) => ({
-      model: { ...model, cluster: Option.some(category), camera: clusterCamera(category) },
-    }),
-    ClickedZoom: ({ direction }) => ({
-      model: modifyFields(model, {
-        camera: (camera) => ({
-          ...camera,
-          position: zoomedPosition(camera.position, zoomFactors[direction]),
+      LeftBlip: ({ key }) =>
+        hovering(model, () =>
+          withBlip(key, model, (id) =>
+            Struct.evolve(model, {
+              hovered: (hovered) => Option.filter(hovered, (current) => current !== id),
+            }),
+          ),
+        ),
+      ClickedBlip: ({ key }) => withBlip(key, model, (id) => pin(model, id)),
+      DoubleClickedBlip: ({ key }) => withBlip(key, model, (id) => flyTo(model, id)),
+      ClickedEmptySpace: () => ({
+        model: Struct.evolve(model, {
+          selected: () => Option.none(),
+          hoveredEgg: () => Option.none(),
         }),
       }),
-    }),
-    ClickedRelationships: () => ({
-      model: modifyFields(model, { showRelationships: (shown) => !shown }),
-    }),
-    MadeGesture: ({ gesture }) => ({
-      model: { ...orbited(model, gesture), stageAspect: aspectOf(gesture, model.stageAspect) },
-    }),
-    ClickedRelay: ({ to }) => ({ model: relayTo(model, to) }),
-    AdvancedRelay: ({ deltaTimeMs }) => ({ model: advanceRelay(model, deltaTimeMs) }),
-    ChangedReducedMotion: ({ isReducedMotion }) => ({
-      model: { ...model, reducedMotion: isReducedMotion },
-    }),
-    ChangedEdition: ({ index }) => ({
-      model: reconcile({
-        ...model,
-        edition: clampEdition(model, index),
-        playing: false,
-        playClock: 0,
-      }),
-    }),
-    ClickedPlay: () => ({ model: togglePlay(model) }),
-    AdvancedPlayback: ({ deltaTimeMs }) => ({ model: advancePlayback(model, deltaTimeMs) }),
-    HoveredEgg: ({ key }) => ({ model: visitEgg(model, key) }),
-    // On touch an egg keeps speaking after the finger lifts, until a tap elsewhere.
-    LeftEgg: ({ key }) =>
-      hovering(model, () => ({
-        model: modifyFields(model, {
-          hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),
+      ClickedEntry: ({ id }) => ({ model: chooseEntry(model, id) }),
+      ClickedFlyTo: ({ id }) => ({ model: flyTo(model, id) }),
+      ChangedQuery: ({ query }) => ({
+        model: reconcile({
+          ...model,
+          query,
+          monolith: Option.getOrElse(summonedMonolith(query), () => model.monolith),
         }),
-      })),
-    ChangedColorScheme: ({ scheme }) => ({ model: { ...model, colorScheme: scheme } }),
-    ChangedContrast: ({ contrast }) => ({ model: { ...model, contrast } }),
-    ChoseTheme: ({ choice }) => ({
-      model: { ...model, themeChoice: choice },
-      commands: [SaveThemeChoice({ choice })],
+      }),
+      ChangedCategory: ({ category }) => ({ model: reconcile({ ...model, category }) }),
+      ClickedRing: ({ ring }) => ({ model: toggleRing(model, ring) }),
+      ClickedClearFilters: () => ({
+        model: { ...model, query: '', category: 'all', enabledRings: ringIds },
+      }),
+      ClickedTurn: ({ direction }) => ({
+        model: Struct.evolve(model, { camera: (camera) => turned(camera, direction) }),
+      }),
+      ClickedResetView: () => ({ model: { ...model, cluster: Option.none(), camera: homeCamera } }),
+      ClickedUniverse: () => ({
+        model: { ...model, cluster: Option.none(), camera: universeCamera(model.camera.position) },
+      }),
+      ClickedCluster: ({ category }) => ({
+        model: { ...model, cluster: Option.some(category), camera: clusterCamera(category) },
+      }),
+      ClickedZoom: ({ direction }) => ({
+        model: Struct.evolve(model, {
+          camera: (camera) => ({
+            ...camera,
+            position: zoomedPosition(camera.position, zoomFactors[direction]),
+          }),
+        }),
+      }),
+      ClickedRelationships: () => ({
+        model: Struct.evolve(model, { showRelationships: (shown) => !shown }),
+      }),
+      MadeGesture: ({ gesture }) => ({
+        model: { ...orbited(model, gesture), stageAspect: aspectOf(gesture, model.stageAspect) },
+      }),
+      ClickedRelay: ({ to }) => ({ model: relayTo(model, to) }),
+      AdvancedRelay: ({ deltaTimeMs }) => ({ model: advanceRelay(model, deltaTimeMs) }),
+      ChangedReducedMotion: ({ isReducedMotion }) => ({
+        model: { ...model, reducedMotion: isReducedMotion },
+      }),
+      ChangedEdition: ({ index }) => ({
+        model: reconcile({
+          ...model,
+          edition: clampEdition(model, index),
+          playing: false,
+          playClock: 0,
+        }),
+      }),
+      ClickedPlay: () => ({ model: togglePlay(model) }),
+      AdvancedPlayback: ({ deltaTimeMs }) => ({ model: advancePlayback(model, deltaTimeMs) }),
+      HoveredEgg: ({ key }) => ({ model: visitEgg(model, key) }),
+      // On touch an egg keeps speaking after the finger lifts, until a tap elsewhere.
+      LeftEgg: ({ key }) =>
+        hovering(model, () => ({
+          model: Struct.evolve(model, {
+            hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),
+          }),
+        })),
+      ChangedColorScheme: ({ scheme }) => ({ model: { ...model, colorScheme: scheme } }),
+      ChangedContrast: ({ contrast }) => ({ model: { ...model, contrast } }),
+      ChoseTheme: ({ choice }) => ({
+        model: { ...model, themeChoice: choice },
+        commands: [SaveThemeChoice.make({ choice })],
+      }),
+      SucceededLoadThemeChoice: ({ choice }) => ({ model: { ...model, themeChoice: choice } }),
+      CompletedSaveThemeChoice: () => ({ model }),
+      ChangedPointerInput: ({ input }) => ({
+        model: { ...model, input, hovered: Option.none(), hoveredEgg: Option.none() },
+      }),
+      EnteredKonamiCode: () => ({ model: { ...model, invasion: Option.some(0) } }),
+      AdvancedInvasion: ({ deltaTimeMs }) => ({ model: advanceInvasion(model, deltaTimeMs) }),
+      AdvancedComet: ({ deltaTimeMs }) => ({ model: advanceComet(model, deltaTimeMs) }),
+      ClickedMonolith: () => ({ model: { ...model, monolith: decomposed[model.monolith] } }),
+      CompletedReplaceLink: () => ({ model }),
+      ClickedCopyLink: () => ({ model, commands: [CopyLink.make()] }),
+      CompletedCopyLink: ({ outcome }) => ({
+        model: { ...model, linkNotice: Option.some(outcome) },
+      }),
+      ClickedRecord: () => ({
+        model: {
+          ...model,
+          tour: { _tag: 'Recording', recording: { start: linkOf(model), steps: [] } },
+          tourNotice: Option.none(),
+        },
+      }),
+      ClickedStopRecording: () => ({ model: { ...model, tour: stoppedRecording(model.tour) } }),
+      ClickedPlayTour: () => ({ model: startTour(model) }),
+      ClickedStopTour: () => ({ model: { ...model, tour: stoppedTour(model.tour) } }),
+      AdvancedTour: ({ deltaTimeMs }) => advanceTour(model, deltaTimeMs),
+      ClickedSaveTour: () => ({ model, commands: saveCommands(model) }),
+      CompletedSaveTour: () => ({ model }),
+      ClickedLoadTour: () => ({ model, commands: [LoadTour.make()] }),
+      SucceededLoadTour: ({ recording }) => ({
+        model: {
+          ...model,
+          // SAFETY: LoadTour decodes the file against the tour schema before sending this.
+          tour: { _tag: 'Ready', recording: recording as Recording },
+          tourNotice: Option.some('Tour loaded: press Play to watch it'),
+        },
+      }),
+      FailedLoadTour: ({ reason }) => ({ model: { ...model, tourNotice: Option.some(reason) } }),
+      CancelledLoadTour: () => ({ model }),
+      MountedRadar: () =>
+        model.themeChoice === 'auto' ? { model, commands: [LoadThemeChoice.make()] } : { model },
+      ReceivedSceneLifecycle: () => ({ model }),
     }),
-    SucceededLoadThemeChoice: ({ choice }) => ({ model: { ...model, themeChoice: choice } }),
-    CompletedSaveThemeChoice: () => ({ model }),
-    ChangedPointerInput: ({ input }) => ({
-      model: { ...model, input, hovered: Option.none(), hoveredEgg: Option.none() },
-    }),
-    EnteredKonamiCode: () => ({ model: { ...model, invasion: Option.some(0) } }),
-    AdvancedInvasion: ({ deltaTimeMs }) => ({ model: advanceInvasion(model, deltaTimeMs) }),
-    AdvancedComet: ({ deltaTimeMs }) => ({ model: advanceComet(model, deltaTimeMs) }),
-    ClickedMonolith: () => ({ model: { ...model, monolith: decomposed[model.monolith] } }),
-    CompletedReplaceLink: () => ({ model }),
-    ClickedCopyLink: () => ({ model, commands: [CopyLink()] }),
-    CompletedCopyLink: ({ outcome }) => ({ model: { ...model, linkNotice: Option.some(outcome) } }),
-    ClickedRecord: () => ({
-      model: {
-        ...model,
-        tour: { _tag: 'Recording', recording: { start: linkOf(model), steps: [] } },
-        tourNotice: Option.none(),
-      },
-    }),
-    ClickedStopRecording: () => ({ model: { ...model, tour: stoppedRecording(model.tour) } }),
-    ClickedPlayTour: () => ({ model: startTour(model) }),
-    ClickedStopTour: () => ({ model: { ...model, tour: stoppedTour(model.tour) } }),
-    AdvancedTour: ({ deltaTimeMs }) => advanceTour(model, deltaTimeMs),
-    ClickedSaveTour: () => ({ model, commands: saveCommands(model) }),
-    CompletedSaveTour: () => ({ model }),
-    ClickedLoadTour: () => ({ model, commands: [LoadTour()] }),
-    SucceededLoadTour: ({ recording }) => ({
-      model: {
-        ...model,
-        // SAFETY: LoadTour decodes the file against the tour schema before sending this.
-        tour: { _tag: 'Ready', recording: recording as Recording },
-        tourNotice: Option.some('Tour loaded: press Play to watch it'),
-      },
-    }),
-    FailedLoadTour: ({ reason }) => ({ model: { ...model, tourNotice: Option.some(reason) } }),
-    CancelledLoadTour: () => ({ model }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  );
 
 /** Anything that moves the camera itself ends a relay jump under way: the ride is skippable. */
 const endsJourney: ReadonlySet<Message['_tag']> = new Set([
@@ -515,7 +524,7 @@ const recordingOf = (tour: Tour): Option.Option<Recording> =>
 const saveCommands = (model: Model) =>
   Option.match(recordingOf(model.tour), {
     onNone: () => [],
-    onSome: (recording) => [SaveTour({ recording })],
+    onSome: (recording) => [SaveTour.make({ recording })],
   });
 
 /** A finished recording ready to play, unless nothing was recorded. */
@@ -657,7 +666,7 @@ const withLink = (before: Model, result: AppReturn): AppReturn => {
     Match.when(true, () => result),
     Match.orElse(() => ({
       model: { ...result.model, linkNotice: Option.none() },
-      commands: [...(result.commands ?? []), ReplaceLink({ query: link })],
+      commands: [...(result.commands ?? []), ReplaceLink.make({ query: link })],
     })),
   );
 };

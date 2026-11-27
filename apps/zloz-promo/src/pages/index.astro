@@ -28,7 +28,7 @@ import composeSource from '../examples/compose/state.ts?raw';
   </section>
   <section class="compose-section" id="compose" aria-labelledby="compose-title">
     <div class="section-heading"><p class="eyebrow">Interactive example</p><h2 id="compose-title">A small workflow.<br />Yours to connect.</h2><p class="compose-intro">Select a node, connect Review to Publish, and undo the change.</p></div>
-    <Compose client:load noMeta />
+    <Compose client:load />
     <p class="small-note">This example resets on reload. <a class="text-link" href={workbench}>Explore the full workbench ↗</a></p>
     <noscript><p class="small-note">Enable JavaScript for the interactive example, or <a class="text-link" href={workbench}>open the workbench</a>. The C4 preview and downloads above remain available.</p></noscript>
     <details class="compose-source"><summary>Read the Model and update source</summary><div class="code-panel"><SourceCode code={composeSource} lang="ts" sourceId="compose-state.ts" /></div></details>

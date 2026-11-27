@@ -1,12 +1,11 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozPngReview, zlozPngAction } from '../src/foldkit';
-import { createPngReview, resolvePngReview, type ZlozPngReviewRequest } from '../src/index';
+import { pngReview } from '../src/effect-ui';
+import { createPngReview, resolvePngReview } from '../src/index';
 async function render(minimal = false, custom = false) {
   const controls = resolvePngReview(createPngReview('view'), {
     scope: 'view',
@@ -16,33 +15,34 @@ async function render(minimal = false, custom = false) {
     theme: { colorScheme: 'light' },
     renderers: { nodes: 'built-in', edges: 'built-in' },
   });
-  const output = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: controls }),
-        view: (model, h: HtmlBuilder<ZlozPngReviewRequest>) => ({
-          title: 'PNG',
-          body: zlozPngReview(h, model, (r) => r, {
-            diagnostics: { instructions: !minimal, measurements: !minimal },
-            renderDownload: custom
-              ? (ctx, builder, onRequest) =>
-                  zlozPngAction(
-                    builder,
-                    ctx,
-                    'download',
-                    onRequest,
-                    [builder.Class('custom-save')],
-                    ['Save pixels'],
-                  )
-              : undefined,
-            renderPreview: custom ? () => null : undefined,
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const Review = Html.component({
+    name: 'PngReview',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) =>
+      pngReview(h, controls, (request) => request.type, {
+        idPrefix: 'zloz-png-review',
+        diagnostics: { instructions: !minimal, measurements: !minimal },
+        download: custom ? { className: 'custom-save', label: 'Save pixels' } : undefined,
+        renderLayout: custom
+          ? (parts, builder) =>
+              builder.section
+                .attr('data-custom-layout', '')
+                .children(
+                  ...parts.settings,
+                  parts.status,
+                  parts.findings,
+                  parts.acceptance,
+                  parts.render,
+                  parts.download,
+                )
+          : undefined,
+      }),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(Review, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = output.html;
   return window.document;
@@ -62,6 +62,11 @@ test('native PNG controls label settings, require consent and an actual render; 
   expect(document.querySelector('img')).toBeNull();
   expect(document.querySelector('ul')?.textContent).toContain('flattens');
   const minimal = await render(true, true);
+  expect(
+    minimal
+      .querySelector('[data-custom-layout] [data-zloz-png-action=render]')
+      ?.hasAttribute('disabled'),
+  ).toBe(true);
   expect(minimal.querySelector('.custom-save')?.textContent).toBe('Save pixels');
   expect(minimal.querySelector('[data-zloz-png-readout]')).toBeNull();
   expect(minimal.querySelector('ul')?.textContent).toContain('flattens');

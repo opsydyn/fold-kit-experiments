@@ -1,9 +1,9 @@
 # ZLOZ
 
 Graph editing with state owned by your application. The pure TypeScript core has
-no runtime dependencies. The optional `/foldkit` entry renders HTML nodes and SVG
-edges through your existing FoldKit builder. ELK is available separately as
-`@opsydyn/foldkit-zloz-elk`.
+no runtime dependencies. The optional `/effect-ui` entry supplies the native graph
+canvas, workbench controls and composition hooks. Import `/effect-ui.css` for
+the canvas styles.
 
 `@opsydyn/foldkit-zloz` is available on npm.
 
@@ -13,16 +13,50 @@ verifies registry archives and provenance before advancing to the next package.
 
 ## Install
 
+Use the candidate archive when following the `/effect-ui` examples on this
+branch. The registry’s 0.x releases have their own renderer contract.
+
 ```sh
-npm install @opsydyn/foldkit-zloz
+npm install ./opsydyn-foldkit-zloz-1.0.0-next.0.tgz
 # Only for the native view:
-npm install foldkit@0.170.0 effect@4.1.0 @effect/platform-browser@4.1.0
+npm install effect@4.1.6 https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92
 ```
 
 For workspace development, use the checked local tarball described in
 [the publication guide](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md). ESM only, Node 22+
 for tooling. The view is for browsers; pure imports do not access browser globals.
-The tested view baseline is FoldKit 0.170.0 / Effect 4.1.0. Both are optional peers.
+Effect UI and Effect are optional peers for consumers of the view entry.
+
+## Effect UI preview
+
+The `effect-ui-next` branch includes `@opsydyn/foldkit-zloz/effect-ui` for
+Effect UI hosts. Use `graphSurface` with
+`@opsydyn/foldkit-zloz/effect-ui.css` for the shared HTML and SVG view, or use
+the `surfaceInput` mount to own the surface markup. The host owns the editor
+state and routes `BrowserInput` events to `updateEditor`. The
+[Connections workbench](../../apps/zloz-demo/src/connections/view.ts) shows strict
+and loose sessions, custom port labels, and reconnection. Use the Effect UI
+revision pinned by the workspace for this preview. For a native v3 editor,
+compose `groupSurfaceV3`, `groupInspectorV3` and `groupClipboardV3` with
+`updateGroupWorkbenchV3` and the same policy in the host.
+
+Pass `resizeHandles: true` to `graphSurface` to expose width controls on nodes
+and directional handles when an expanded group is selected. Arrow keys and
+pointer drags use the same editor policy and Undo history. Set
+`resizeReadout: false` to hide the size display while retaining the controls.
+The [History workbench](../../apps/zloz-demo/src/history-workbench/view.ts)
+enables the controls on its working model.
+
+Set `portAnchors` to expose port position handles on selected nodes. Set
+`edgeWaypoints.onEdit` to route bend creation, removal and reset to the same
+editor as the canvas input. Optional anchor guides and waypoint measurements
+can follow the host's diagnostics settings. Set `edgeWaypoints.presentation`
+to supply a CSS class, panel heading and handle marker for the same controls.
+
+For placement, compose `placementHost` with `placementPalette` and the graph
+surface, and pass `placementPreview` to the surface's `worldOverlay`. Resolve
+the controls with `resolvePlacementControls` and send the scoped input to
+`updatePlacementControls`. The host keeps the placement and editor records.
 
 ## Core
 
@@ -151,42 +185,35 @@ this headless slice.
 
 ## Native and custom placement palettes
 
-The optional Foldkit adapter composes the headless contract. Core exports
-`ZlozPaletteEntry`, `ZlozPalettePolicy`, `ZlozPlacementInput`,
-`resolvePlacementControls`, `updatePlacementControls` and `placementForScope`.
-Each catalogue entry supplies a stable ID, label and the normalized placement
-intent above; its source may be palette or external.
+The Effect UI adapter composes the headless placement controller. Each catalogue
+entry supplies a stable ID, label and normalized placement intent.
 
 ```ts
 import { resolvePlacementControls, updatePlacementControls } from '@opsydyn/foldkit-zloz';
 import {
-  zlozPlacementHost,
-  zlozPalette,
-  zlozPaletteEntry,
-  zlozPlacementPreview,
-} from '@opsydyn/foldkit-zloz/foldkit';
+  graphSurface,
+  placementHost,
+  placementPalette,
+  placementPreview,
+} from '@opsydyn/foldkit-zloz/effect-ui';
 
-// In the host update, using current editor, scope, catalogue and policies:
 const result = updatePlacementControls(model.placement, context, entries, input, policy);
-// Publish result.editor, result.placement and result.notice together in Model.
-
-// In the host view; onInput maps package facts to your own Foldkit Message:
 const controls = resolvePlacementControls(model.placement, context, entries, policy);
-const palette = zlozPalette(h, controls, onInput, {
-  diagnostics,
-  renderEntry: (entry, builder) =>
-    zlozPaletteEntry(
-      builder,
-      entry,
-      [builder.Class('my-palette-card')],
-      [builder.strong([], [entry.label])],
-    ),
+const palette = placementPalette(h, controls, onPlacement, {
+  ...diagnostics,
+  entryClass: 'my-palette-card',
+  renderEntry: (entry, builder) => builder.strong(entry.label),
 });
-// Wrap palette and zlozView under zlozPlacementHost(h, controls, onInput, attrs, children).
-// In zlozView's renderWorldOverlay, return zlozPlacementPreview(builder, controls).
+const canvas = graphSurface(h, model.editor, {
+  id: 'placement-canvas',
+  label: 'Diagram',
+  onInput,
+  worldOverlay: placementPreview(h, controls) ?? null,
+});
+const view = placementHost(h, controls, onPlacement).children(palette, canvas);
 ```
 
-One stable `zlozPlacementHost` contains one canvas and its palette. It scopes the
+One stable `placementHost` contains one canvas and its palette. It scopes the
 Live input resource and releases listeners/capture on unmount. Cards use native
 buttons with shared pointer and keyboard behavior. Drag with mouse/touch, or
 activate a card then tap the canvas. Releasing inside applies once; outside retains
@@ -205,10 +232,10 @@ removed catalogue entry does not revoke an already captured intent; express that
 in the live Apply policy. Change scope on editor/controller replacement;
 `placementForScope` explicitly returns a fresh session when scope changes.
 
-Compose `zlozPaletteEntry` and `zlozPlacementAction` for custom layouts. An internal
+Compose `placementPaletteEntry` and `placementAction` for custom layouts. An internal
 frame retains touch behavior when button styles are replaced. The palette
 supports custom entry/status renderers (`undefined` falls back; `null` omits).
-`zlozPlacementPreview` is decorative world-space artwork; use the public preview
+`placementPreview` is decorative world-space artwork; use the public preview
 context to draw other shapes. Instructions and position/snap measurements respect
 passed diagnostics; protection reasons and controls remain available in minimal
 mode. The host chooses whether to render any part at all.
@@ -375,11 +402,11 @@ Use a fresh scope for each model/controller incarnation.
 
 ```ts
 import { createSvgReview, resolveSvgReview, updateSvgReview } from '@opsydyn/foldkit-zloz';
-import { zlozSvgReview } from '@opsydyn/foldkit-zloz/foldkit';
+import { svgReview } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const review = createSvgReview(context.scope);
 const controls = resolveSvgReview(review, context);
-const view = zlozSvgReview(h, controls, onReviewRequest, { diagnostics });
+const view = svgReview(h, controls, onReviewRequest, { idPrefix: 'diagram-svg', diagnostics });
 // In update, always pass current inputs, rather than a cached controls projection:
 const next = updateSvgReview(review, context, request);
 // Publish next.state. Only next.payload authorizes a host Command to download its
@@ -394,12 +421,10 @@ without revoking approval of unchanged content. Review is a host workflow, not a
 access-control boundary. Keys are exact strings; large-model recomputation costs
 remain unqualified. IO never edits the model or creates an Undo entry.
 
-`zlozSvgReview` includes labeled native choices, a static SVG image preview, findings,
-loss checkbox, guarded download and visible status. Slots replace settings, preview,
-individual/all findings, acceptance, download, status, readout or complete layout:
-`undefined` uses the default and `null` omits a region. Helpers `zlozSvgReviewSelect`,
-`zlozSvgLossCheckbox`, `zlozSvgDownloadButton` and `zlozSvgReviewPreview` support custom
-presentation. Supply distinct `idPrefix` values for concurrent widgets. The controller
+`svgReview` includes labeled native choices, a static SVG image preview, findings,
+loss checkbox, guarded download and visible status. Use `renderLayout` to compose
+these elements and `renderFinding` to customize individual findings. Supply distinct
+`idPrefix` values for concurrent widgets. The controller
 still enforces approval regardless of presentation. Diagnostic instruction/measurement
 settings hide optional prose/readouts, retaining findings and functional controls.
 
@@ -559,17 +584,15 @@ edition comparison treats their identity/position as layout rather than meaning.
 
 The optional field round-trips through existing v1 graph, snapshot, model and
 edition codecs. Older readers can retain it, but older renderers cannot display
-it. Mermaid reports waypoint geometry as projection loss. Composable interaction is available through the optional Foldkit adapter:
+it. Mermaid reports waypoint geometry as projection loss. Enable waypoint editing through `graphSurface`:
 
 ```ts
-import { zlozView } from '@opsydyn/foldkit-zloz/foldkit';
-
-const canvas = zlozView(h, editor, {
+graphSurface(h, editor, {
   id: 'architecture',
   label: 'Architecture',
-  onEvent,
-  edgeWaypoints: true,
-  canChangeEdgeWaypoints: policy.canChangeEdgeWaypoints,
+  onInput,
+  policy,
+  edgeWaypoints: { onEdit: onEditorEvent },
 });
 ```
 
@@ -583,24 +606,17 @@ release. Additional bends split the longest authored segment rather than stackin
 handles at the same anchor.
 
 `resolveEdgeWaypointControls` and `resolveEdgeWaypointPreview` are pure core APIs.
-Override `renderEdgeWaypoints` to compose `zlozEdgeWaypointHandle`,
-`zlozEdgeWaypointAction` and `zlozEdgeWaypointReadout`, or return null to hide all
-controls. Undefined keeps the default. The callback receives `diagnostics`; respect
-`measurements` and `instructions` when displaying optional feedback. The readout
-helper already suppresses measurements. Native semantics are independent of artwork;
-attributes/children and readout attributes are composable. Default actions dock
-inside the measured canvas; context exposes both the route anchor and panel bounds
-for a designer's own placement. Theme tokens style controls in light and dark mode. `waypointLabelOffset` controls
-the CSS-pixel displacement of labels that meet a selected handle (default 32px
-above it; `{ x: 0, y: 0 }` disables the displacement without changing geometry).
-Set `edgeWaypoints: false` to remove controls without changing authored data.
+Configure `edgeWaypoints.render` to replace the controls. Returning `null`
+hides them and returning `undefined` keeps the defaults. The context includes
+the route anchor and panel bounds. `edgeWaypoints.labelOffset` controls the
+CSS-pixel displacement of labels near a selected handle. The default is 32px
+above the handle. Omitting `edgeWaypoints` hides controls and retains authored bends.
 
 ## Headless C4 and DDD nodes
 
 The package owns architecture semantics and outline geometry independently of the
-Astro example. C4 artwork is opt-in through the public presets below; the generic
-Foldkit view keeps its existing defaults. Composable DDD renderers and atomic
-pattern builders are also available through the package APIs below.
+Astro example. Enable C4 and DDD artwork with the canvas architecture notation
+option. The package also supplies composable notation and atomic pattern builders.
 
 ```ts
 import {
@@ -706,162 +722,111 @@ geometry. Other serializers are not covered by that qualification.
 Run `bun tools/check-zloz-architecture-compat.ts` from this repository to repeat
 the pinned-core check. No migration or registry publication occurs here.
 
-## DDD preset renderers
+## DDD notation
 
 ```ts
-import {
-  zlozView,
-  zlozDddNode,
-  zlozDddGroup,
-  createZlozNodeBodyCache,
-  type ZlozDddNodeOptions,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { graphSurface } from '@opsydyn/foldkit-zloz/effect-ui';
 
-// Keep options and cache stable per canvas. Call with or without a cache.
-const dddOptions: ZlozDddNodeOptions<Message> = {
-  bodyCache: createZlozNodeBodyCache(),
-  renderBadge: ({ architecture }, h) =>
-    architecture.role === 'aggregate-root' ? h.span([], ['Consistency owner']) : null,
-};
-const canvas = zlozView(h, model.editor, {
+const canvas = graphSurface(h, model.editor, {
   id: 'domain',
   label: 'Ordering domain',
-  onEvent: (event) => Message.ObservedZlozInput({ message: event }),
-  renderNodeShell: (context, h) => zlozDddNode(context, h, dddOptions),
-  renderGroupShell: (context, h) => zlozDddGroup(context, h, dddOptions),
+  onInput: (event) => Message.ObservedZlozInput({ message: event }),
+  architectureNotation: true,
+  notationParts: {
+    renderBadge: ({ architecture }, h) =>
+      architecture.family === 'ddd' && architecture.role === 'aggregate-root'
+        ? h.span.children('Consistency owner')
+        : undefined,
+  },
 });
 ```
 
-The adapter renders all eight existing DDD roles: entity, value object, aggregate
-root, aggregate, domain event, domain service, repository and bounded context.
-Aggregates and explicit bounded-context groups are portless boundaries; ordinary
-context nodes can connect through their ports. Other families return undefined,
-allowing normal rendering or a composed C4 fallback. DDD meaning does not force
-an outline or color notation; authored appearance uses core geometry.
+DDD notation renders entities, value objects, aggregate roots, aggregates,
+domain events, domain services, repositories, bounded contexts and read models.
+Aggregate and bounded-context groups are portless boundaries. Ordinary bounded
+contexts can connect through their ports and display their subdomain
+classification. Authored appearance controls geometry. Use `notationParts` for
+inert artwork and node or group shells for interactive controls.
 
-`ZlozDddContentContext` provides the node, narrowed DDD architecture, selection
-and preview state. `renderBadge`, `renderType`, `renderName`, `renderSubdomain`,
-`renderDescription` and `renderBody` customize inert content: undefined keeps the
-default, null omits it. The badge is omitted by default. Bounded contexts display
-optional subdomain classification. Compact group headers omit descriptions by
-default; custom slots can display them with suitable authored space.
-
-Use `renderControls` for interactive content outside the native drag button and
-body cache; undefined keeps native context/collapse/resize controls and an empty
-array omits them. `attributes` owns classes and paint; Model geometry stays
-authoritative. Retain ports from the render context to preserve custom sockets
-and current policy reasons. Scoped theme tokens support light/dark and host
-themes. Minimal mode hides diagnostics, not the model's semantic role labels;
-slots can independently omit those labels while native selection names remain.
-Keep artwork callbacks inert and options stable when using `bodyCache`.
-
-These views introduce no saved fields or business-rule enforcement. Use the
-headless `architectureNodePresets` catalogue to compose a role legend or palette.
-Atomic pattern insertion and typed DDD relationships are separate roadmap slices.
-
-## C4 preset renderers
+## C4 notation
 
 ```ts
-import {
-  zlozView,
-  zlozC4Node,
-  zlozC4Group,
-  zlozLightTheme,
-  zlozDarkTheme,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { graphSurface, zlozLightTheme, zlozDarkTheme } from '@opsydyn/foldkit-zloz/effect-ui';
 
-const canvas = zlozView(h, model.editor, {
+const canvas = graphSurface(h, model.editor, {
   id: 'architecture',
   label: 'Order platform · system context',
-  onEvent: (event) => Message.ObservedZlozInput({ message: event }),
-  renderNodeShell: zlozC4Node,
-  renderGroupShell: zlozC4Group,
+  onInput: (event) => Message.ObservedZlozInput({ message: event }),
+  architectureNotation: true,
   theme: model.dark ? zlozDarkTheme : zlozLightTheme,
 });
 ```
 
-The package draws C4 Person, Software System, Container and Component nodes, and
-system/container group boundaries. Other families return undefined and use the
-normal renderer. Use authored dimensions and `appearance` from the headless
-contract; a semantic role alone does not replace a document's outline. The Person
-glyph fits inside its card. Cylinders use the core's `outlinePath` and
-`decorationPaths`; no second shape calculation lives in the view.
+The canvas draws C4 Person, Software System, Container and Component nodes and
+portless system/container group boundaries. Nodes without architecture retain
+the standard presentation. External scope uses text and dashes. Cylinders use
+the headless outline, decoration paths and authored bounds for paint and ports.
 
-The presets retain native focus/selection, movement, ports, policy reasons,
-context actions, collapse and resize controls. Content uses safe core bounds
-inside the authored height; increase dimensions for long descriptions. External
-scope uses both text and dashes. Scoped ZLOZ tokens control paint in light/dark
-or host/Pleat themes. Theme changes do not alter the document or history.
+Use `notationParts` to customize inert content in the selection button. Its
+`NativeNotationContext` includes the node, its architecture, selection, and
+selection preview. Returning `undefined` keeps the default part and returning
+`null` omits it. The selection button keeps the authored node name. Supply stable
+callbacks and options to retain eligible artwork across updates. Ports and
+canvas controls use the current editor state and policies independently.
 
-`ZlozC4NodeOptions<Message>` exposes `renderIcon`, `renderType`, `renderName`,
-`renderTechnology`, `renderDescription` and `renderBody`. Undefined keeps the
-default part; null omits it. These slots supply **inert** content inside the native
-drag button. Omitting visible names preserves native accessible selection names.
-`renderBody` replaces content inside the canonical outline. Use a complete shell
-and the public primitives when replacing the whole structure.
+Use `renderNodeShell` or `renderGroupShell` for classes, paint and interactive
+content alongside the native selection button. Set `controls: false` in the
+returned shell to hide collapse, context and resize controls while keeping ports.
+`groupHeader: (node) => spec` accepts declared layout geometry or an intrinsic
+measurement spec. Expanded groups use that geometry and collapsed groups keep
+their compact headings. Use `groupHeaderMeasurementProbe` for intrinsic layouts.
 
-`attributes` customizes frame classes and paint while Model bounds remain
-authoritative. `renderControls(context, h)` supplies live interactive content
-outside artwork; undefined keeps native chrome and `[]` omits it. Use the view's
-`renderPort` to customize or hide sockets independently. Semantic content remains
-visible in minimal mode; it is not a measurement diagnostic.
+The Astro workbench’s **Open C4 system context** and **Open C4 container view**
+buttons demonstrate the abstraction levels and the container view’s curved
+data-store anchor.
 
-Optional `bodyCache` accepts `createZlozNodeBodyCache()`. Create it once per canvas
-and keep the options object/slot functions stable for reuse. Artwork keys include
-the builder, node, selection/preview and options; they exclude full EditorState,
-source feedback and port authorization. Controls and ports evaluate current
-context even when artwork is retained. Changing a slot's captured inputs requires
-a new immutable options object; cache-hit counts or universal speedups are not
-claimed.
-
-The Astro workbench's **Open C4 system context** and **Open C4 container view**
-buttons demonstrate separate abstraction levels through these package exports.
-The container view includes a portless boundary and a curved data-store anchor.
-These are authored examples; atomic pattern insertion is not implemented yet.
-
-## FoldKit view
+## Effect UI canvas and migration
 
 ```ts
-import { zlozView } from '@opsydyn/foldkit-zloz/foldkit';
-import type { EditorEvent, EditorState } from '@opsydyn/foldkit-zloz';
-import type { HtmlBuilder } from 'foldkit/html';
+import { graphSurface } from '@opsydyn/foldkit-zloz/effect-ui';
+import '@opsydyn/foldkit-zloz/effect-ui.css';
 
-function view(h: HtmlBuilder<EditorEvent>, editor: EditorState) {
-  return zlozView(h, editor, {
-    id: 'my-flow',
-    label: 'Workflow editor',
-    onEvent: (event) => event,
-    renderNode: (node, builder) => builder.p([], [node.label]),
-  });
-}
+const canvas = graphSurface(h, editor, {
+  id: 'workflow',
+  label: 'Workflow editor',
+  descriptionId: 'workflow-help',
+  onInput: (input) => Message.ObservedCanvasInput({ input }),
+  policy,
+  resizeHandles: true,
+  architectureNotation: true,
+  edgeEditing: { onEdit: (event) => Message.ObservedEditorEvent({ event }), toolbar: true },
+});
 ```
 
-Use a document-unique `id`. Custom nodes use the parent's builder and normal
-FoldKit messages. Inputs, textareas, selects and editable content keep their normal
-behaviour. Add `data-flow-no-drag` to custom interactive areas as needed. Native
-input and ResizeObserver resources are acquired by Mount and released on unmount;
-input observation stops while DevTools displays a historical view. Resuming input
-cancels any unfinished gesture retained in that Model snapshot.
+Map delegated `BrowserInput` facts to host messages and apply them through
+`updateEditor` with the current policy.
+The host owns the document, viewport, policies and any Commands used for
+layout or persistence. Use a document-unique canvas ID and provide a bounded
+container. The canvas measures its surface and owns its browser subscriptions.
 
-- Drag node titles; Shift-click titles to select several. Drag the background to pan.
-- Scroll over the surface to zoom around the pointer (0.1–4× by default). The surface owns touch
-  gestures; this initial version supports one pointer, not pinch zoom.
-- Tab to titles; Enter/Space selects and arrow keys move. Shift uses larger steps.
-- Activate an output port, then an input port, by mouse or keyboard to connect.
-- Escape cancels. Delete removes selected nodes and their incident edges together.
-- Cmd/Ctrl+Z undoes; Shift+Cmd/Ctrl+Z or Ctrl+Y redoes. Text fields retain native undo.
-- Connection buttons below the surface provide keyboard selection of edges.
+| Earlier adapter feature                    | Effect UI API                                                                    |
+| ------------------------------------------ | -------------------------------------------------------------------------------- |
+| `graphSurface` and monolithic layout slots | `graphSurface` and host-owned layout                                             |
+| Node and group renderers                   | `architectureNotation`, `notationParts`, `renderNodeShell`, `renderGroupShell`   |
+| Node and socket artwork                    | `renderNodeShell` and `renderPort`; the canvas owns input bindings and positions |
+| Canvas navigation and minimap              | `viewportControlActions`, `viewportControl`, `historyMinimap`                    |
+| Connection and reconnection choosers       | `resolveConnectionCreation`, `resolveEdgeReconnection`, `endpointField`          |
+| Edge labels, actions and waypoints         | `edgeEditing`, `contextActions`, `edgeWaypoints`                                 |
+| Port anchors, guides and labels            | `portAnchors`, `portLabels`, `renderPortLabel`                                   |
+| Help, diagnostics and status               | `canvasHelpContext`, `resolveZlozDiagnostics`, `canvasStatusContext`             |
+| Rendering retention                        | Effect UI retains keyed controls and memoizes eligible artwork in the component  |
+| Layout measurements                        | `labelMeasurementProbe` and `groupHeaderMeasurementProbe`                        |
 
-The view measures node content. Width is controlled by `node.size.width`; height
-follows content, with a 64px minimum. Fit through `fitViewport(graph, editor.surface)`
-after the surface has reported dimensions. Zoom limits can prevent fitting extremely
-large graphs. When replacing a document on an existing mounted surface, preserve
-`editor.surface` (as the example's load handler does). Read-only editors retain
-selection and viewport navigation.
-
-Styles use ordinary HTML, inline geometry, and optional CSS variables:
-`--flow-background`, `--flow-node-background`, `--flow-node-color`. No CSS import or
-module registration is needed. Custom node content must remain accessible.
+App-specific buttons and panels send typed requests to the host. Add
+`data-flow-no-drag` to interactive world overlays so that native controls
+keep their keyboard and pointer behavior. See the
+[ZLOZ demo adapter](../../apps/zloz-demo/src/editor/native-canvas.ts) for
+input routing, clipboard, editing, layout, and accessible controls in one host.
 
 ## Optional layout
 
@@ -879,1133 +844,28 @@ the view uses straight lines until another arrange result is applied.
 
 ## Example and checks
 
-Run `bun run --filter @opsydyn/web dev` and open `/flow` for custom text controls,
-connections, ELK arrange, undo, save and reload. Storage belongs to that example.
-
-```sh
-bun run --filter @opsydyn/foldkit-zloz typecheck
-bun run --filter @opsydyn/foldkit-zloz test
-bun run --filter @opsydyn/foldkit-zloz pack:check
-```
-
-Initial scope: flat graphs, click-to-connect, single-pointer editing and bounded
-history. Collaboration, execution,
-virtualization and general layout algorithms are future work. Automated browser
-checks do not establish assistive-technology or physical-touch acceptance.
-
-Use `NodeWidthChanged` to commit an authored width while the view continues to
-measure content height. `EdgeDataChanged` commits application-owned JSON metadata.
-Both participate in undo/redo and graph serialization. The FoldKit view's
-`edgeAppearance` callback can read edge data to customize stroke, width and dash
-pattern. The editor still highlights the selected edge.
-
-Use `renderEdge(context, h)` for custom SVG decoration along `context.path`.
-The context includes the edge, label position, selection state, resolved
-stroke, width and dash array, and an arrow marker reference. Return
-`undefined` to draw the built-in edge. Keep custom SVG decorative and draw it
-along the supplied path so ZLOZ's hit area, reconnect handles, and editable
-label stay aligned. The SVG is hidden from assistive technology. Put
-interactive controls in the host view.
-
-Edge labels appear at the midpoint of the rendered path, including routed
-edges. Select an unlabeled connection and choose **Add label**, or activate
-an existing label to edit it. Enter saves, Escape cancels, and saving a blank
-label removes it. Saving is one undo step. Read-only views display saved labels.
-
-Use `renderEdgeLabel` for a custom badge and `renderEdgeLabelEditor` for an
-inline editor. Each hook receives the edge, selection state, endpoint
-description, and the same world anchor used by the default label. The editor
-also receives the current draft. The view positions both in a protected HTML
-layer on the canvas, so pointer and keyboard input inside a label can be used
-without triggering canvas gestures.
-
-```ts
-// Import these primitives from @opsydyn/foldkit-zloz/foldkit.
-renderEdgeLabel: (context, h) =>
-  zlozEdgeLabelBadge(h, context, onEvent, [h.Class('relation-badge')], [
-    context.edge.label || 'Add label',
-  ]),
-renderEdgeLabelEditor: (context, h) =>
-  zlozEdgeLabelForm(h, context, onEvent, [h.Class('relation-editor')], [
-    zlozEdgeLabelInput(h, context, onEvent, []),
-    h.button([h.Type('submit')], ['Apply label']),
-    zlozEdgeLabelCancel(h, context, onEvent, [], ['Discard']),
-  ]),
-```
-
-Pass the same `onEvent` mapping used by `zlozView`. The badge is a native edit
-button in editable views and static text in read-only views. The form handles
-submit and Escape, while the input reads and updates the Model draft. Return
-`undefined` from either hook to use the default. Return `null` from
-`renderEdgeLabel` to hide the badge while retaining any enabled Rename action.
-The hooks require a resolved label anchor. Saved labels and selected editable
-unlabeled edges are eligible for the badge hook.
-
-Set an edge's optional `pathStyle` to `straight`, `stepped`, or `smooth`.
-These styles draw between the current ports and take precedence over layout
-routes. `EdgePathStyleChanged` saves the style in one undo step. Pass
-`pathStyle: null` in that event to restore automatic routing. Automatic uses the
-layout route when available and a straight line otherwise.
-
-Supply `renderWorldOverlay` to draw annotations and domain visuals in diagram
-coordinates. Its context includes the visible nodes and edges, selection,
-viewport, and measured surface. The layer shares the node transform and is
-clipped to the canvas. Return `null` or `undefined` to omit it. Overlay
-visibility is controlled by the host, including in minimal mode.
-
-Use `zlozWorldOverlayItem` from `@opsydyn/foldkit-zloz/foldkit` to anchor
-HTML at a world point. Decorative items pass pointer input through by
-default. Set `interactive: true` for native controls that handle their
-own input while ZLOZ's canvas gestures and shortcuts stay out of the way.
-
-```ts
-renderWorldOverlay: (_context, h) =>
-  zlozWorldOverlayItem(h, { position: { x: 180, y: 60 } }, [], [
-    h.span([], ['Review required']),
-  ]),
-```
-
-With `nodeToolbar: true`, selecting one visible node or group shows **Duplicate
-node** and **Delete node**. The toolbar follows the node in screen space and
-keeps its size as you zoom. Supply `nodeToolbar: { placement: 'bottom', offset: 12 }`
-to choose a side and a gap in CSS pixels. The default places it above the
-node and switches below when the node is near the top. The canvas clips the
-toolbar at its edges.
-
-`renderNodeToolbar` receives the visible node, viewport, screen-space anchor,
-and action descriptors. Compose native buttons with `zlozContextAction`, or
-use your own FoldKit controls. Return `undefined` for the default contents
-or `null` to suppress the toolbar for that selection. Deletion uses the same
-`canDelete` policy as the keyboard and context actions. The toolbar is an
-editing control, so it can appear in minimal mode when enabled.
-
-Enable `edgeToolbar: true` to show Rename, path style, and Delete edge
-controls beside a single selected edge. In the Connections list, activate an
-edge and press Up Arrow to focus its actions. The toolbar uses native controls
-and stays the same size as the canvas zooms. Deleting from the toolbar removes
-only that edge and can be undone.
-
-Add `edgeReconnection: true` to opt into native Source port and Target port
-choosers in that toolbar. Pass the same `canReconnect`, `canConnectPort` and
-`canConnect` policies used by `updateEditor` to the view. The chooser is an editing
-control and remains available in minimal mode; protection explanations remain
-visible even when optional diagnostics are disabled. The expanded toolbar offers
-up to 320 px width and scrolls within the canvas.
-
-Enable `connectionCreation: true` for a native source/target chooser above the
-canvas. Pass the same `canConnectPort` and `canConnect` policies used by
-`updateEditor`. The panel is opt-in and independent of optional diagnostics, so
-it remains operable in minimal mode. `renderConnectionCreation(context, h)`
-replaces its layout; return `undefined` for native defaults or `null` to omit it.
-
-For a standalone inspector, use the pure resolver and the FoldKit panel:
-
-```ts
-import { resolveConnectionCreation } from '@opsydyn/foldkit-zloz';
-import { zlozConnectionCreation } from '@opsydyn/foldkit-zloz/foldkit';
-
-const context = resolveConnectionCreation(model.editor, policy);
-const panel = zlozConnectionCreation(h, context, onEvent, { idPrefix: 'my-create' });
-```
-
-The context exposes `source`, `target` and `cancel`. Source choices check output
-permissions and send `PortActivated` to stage `EditorState.connection`, without
-adding history. Target choices check both ports, direction, duplicates and the
-global connection policy. They send the same event through the reducer, which
-rechecks the current graph/policy, allocates a fresh ID and creates one Undo step.
-No second draft or preallocated edge ID is stored by the chooser. Canvas port
-activation and the chooser operate on the same pending source.
-
-Choices have stable endpoint values, labels, current/hidden flags, nullable
-reasons and typed activation events. Visible alternatives are the default, with
-the pending source retained even when hidden. Pass `{ scope: 'all' }` to the
-resolver, or `connectionCreation: { scope: 'all' }` to the view, to include all
-authored ports. Recompute contexts each view and keep policy callbacks pure.
-
-Use `zlozConnectionCreationField`, or compose `zlozConnectionCreationSelect`
-and `zlozConnectionCreationReasons` with the same `idPrefix`, for custom layouts.
-`zlozConnectionCreationCancel` supplies a native cancel button. Distinct widgets
-need distinct prefixes. `optionLabel` customizes native option text; richer
-widgets can consume the headless entries directly. Field `reason` blocks editing;
-`hint` explains an unselected source or an empty candidate set without removing
-the field from keyboard navigation. Preserve required descriptions in custom UI.
-
-Completing a connection resets both fields to their placeholders and retains
-focus on the target. Native type-ahead and Tab remain available. Escape from a
-chooser with an active pending source cancels it; the placeholder and Cancel
-button also cancel. Cancellation adds no history. Explicit read-only, gesture
-and source-port restrictions still disable the affected fields. Existing Undo
-and Redo retain their usual selection behavior.
-
-For a custom inspector, derive the choices from the core and compose the native
-field from `@opsydyn/foldkit-zloz/foldkit`:
-
-```ts
-import { resolveEdgeReconnection } from '@opsydyn/foldkit-zloz';
-import { zlozEdgeEndpointField } from '@opsydyn/foldkit-zloz/foldkit';
-
-const context = resolveEdgeReconnection(model.editor, edgeId, 'target', policy);
-const field = context
-  ? zlozEdgeEndpointField(h, context, onEvent, { idPrefix: 'my-inspector' })
-  : h.div([], ['Connection no longer exists.']);
-```
-
-`resolveEdgeReconnection` returns `null` for an absent edge. It enumerates ports
-of the matching direction, excluding hidden/collapsed alternatives by default
-and always retaining the current endpoint. Pass `{ scope: 'all' }` to include
-hidden alternatives, including via `edgeReconnection: { scope: 'all' }` in the
-view. Hidden current endpoints are labeled; missing current ports remain visible
-as unavailable. The resolver does not change visibility, selection or the graph.
-
-Each entry contains a stable `value`, endpoint, label, current/hidden flags,
-nullable protection `reason`, and typed `EdgeReconnected` event. Values encode
-the node/port pair rather than its index, so reordering cannot retarget a choice.
-`context.reason` explains read-only, active-gesture or endpoint-lock states.
-`context.emptyReason` explains when no eligible alternatives remain; the unchanged
-current choice stays focusable so an accepted edit does not unexpectedly drop focus. Candidate reasons share the reducer's direction, port,
-duplicate and global connection checks. The replaced edge is excluded from the
-global policy's graph; only the changing port is checked for new-port permission.
-The unchanged endpoint is a no-op. Policy functions must be pure, since rendering
-evaluates them for multiple candidates. Recompute contexts each view; events are
-proposals and the reducer rechecks current policy when committing.
-
-Use `zlozEdgeEndpointSelect` and `zlozEdgeEndpointReasons` separately to build
-your own layout, passing the same `idPrefix` to both. Distinct simultaneous fields
-for the same edge end need distinct prefixes. The select supplies a stable key,
-ID, accessible name and description, disabled states and native change behavior.
-`optionLabel` customizes native option text; fully custom widgets can consume the
-headless entries. Required protection copy is available as data and through the
-reasons primitive, independently of optional diagnostic readouts. Preserve that
-association in custom designs. `renderEdgeToolbar` receives optional
-`context.reconnection` with both endpoint contexts and a scoped `idPrefix` when
-enabled. Native Tab/selection behavior is preserved; each accepted change is one
-Undo step, with edge metadata, selection and focused chooser retained.
-
-### Searching and grouping endpoint choices
-
-Both creation and reconnection field/select/reasons options accept `query` and
-`groupByNode`. Filtering is a view projection: keep query text in the host Model
-and pass the same options to the select and reasons. Flat, unfiltered lists remain
-the default. Native groups use node identity, preserving separate groups for
-nodes that share a label. `groupLabel` customizes group text; `optionLabel` still
-customizes each option.
-
-`resolveEndpointChoices(entries, { query })` is exported from the pure core for
-custom widgets. It returns filtered `entries`, node `groups`, `matchCount` and
-nullable `emptyReason`. Matching uses literal, case-insensitive substrings for
-every whitespace-separated token across labels and endpoint IDs. It preserves
-entry/event references and input order, and always retains current selections,
-even when hidden, protected or nonmatching. `matchCount` excludes those retained
-nonmatches. Group order follows the first visible entry for each node. Entries
-from the built-in resolvers include optional `nodeLabel` metadata; older/custom
-entries fall back to the node ID.
-
-Compose the native query primitives from `@opsydyn/foldkit-zloz/foldkit`:
-
-```ts
-const options = { query: model.portQuery, groupByNode: true, idPrefix: 'target' };
-const search = resolveEndpointChoices(context.entries, options);
-const searchOptions = { idPrefix: 'target-filter', label: 'Search target ports' };
-const changed = (query: string) => Message.ChangedPortQuery({ query });
-
-const controls = [
-  zlozEndpointSearchInput(h, search, changed, [], searchOptions),
-  zlozEndpointSearchClear(h, changed),
-  zlozEndpointSearchFeedback(h, search, [], searchOptions),
-  zlozEdgeEndpointField(h, context, onEvent, options),
-];
-```
-
-Use `zlozConnectionCreationField` with the same options for creation. Supply
-distinct search prefixes for simultaneous widgets, pairing input and feedback
-with the same prefix. Escape in the search input clears only its query and keeps
-focus; Escape on a creation select retains its existing cancellation behavior.
-The Clear button remains focusable after clearing. Query changes do not stage a
-source, edit the graph or add Undo entries.
-
-No-match feedback is associated with the input and select. The feedback primitive
-accepts attributes so a custom layout can keep its live region available while
-showing a single visible explanation through the operation's reasons primitive.
-Global protection reasons remain visible regardless of filtering; matching denied
-choices stay disabled, and current selections remain recognizable. Empty creation
-results retain the placeholder, preventing implicit selection of another port.
-Filtering cannot widen the resolver's visibility scope or authorize an edit: the
-existing reducer rechecks the current graph and policies on every commit. Search
-and grouping do not virtualize the list or reduce the resolver's policy workload.
-
-### Custom edge toolbars
-
-With `edgeToolbar: true`, supply `renderEdgeToolbar` to arrange, style, or
-omit individual actions. Its context contains the selected edge, the shared
-label anchor in world coordinates, and the typed actions `rename`,
-`deleteEdge`, and `changePathStyle`. Use the package primitives or send the
-events through the same `onEvent` mapping as the canvas.
-
-```ts
-// Import these primitives from @opsydyn/foldkit-zloz/foldkit.
-renderEdgeToolbar: (context, h) =>
-  h.div([h.Class('edge-actions')], [
-    zlozEdgePathStyleSelect(h, context, onEvent, []),
-    zlozEdgeToolbarButton(h, context.actions.deleteEdge, onEvent, [], ['Delete edge']),
-  ]),
-```
-
-The positioned frame keeps the same screen-space placement as the default
-toolbar and offers up to 256 px of width. Arrow Up from the selected connection
-focuses the first available control in DOM order, or the group itself when
-there are no eligible controls. Return `undefined` for the default layout or
-`null` to hide the toolbar and its keyboard shortcut for that edge.
-
-With `contextActions: true`, use `renderContextMenu` to replace the contents of
-the node, group, or edge context panel. The context is discriminated by
-`kind` and contains the selected item, surface point, and typed actions.
-Group contexts include fit, aspect ratio, and dimension editing. The package
-still owns panel placement, the accessible group, and input handling.
-
-```ts
-// Import the primitives from @opsydyn/foldkit-zloz/foldkit.
-renderContextMenu: (context, h) =>
-  h.div([h.Class('context-panel')], [
-    ...(context.kind === 'edge'
-      ? [zlozContextAction(h, context.rename, onEvent, [], ['Rename'])]
-      : [zlozContextAction(h, context.duplicate, onEvent, [], ['Duplicate node'])]),
-    zlozContextAction(h, context.close, onEvent, [], ['Close']),
-  ]),
-```
-
-Use `zlozContextDimensionInput` for a native number field with the current
-value, grid step, and disabled state. The group's `showMeasurements` flag
-carries the effective diagnostics preference. Return `undefined` to use the
-default content. On opening, ZLOZ focuses the first focusable control or the
-panel itself. Escape returns focus to the canvas. Clicking or moving focus
-outside dismisses the panel.
-
-Use `renderConnections` to arrange the visible edges in a custom list. The
-context provides their selected state, endpoint labels, optional context
-actions, and whether the list is compact or read-only. ZLOZ owns the named
-Connections group and its compact disclosure, and calls the renderer only
-when the list is open. Edges hidden inside collapsed groups are filtered
-before the renderer runs.
-
-```ts
-// Import these primitives from @opsydyn/foldkit-zloz/foldkit.
-renderConnections: ({ entries }, h) =>
-  h.ul([], entries.map((entry) =>
-    h.li([h.Key(entry.edge.id)], [
-      zlozConnectionButton(h, entry, onEvent, [], [entry.label]),
-      ...(entry.contextAction
-        ? [zlozContextTrigger(h, entry.contextAction, onEvent, [], ['⋯'])]
-        : []),
-    ]),
-  )),
-```
-
-The selection button includes Arrow Up to the active toolbar and Shift+F10
-or the Context Menu key when context actions are available. Return
-`undefined` for the default list.
-
-Use a group's **Collapse** and **Expand** buttons to change its canvas
-presentation. A collapsed group hides its descendants and internal edges.
-Connections that cross the boundary remain visible and attach to the compact
-group. Expand the group to access its individual ports. Collapsing and
-expanding also work in read-only views. They are editor-session actions and
-leave saved documents and undo history intact.
-
-Set `resizeHandles: true` on the FoldKit view to enable pointer resizing.
-Card handles adjust width while height follows content. The drag range is 140
-to 320 graph units, extended to include an existing width outside that range.
-Escape or pointer cancellation restores the starting width. Releasing commits
-one undo step. Provide a keyboard control via `NodeWidthChanged` when enabling
-handles in an editable view.
-
-Selected expanded groups show four corner handles and four midpoint side handles.
-Corners adjust width and height; unlocked sides adjust only their own axis.
-The opposite corner stays anchored and children keep their canvas positions. Shrinking stops at the contents
-plus 24 units of padding, with a minimum of 224 × 96 (or the starting dimensions
-when already tighter). Parent containment clamps
-growth unless `expandParent` enables ancestor expansion. Focus the handle and use
-arrow keys to adjust by 5 graph units, or Shift+Arrow by 20. With grid snapping
-on, these steps are one and four grid intervals respectively. Each keyboard action
-is one undo step; pointer drags commit once and Escape restores the original
-bounds. Hosts can dispatch `GroupResizeNudged` with an `id` and `{ x, y }` delta.
-Collapsed and read-only groups cannot be resized.
-
-Drag from an output port to see a preview and highlight an eligible input.
-You can also activate an output and then an input with Enter or Space.
-The editor announces completion or cancellation in its status region.
-
-Send `EdgeReconnected` with an edge ID, the end to replace, and the new port.
-The editor checks port direction, duplicates, and the connection policy before
-committing one undo step. The policy receives the proposed edge and the graph
-with the previous version of that edge removed.
-
-### Scoped themes and Pleat
-
-Pass `theme: zlozLightTheme` or `theme: zlozDarkTheme` to a FoldKit view.
-The presets cover the canvas, nodes, groups, ports, edges, and interaction
-feedback. Each also sets the color scheme for native controls within that
-editor. The presets and the typed token contract are exported by
-`@opsydyn/foldkit-zloz/foldkit`.
-
-```ts
-import { zlozDarkTheme, type ZlozTheme } from '@opsydyn/foldkit-zloz/foldkit';
-
-const theme: ZlozTheme = {
-  ...zlozDarkTheme,
-  tokens: { ...zlozDarkTheme.tokens, selection: 'var(--app-accent)' },
-};
-```
-
-Explicit `theme.tokens` take precedence over class values for the same
-tokens. Supply a partial token object to inherit the other variables from
-the host. The editor's theme can change on any render without recreating
-its state.
-
-Set `themeClassName` on a ZLOZ view to scope a theme to that editor. Existing
-CSS variables still inherit from ancestors. A host using Pleat can combine a
-class from `cssClass()` with a CSS class that maps its semantic theme tokens
-to the ZLOZ variables. Pleat owns the host theme and style registration.
-
-| Part        | CSS variables                                                                                                                            |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Canvas      | `--flow-background`, `--flow-canvas-border`, `--flow-grid-line`, `--flow-grid-dot`                                                       |
-| Node        | `--flow-node-background`, `--flow-node-color`, `--flow-node-border`, `--flow-node-radius`                                                |
-| Ports       | `--flow-input-port`, `--flow-output-port`, `--flow-port-border`, `--flow-control-color`                                                  |
-| Edges       | `--flow-edge`, `--flow-edge-width`                                                                                                       |
-| Interaction | `--flow-selection`, `--flow-valid-target`, `--flow-resize-background`, `--flow-resize-readout-background`, `--flow-resize-readout-color` |
-
-For example, given a Pleat theme that exposes the app's semantic CSS tokens:
-
-```css
-.release-flow-theme {
-  --flow-background: var(--app-surface);
-  --flow-node-background: var(--app-panel);
-  --flow-node-color: var(--app-text);
-  --flow-selection: var(--app-accent);
-}
-```
-
-Pass `themeClassName: 'release-flow-theme'` in the ZLOZ view options. To apply
-a Pleat style directly to the root as well, append its `cssClass(style)` result.
-A per-edge `edgeAppearance` stroke or width takes precedence over the default
-edge tokens, and the selection token controls the selected stroke.
-See [Pleat's FoldKit and theme APIs](https://github.com/Manzanita-Research/pleat#theming).
-
-Select an edge to expose its available endpoint handles. Drag a handle to a
-compatible port to reconnect the edge. Escape or dropping elsewhere cancels.
-
-Set `portLabels: true` on `zlozView` to show each port's `label`, falling
-back to its ID. Labels use the canonical world anchors and follow node
-visibility, collapse, and viewport culling. They stay visible in minimal
-mode while opted in. Set `portLabels: false` to hide them.
-
-Use `portLabels: { offset: 24, placement: 'right' }` to customize the
-default gap and side. Without a placement, each label follows its port's
-routing side. The offset is in world units and defaults to 18.
-`renderPortLabel(context, h)` replaces a complete label. Return
-`undefined` for the default or `null` to omit an individual label.
-Compose `zlozPortLabel(h, context, attributes, children)` for custom badges
-and per-port placement. It owns the anchored frame and passes pointer input
-through. Labels render independently of custom node and group shells.
-Keep them decorative. The port button retains its accessible name.
-
-Use `renderPort(context, h)` to replace the native port presentation.
-Compose `zlozPort(h, context, context.port, attributes, children)` to
-keep its anchor, accessible name, keyboard activation and connection
-policy. The context supplies the label, normalized anchor, active state,
-accepted target state and disabled reason. Return `undefined` for the
-default control or `null` to omit one control. Use `canConnectPort` to
-govern whether a connection is allowed.
-
-Custom node and group shells can append `context.ports ?? []` as direct
-frame children to use the configured renderer. Existing shells that
-construct their own ports continue to own their presentation. Custom port
-rendering uses the normal node view path alongside the existing culling
-option. The built-in node-view cache applies to standard port rendering.
-
-Add a port with `{ type: 'PortAdded', nodeId, port }`. The host supplies
-its ID, direction, label and position. Invalid ports, duplicate IDs and
-unknown nodes fail before publication. Caller-owned anchors are detached.
-
-Change display text with `{ type: 'PortLabelChanged', endpoint, label }`.
-The endpoint ID, direction, position and attached connections stay unchanged.
-Pass `undefined` to remove the label and restore the port-ID fallback.
-Strings are preserved exactly, including empty strings. Identical labels
-and missing endpoints are no-ops; invalid labels fail graph validation.
-Each accepted change is one Undo transaction and respects read-only and
-active-gesture guards. Hosts own any draft UI and decide when to commit.
-
-Remove a port with `{ type: 'PortRemoved', endpoint }`. Its attached
-connections are removed in the same transaction. `canDelete` evaluates
-the complete attached-edge set and can veto the whole operation.
-`resolvePortRemoval(graph, endpoint, canDelete)` provides the same
-decision for host controls. Removing a missing port is a no-op.
-
-Each accepted operation creates one Undo entry, invalidates stale layout
-routes, and respects read-only and active-gesture guards. Port removal
-does not call deletion policy when there are no attached edges. Existing
-graph documents and snapshots already support the resulting port data.
-
-Use `EditorPolicy.canEditPort` to protect direct port edits individually:
-
-```ts
-import type { EditorPolicy } from '@opsydyn/foldkit-zloz';
-
-const policy: EditorPolicy = {
-  canEditPort: ({ operation, node, port }) =>
-    node.id === 'review' && port.id === 'in' && operation !== 'add'
-      ? 'Review input is managed upstream.'
-      : null,
-};
-```
-
-`PortEditCandidate` contains `operation` (`add`, `label`, `position`, or
-`remove`), the current node, and the current port. Addition supplies the
-proposed port instead. This is a capability check, independent of proposed
-label text or coordinates. The reducer evaluates it against the current
-full graph before publishing. A veto preserves graph, routes, revision,
-selection and history, and reports the reason in `notice`. One protected
-port vetoes an entire position batch; unchanged labels and positions are
-no-ops and skip policy checks.
-
-`portEditReason(candidate, graph, policy.canEditPort)` resolves the same
-trimmed reason for host controls; blank rejections use a default message.
-For removal controls pass both policies:
-`resolvePortRemoval(graph, endpoint, policy.canDelete, policy.canEditPort)`.
-Port edit protection is checked first, including unused ports, followed
-by attached-edge deletion protection. Wire creation/reconnection continue
-to use the connection policies. Whole-node deletion, graph replacement,
-and Undo/Redo retain their existing policies and history semantics.
-
-The optional `/foldkit` entry point also exports composable port inspector
-primitives. `portInspectorContext(editor, nodeId, policy, options)` returns
-an Effect `Option` containing the node and its current entries, or `None`
-for a missing node or group. Each entry includes `labelControl`,
-`positionControl` and `removeControl`. Null `reason` enables a control;
-non-null reasons include policy, read-only and active-gesture protection.
-Render `entry.reasons` once: identical reasons share an ID across controls.
-`ZlozPortInspectorOptions` accepts `idPrefix`, `readOnlyReason`, and
-`busyReason`; give simultaneous inspectors distinct prefixes.
-
-Hosts own their draft Model and messages. This standalone helper composes
-a label form without prescribing a layout or CSS:
-
-```ts
-import type { HtmlBuilder } from 'foldkit/html';
-import {
-  zlozPortLabelForm,
-  zlozPortLabelInput,
-  zlozPortLabelSave,
-  zlozPortLabelCancel,
-  zlozPortProtectionReason,
-  type ZlozPortInspectorEntry,
-  type ZlozPortLabelFormMessages,
-} from '@opsydyn/foldkit-zloz/foldkit';
-
-export function portLabelEditor<M>(
-  h: HtmlBuilder<M>,
-  entry: ZlozPortInspectorEntry,
-  draft: string,
-  messages: ZlozPortLabelFormMessages<M>,
-  changed: (text: string) => M,
-) {
-  return zlozPortLabelForm(
-    h,
-    messages,
-    [],
-    [
-      zlozPortLabelInput(h, entry, draft, changed, []),
-      zlozPortLabelSave(h, entry, [], ['Save']),
-      zlozPortLabelCancel(h, messages.cancelled, [], ['Cancel']),
-      ...(entry.labelControl.reason !== null
-        ? [zlozPortProtectionReason(h, entry.labelControl, [])]
-        : []),
-    ],
-  );
-}
-```
-
-`zlozPortLabelEditButton` opens the host draft. Enter submits the form,
-Escape cancels, and Cancel remains available when editing is protected.
-The host's saved message commits `PortLabelChanged` with the current
-policy; these view contexts are preflight information, not authorization
-tokens. Recompute them on each view. The primitives own native types,
-bindings, disabled state and description links. Attributes can customize
-names, autofocus and styling; children can supply badges or other content.
-
-`zlozPortRemoveButton` emits the entry's atomic `PortRemoved` event.
-`portAdditionContext(editor, nodeId, proposedPort, policy, options)`
-preflights a host-supplied proposal. `zlozPortAddButton` takes that context
-and a host message so identity allocation can occur against the latest
-Model in update, including rapid repeated clicks. All primitives are
-unstyled and may be arranged or omitted independently. Position controls
-can use the resolved `positionControl` and existing `PortPositionsChanged`.
-
-Compose per-port position editing with `portPositionDraft(port)`,
-`updatePortPositionDraft(draft, change)`, and `portPositionEditorContext`.
-`ZlozPortPositionDraft` keeps unvalidated text in either `offset` or
-`anchor` mode, so empty fields never become document coordinates.
-`portPositionFromDraft` returns an Effect `Option<PortPosition>`: all
-active numbers must be finite fractions from 0 to 1. Save commits that
-complete position through `PortPositionsChanged` with the current policy,
-giving side and coordinate changes one Undo entry. Hosts own draft
-lifecycle and decide when to discard drafts after document changes.
-
-Use `zlozPortPositionEditButton` to open a draft. Inside
-`zlozPortPositionForm`, compose `zlozPortPositionModeSelect`,
-`zlozPortPositionSideSelect`, `zlozPortPositionInput` for each item in
-`context.inputs`, `zlozPortPositionSave`, and `zlozPortPositionCancel`.
-The controls use `entry.positionControl`, native required/min/max
-validation, Enter to save and Escape to cancel. They retain disabled
-states and reason links while Cancel remains available. Attributes and
-children control presentation; both selects also accept an optional
-final record of custom option labels.
-
-```ts
-const context = portPositionEditorContext(entry, draft);
-const fields = context.inputs.map((input) => zlozPortPositionInput(h, context, input, changed, []));
-// Render fields in a host-owned layout inside zlozPortPositionForm.
-```
-
-Edge offset mode uses the side and an along-edge fraction. Box coordinates
-use normalized X/Y from the node frame's top-left; side remains a routing
-direction hint. Switching to box coordinates starts at the same cardinal
-anchor. Switching back projects onto the chosen side using Y for left/right
-and X for top/bottom. It intentionally returns the anchor to that edge.
-
-Opt in to direct positioning with `zlozView`'s `portAnchorHandles: true`.
-Selected visible nodes get separate anchor handles. Socket wiring keeps
-its normal controls and connection policy. Pass `canEditPort` to both
-the view and reducer so handles reflect the current position permission.
-Read-only handles are disabled and protected handles carry their reason
-as a native description. The selected-node inspector can render the same
-reason visibly through its existing context.
-
-Drag previews use normalized node-frame coordinates, clamp to 0–1, and
-preserve the port's routing side. Pointer capture keeps tracking outside
-the canvas. Release records one Undo entry; no-movement and out-and-back
-drags preserve the original representation without history. Escape,
-pointer cancellation, lost capture, or a policy/read-only veto restore
-the starting document. Policy is checked at start, during movement and
-again at release. Preview revisions invalidate stale routes; cancellation
-does not consume redo history. Arrow keys nudge by 1%, or 10% with Shift,
-using the same policy and normal Undo transactions.
-
-`PortAnchorDragStarted`, `PointerMoved`, `PointerReleased` and
-`GestureCancelled` are the headless gesture contract. `PortAnchorNudged`
-accepts a normalized frame delta for keyboard or host controls.
-
-Customize the native handle through `renderPortAnchorHandle` and
-`zlozPortAnchorHandle`; null omits a handle and undefined uses the default.
-`ZlozPortAnchorHandleContext` includes the node, port, normalized anchor,
-world position, active state and rejection reason. The primitive belongs
-in the world layer, so it works independently of custom node shells and
-socket renderers. Attributes and children control its shape, size, copy
-and contents. `portAnchorHandles: { offset: { x: 24, y: 0 } }` changes
-the world-unit displacement from the socket; the default follows its
-routing side and stays fixed throughout the drag. This bounded anchor gesture does not auto-pan
-or change the side hint; the position editor handles side changes.
-
-Opt in to edge attraction through the core editor:
-
-```ts
-const editor = createEditor(graph, { portAnchorSnapDistance: 12 });
-```
-
-The distance is in CSS pixels. Its default is zero, preserving free
-placement. `PortAnchorSnapDistanceChanged` changes it while idle without
-editing the document or history; invalid distances are ignored. Initial
-options require a finite non-negative value. During an anchor drag, the
-nearest frame edge within that radius attracts the position. Distances
-account for node dimensions and viewport zoom. Exact ties prefer the
-port's routing side, then left/right/top/bottom order. Only position is
-snapped; the routing-side hint remains unchanged.
-
-`resolvePortAnchorSnap(candidate, { size, zoom, distance, preferredSide })`
-exposes the same pure calculation for headless consumers. It clamps raw
-normalized candidates to the frame, returns `{ anchor, side }`, and uses
-null side when attraction is disabled or no edge is close enough.
-`PortAnchorSnapOptions` and `PortAnchorSnapResult` describe that contract.
-Clicking without movement and out-and-back drags retain the starting
-representation. Moving away from an edge releases its attraction. Policy
-vetoes, cancellation and Undo retain the anchor drag's atomic behavior.
-
-Active `ZlozPortAnchorHandleContext.snappedSide` identifies the attracted
-edge. The default handle highlights it and updates its native description;
-custom renderers can use the same context for their own feedback. This
-session preference is independent of connection snapping and node-grid
-snapping. Keyboard nudges and explicit numeric position edits remain exact
-even when pointer attraction is enabled. The resolver attracts one edge at a time.
-
-Set `portAnchorSnapHysteresis` in `EditorOptions` to stabilize an acquired
-edge. The default is zero. A positive CSS-pixel margin extends its release
-radius to `portAnchorSnapDistance + portAnchorSnapHysteresis`. A competing
-edge must be inside the normal acquisition radius and closer by more than
-the margin to take over. At the exact margin the current edge stays held.
-Once released, an edge must enter the normal radius to acquire again.
-Setting the edge snap distance to zero disables edge attraction.
-
-`PortAnchorSnapHysteresisChanged` changes the margin while idle without
-editing graph data or history. Initial options and the pure resolver
-require finite non-negative values; invalid change events are ignored.
-The pure resolver's optional `hysteresis` and `previousSide` fields support
-the same behavior for headless consumers. Feed the previous result's side
-back during a gesture; `preferredSide` remains only a routing-hint tie
-breaker. The reducer carries retention in its existing gesture state.
-Policy vetoes, cancellation, no-motion behavior, keyboard/numeric precision
-and one-step Undo keep their existing semantics.
-
-Set `zlozView`'s `portAnchorSnapBypassModifier: 'Alt'` to enable temporary
-free positioning during an anchor drag. The default has no mapping.
-`ZlozPortAnchorSnapBypassModifier` also accepts `Control`, `Meta` and
-`Shift`, so hosts can choose their shortcut. The native resource captures
-that mapping at pointer-down; changes apply to the next gesture.
-
-Holding the mapped key bypasses edge/corner/midpoint attraction and hysteresis while
-retaining frame clamping and edit policies. Pressing or releasing it
-recomputes the last raw pointer sample in the Model, even without mouse
-movement. Releasing performs fresh acquisition; it clears the old retained
-edge. Releasing the pointer while holding the key commits the free position
-as the drag's single Undo entry. Snap preferences stay intact. Blur,
-Escape, capture loss and policy vetoes retain normal cancellation.
-
-Headless consumers can supply `snapBypassed` on `PortAnchorDragStarted`,
-`portAnchorSnapBypassed` on `PointerMoved`, or
-`PortAnchorSnapBypassChanged` with the active pointer and `bypassed` value.
-The gesture retains its raw `point` for key-only updates. These facts apply
-only to the matching anchor gesture. A start fact can include the captured
-`snapBypassModifier` for renderer hints. Handle contexts expose `snapBypassed`
-and `snapBypassModifier` for custom feedback; the default uses a dashed
-border and native description. Other gestures and idle keyboard nudges
-retain their existing modifier behavior.
-
-Set `portAnchorCornerSnapDistance: 12` in `EditorOptions` for corner
-attraction within a circular 12 CSS-pixel radius. It defaults to zero,
-independently of `portAnchorSnapDistance`, so corners can be enabled alone.
-The candidate is clamped to the node frame first. With the default priority, a corner in range takes
-priority over midpoint and edge attraction; outside the corner range, other
-enabled modes or free placement apply. The radius stays constant at any zoom.
-
-`PortAnchorCornerSnapDistanceChanged` changes the radius while idle without
-adding document history. Values must be finite and non-negative; invalid
-change events are ignored. Positive `portAnchorSnapHysteresis` also retains
-an acquired corner within radius plus margin. A competing corner must be
-in the acquisition radius and closer by more than the margin. Exact ties
-keep the retained corner; without retention the stable order is top-left,
-top-right, bottom-left, bottom-right. Corner acquisition takes priority over
-retained edges, and a released corner can fall back to ordinary edge acquisition.
-
-The pure `resolvePortAnchorSnap` accepts `cornerDistance` and
-`previousCorner`. Feed its optional `corner` result back during a gesture;
-`side` is null during a corner snap. `PortCorner` names the four corners.
-`ZlozPortAnchorHandleContext.snappedCorner` exposes that feedback for custom
-renderers. `zlozPortAnchorHandle` supplies a corner description and
-`data-flow-anchor-corner`; the default handle adds a diamond and selection
-border. Returning `undefined` uses the default, and `null` omits the handle.
-Bypass clears all anchor snap retention and resumes fresh acquisition
-on key release. The authored routing side and port identity stay intact;
-previews, cancellation, current edit protection and one-step Undo/Redo
-share the existing anchor-drag transaction. Keyboard nudges and numeric
-edits stay exact. These are session preferences, not serialized graph fields.
-
-Set `portAnchorMidpointSnapDistance: 12` in `EditorOptions` to attract
-port anchors to exact edge centers: left `(0, 0.5)`, right `(1, 0.5)`,
-top `(0.5, 0)` and bottom `(0.5, 1)`. The circular CSS-pixel radius defaults
-to zero and works independently of corner and edge attraction. The
-candidate is clamped before measuring distance, and zoom does not change
-the radius. By default, corners take priority over midpoints; midpoints take priority
-over edges, including retained edges. Outside a retained midpoint's band,
-normal acquisition in the remaining enabled modes applies.
-
-`PortAnchorMidpointSnapDistanceChanged` changes the radius only while idle
-without changing graph/history. Initial/resolver values must be finite
-and non-negative; invalid change events are ignored. The shared
-`portAnchorSnapHysteresis` extends a midpoint's radial release band and
-requires a competing midpoint to win by more than the margin. The routing
-side breaks acquisition ties, followed by left, right, top, bottom.
-With corners-first priority, an eligible corner also takes priority over a retained midpoint.
-
-Headless consumers pass `midpointDistance` and `previousMidpoint` to
-`resolvePortAnchorSnap`. Its optional `midpoint` result is a `PortSide`;
-`side` is null during midpoint attraction. Feed the result back for
-retention. `ZlozPortAnchorHandleContext.snappedMidpoint` supports custom
-badges via `zlozPortAnchorHandle`; the helper supplies a midpoint
-description and `data-flow-anchor-midpoint`. The default handle shows a
-center marker. Bypass clears midpoint retention too, including stationary
-key transitions, and resumes fresh acquisition. Precise release, policy
-rollback, cancellation and single-step Undo/Redo retain the same drag
-transaction. Authored routing direction, keyboard nudges, explicit position
-edits and graph serialization retain their existing semantics.
-
-Use `EditorPolicy.portAnchorSnap` to override snapping for individual ports:
-
-```ts
-const policy: EditorPolicy = {
-  portAnchorSnap: ({ node, port }, graph) => {
-    if (node.id === 'review' && port.id === 'in')
-      return { distance: 0, cornerDistance: 0, midpointDistance: 18, hysteresis: 6 };
-    if (port.id === 'precise') return { distance: 0, cornerDistance: 0, midpointDistance: 0 };
-    return undefined;
-  },
-};
-const next = updateEditor(state, event, policy);
-```
-
-The callback receives the current node, port and full graph at an allowed
-anchor drag's start. `PortAnchorSnapOverrides` accepts `distance` (edges),
-`cornerDistance`, `midpointDistance` and `hysteresis`, in CSS pixels. Missing
-or undefined fields inherit editor settings; zero explicitly disables that
-rule. Returning `undefined` inherits every setting. Overrides can enable
-attraction even when editor defaults are zero. The optional `priority` field
-can change point-kind ordering; edges remain the final fallback. The pure `resolvePortAnchorSnapSettings(defaults, overrides)`
-helper returns a detached `PortAnchorSnapSettings` record, filling absent
-defaults with zero and validating finite non-negative effective values.
-Invalid settings throw `ZlozError` before any gesture, graph or history change.
-
-Effective settings are captured in `gesture.snapSettings`, including
-inherited values. Mutating a returned override or changing the host policy
-affects the next drag. The callback is not re-evaluated during previews,
-bypass transitions or rendering. Custom handle contexts expose a detached
-`snapSettings` record while that port is actively dragged; it is absent
-while idle. This supports custom rule feedback without repeating the policy.
-The view reads the Model; no additional `zlozView` configuration is needed.
-
-Supply the current policy to `updateEditor` as usual: `canEditPort` remains
-authoritative at start, preview and release. Snap overrides cannot bypass
-protection, clamping, cancellation or the single Undo/Redo transaction.
-Modifier bypass temporarily disables all attraction while preserving the
-captured preferences. Keyboard/numeric edits stay exact. Policies and
-captured preferences are runtime/editor state, not serialized graph fields.
-
-`PortAnchorSnapTargets` adds optional `allowedEdges`, `allowedCorners` and
-`allowedMidpoints` lists to overrides, effective settings and the pure snap
-resolver's options. For left/right midpoints only, a policy can return:
-
-```ts
-{ distance: 12, cornerDistance: 12, midpointDistance: 18,
-  allowedEdges: [], allowedCorners: [], allowedMidpoints: ['left', 'right'] }
-```
-
-Missing/undefined lists allow all targets of that kind. Empty lists disable
-the kind even with a positive radius. The settings helper inherits lists
-from its defaults when supplied, and an explicit list replaces the default
-list. Supply all four names to restore all targets. Edges/midpoints accept
-`PortSide` names; corners accept `PortCorner` names. Invalid names or non-array
-values throw `ZlozError` before starting a gesture, including when a radius
-is zero. Duplicate names are normalized into canonical order. Array order
-does not change established tie-breaking or corner/midpoint/edge priority.
-
-Only allowed candidates participate in nearest-target selection and
-hysteresis; a forbidden previous target cannot remain held. Bypass still
-disables all attraction. These lists govern attraction: free placement,
-frame clamping, keyboard nudges and numeric edits retain their behavior.
-They do not constrain the authored port position or routing direction.
-
-The settings helper and drag start detach every target list. Host list
-changes affect the next drag. Active handle `snapSettings` also receives
-detached lists for custom feedback, without evaluating the policy again.
-Serialization, edit protection, cancellation and the single Undo/Redo
-transaction keep the same contract.
-
-Set `EditorOptions.portAnchorSnapPriority: 'midpoints-first'` to prefer a
-midpoint when its zone overlaps a corner's. `PortAnchorSnapPriority` also
-accepts `'corners-first'`, the existing default. Priority changes only the
-order of these two target kinds; edges remain the final fallback. A
-preferred kind must still have a permitted, enabled target within its
-acquisition or retention band. Otherwise the other point kind is tried,
-then edges, then free placement.
-
-`PortAnchorSnapPriorityChanged` updates the editor preference while idle,
-without graph/history changes. Invalid preference events are ignored.
-The pure resolver accepts `priority`, as do `PortAnchorSnapOverrides`
-and captured `PortAnchorSnapSettings`. A per-port override wins over the
-editor preference; an omitted/undefined override inherits it. Omitted
-priority remains implicitly corners-first for existing settings records.
-Invalid initial, helper or resolver values throw `ZlozError`.
-
-Priority is captured at drag start with the other settings, including
-through bypass and stationary modifier changes. A target in the preferred
-kind wins over a retained target in the lower kind. Hysteresis and routing
-tie-breaks within each kind retain their existing rules. Bypass clears
-retention and restores fresh acquisition in the captured order. Current
-permission checks, cancellation, exact edits and one-step Undo/Redo are
-unchanged. Guide enumeration retains canonical target order and includes
-all permitted kinds; active feedback reflects the resolved winner and
-custom renderers receive the captured priority. This preference is not a
-serialized graph field.
-
-Set `zlozView`'s `portAnchorGuides: true` to show permitted targets during
-an anchor drag. Guides are off by default and include only target kinds
-with positive acquisition radii and permitted names in the captured rules.
-The default uses edge lines and point markers, highlighting the attracted
-target. Markers and strokes retain their screen size at zoom. No radii or
-measurements are printed.
-
-Guides follow the existing `alignmentGuides` diagnostic flag. Minimal mode,
-`diagnostics: false`, or `diagnostics: { alignmentGuides: false }` hides
-them before custom rendering. They also disappear during bypass, after
-release/cancellation, for read-only or protected ports, and when the node
-is not in the visible canvas. Editing and snapping do not depend on guides.
-The overlay is decorative, aria-hidden, inert and pointer-transparent.
-
-`renderPortAnchorGuide(context, h)` replaces one guide with SVG in world
-coordinates. Returning `undefined` uses the native guide; `null` omits it.
-`ZlozPortAnchorGuideContext` includes the node/port, normalized `target`,
-resolved world `start`/`end` (equal for points), `active`, `viewport` and
-detached captured `settings`. Compose `zlozPortAnchorGuide(h, context,
-attributes)` to customize paint while keeping native geometry, or supply
-your own SVG using those coordinates. The package owns the inert overlay
-and target identity wrappers. The renderer does not run the policy callback.
-
-Headless consumers can use `portAnchorSnapGuideTargets(settings)` to enumerate
-normalized `PortAnchorSnapGuide` values for their own presentation. The
-helper validates settings and shares canonical corner/midpoint geometry
-with the snap resolver. It reports permitted targets regardless of cursor
-distance, without changing graph data, gestures or history.
-
-Set `zlozView`'s `portAnchorKeyboardTargets: true` to enable plain Page Down
-(next), Page Up (previous), Home (first), and End (last) on focused port
-anchor handles. It defaults to off. Native handles expose shortcut metadata
-and help; custom handle contexts receive `keyboardTargets`. Text fields,
-disabled/read-only controls, modified keys and active pointer captures keep
-their existing behavior. Held-key repeats are consumed without producing
-repeated edits. Tab keeps its normal focus order. Arrows still nudge exactly
-1%, or 10% with Shift, independently of target cycling.
-
-`PortAnchorTargetStepped` is the headless editor fact, with an `endpoint`
-and `step: 'next' | 'previous' | 'first' | 'last'`. Each idle action resolves
-the current per-port settings and checks edit permission before selecting
-from enabled, permitted corner and midpoint targets. Edges are continuous
-and do not participate. Radii enable target kinds; keyboard selection can
-reach a permitted point from any current position. Priority orders the
-two point kinds, with canonical order within each: top-left, top-right,
-bottom-left, bottom-right for corners; left, right, top, bottom for midpoints.
-
-Next/previous wrap at the ends. From a position outside the target set,
-next chooses the first and previous chooses the last. Home/End choose those
-endpoints directly. Every different position is one Undo/Redo transaction,
-preserving routing direction, port identity and wiring. Already-at-target
-actions preserve the existing position representation and history. Empty
-sets leave the document alone and report a named no-target notice. Protected
-ports report their current reason; active gestures and read-only editors
-ignore the action. The standard status region announces the selected target
-even when diagnostic presentation is visually hidden. Keyboard actions are
-atomic and do not create a pointer gesture or keep pointer guides open.
-
-`resolvePortAnchorTargetStep(anchor, settings, step)` supports custom
-controls. It returns `PortAnchorTargetStepResult`: either `{ type: 'empty' }`
-or a detached `PortAnchorPointTarget`, zero-based `index`, and `count`.
-The helper validates settings/actions without changing editor state. Hosts
-can use the typed fact for their own buttons or bindings with the native
-mapping off. Target names, list normalization and priority reuse the same
-package rules as pointer snapping and guides.
-
-Set `connectionDropRadius: 32` on the view to snap new connections within
-32 CSS pixels of a rendered port center. The default is zero.
-Set `reconnectionDropRadius` to give existing edge reconnections their
-own radius. It inherits `connectionDropRadius` when omitted. Use `0`
-to require an exact port hit. Both values must be finite and non-negative.
-The preview and release use the first eligible nearby port in distance order.
-An exact port hit takes priority and can show its normal rejection reason.
-The distance stays constant in screen space as the canvas zooms.
-
-Pass `connectionSnapHysteresis: 12` to `createEditor` to steady nearby
-target selection for both new wires and reconnections. Use it with a
-positive drop radius. The current eligible target stays selected until
-another eligible port is closer by more than 12 CSS pixels. Leaving the
-drop radius releases it immediately, and exact port hits take priority.
-The margin defaults to zero and must be finite and non-negative.
-Send `ConnectionSnapHysteresisChanged` with a `distance` while idle to
-change it. This preference stays outside graph undo and saved documents.
-
-Custom input adapters can include a finite, non-negative `distance` on
-each `nearbyTargets` endpoint. Keep the array sorted by distance.
-Endpoint-only messages retain their nearest-eligible behavior.
-
-Pass `canConnectPort(endpoint, graph)` to both `updateEditor` and `zlozView`
-to lock individual ports. Return a reason to block the port or `null` to allow
-it. Locked outputs cannot start new wires, and locked inputs reject drops.
-Existing edges stay visible. Reconnecting an edge checks the destination port
-for the end being moved. Use `canReconnect` to lock the edge end itself and
-`canConnect` for rules that depend on the proposed pair.
-
-The view disables locked port buttons, including custom shells that use
-`zlozPort`. Use `data-flow-port-locked` to style them. The reducer checks the
-policy again before committing pointer, keyboard, and direct connection edits.
-
-Pass the same `canReconnect` callback to `updateEditor` and `zlozView` to
-lock specific edge ends. The callback receives the existing edge, the end
-(`'source'` or `'target'`), and the full graph. Return a reason to lock the
-end or `null` to allow an attempt. Locked handles are omitted. The reducer
-checks again during a drag and before committing, including for direct
-`EdgeReconnected` events from an inspector. Allowed targets still go
-through port validation and `canConnect`.
-
-```ts
-const canReconnect: EditorPolicy['canReconnect'] = (edge, end) =>
-  edge.id === 'approval' && end === 'source' ? 'Approval source is locked.' : null;
-```
-
-Hosts can offer the same edit through keyboard controls using `EdgeReconnected`.
-
-A node with `kind: 'group'` draws a boundary. Set a node's `parentId` to a
-group ID to make it a member. Groups can contain other groups. Positions
-remain in canvas coordinates, including inside a group. Dragging or nudging a
-group moves its descendants once, even when some are also selected. Deleting
-a group deletes its descendants and their connections in one undo step.
-
-Drag a node or group title into an expanded boundary to change its parent.
-The deepest eligible group under the pointer highlights as the drop target.
-Drop outside all eligible boundaries to move the selection to the canvas root.
-Only the roots of the dragged selection change parent, so nested contents stay
-together. Position and membership share one undo step. Escape cancels the drag.
-
-Group membership is explicit. Layout engines can return an optional size on a
-group position to fit the boundary to its children. The ELK adapter arranges
-both flat and nested graphs.
-
-`SelectionGrouped` wraps selected siblings in a new boundary sized to their
-contents. `SelectionUngrouped` removes selected boundaries and promotes their
-contents to the nearest remaining parent. Both preserve canvas positions and
-connections and commit one undo step.
-
-Shift-drag the canvas background to draw a selection box. Releasing selects
-fully enclosed nodes and replaces the previous selection. If the box encloses
-a group and its children, the group represents them in the selection. Escape
-cancels without changing the prior selection. Box selection leaves the graph
-and undo history intact.
-
-Set `minimap: true` to show the diagram overview after the canvas is measured.
-The rectangle shows the current viewport. Click the overview to center the
-canvas on that point at the current zoom. This changes only the viewport.
-
-Set `viewportControls: true` to show **Zoom in**, **Zoom out**, and **Fit view**
-above the canvas. Zoom is centered on the visible canvas. The controls are
-available in read-only views and work with standard button keyboard input.
-
-Enable `snapToGrid` in editor options or send `GridSnapToggled` to toggle
-a canvas grid (`gridSpacing`, default 20 units). While dragging, the grabbed node snaps to the grid and
-the rest of the selection follows by the same offset, including group contents.
-Group resize handles and width edits snap the moving boundary in canvas units,
-including top/left boundaries and side handles. Size limits, content and parent
-constraints, and locked proportions take precedence when a grid intersection
-cannot satisfy them. Resizing preserves fixed children and its opposite anchor.
-The setting is session state and each completed drag is one undo step.
-Background appearance is configured separately and follows pan and zoom.
-
-Copy, Paste, and Duplicate work from canvas focus with Ctrl/Cmd+C, V, and D.
-Enable `snapToAlignment` or send `AlignmentSnapToggled` to align the dragged
-selection's edges and centers with nearby visible nodes. Guides appear within
-six screen pixels of a match at any zoom. Alignment takes priority on a matched
-axis; grid snapping still applies on the other axis. Guides disappear on
-release or cancellation. Set `--flow-alignment-guide` to theme their color.
-
-Set `autoPan: true` on the FoldKit view to pan near the canvas boundary
-during node moves, connection drags, and reconnections. The drag remains
-anchored to the pointer as the viewport moves. Release or Escape stops the
-pan. Viewport travel stays separate from graph undo.
-
-Set `wheelNavigation` to choose how the canvas handles wheel and trackpad
-scrolling:
-
-| Mode     | Behavior                                                                  |
-| -------- | ------------------------------------------------------------------------- |
-| `'zoom'` | The default. Vertical wheel motion zooms around the cursor.               |
-| `'pan'`  | Scroll pans in both axes. Hold Ctrl or Command to zoom around the cursor. |
-| `'off'`  | Wheel events keep their native page or browser behavior.                  |
-
-The option applies only to wheel input on the canvas. Editable controls
-keep their own wheel behavior. ZLOZ updates its default help text to match
-the option. Custom help receives the same `wheelNavigation` value.
-
-Set `doubleClickZoom: true` to zoom in 1.25× around the pointer when
-double-clicking the background. You can supply a finite multiplier
-greater than 1 for a different step. The feature defaults to off and
-works independently of wheel and pinch zoom. Box select, Zoom to area,
-and interactive canvas items keep their own input behavior. Background
-clicks still clear selection during normal navigation.
-
-Set `spaceToPan: true` to pan temporarily with Space. Focus the canvas,
-hold Space, then drag from the background. The drag preserves selection
-and leaves Box select or Zoom to area available for the next drag.
-Releasing Space during a drag lets it finish. Escape cancels the drag,
-and focus loss clears the shortcut. Space continues to activate buttons
-and enter text when those controls have focus. The feature defaults to off.
-
-Set `middleButtonPan: true` to pan by middle-dragging the canvas background.
-The gesture preserves selection and leaves Box select or Zoom to area
-ready for a primary-button drag. Links and controls keep their native
-middle-click behavior. This option defaults to off and is independent of
-Space-drag and wheel navigation.
-
-Pass `zoomLimits: { minZoom: 0.75, maxZoom: 1.3 }` and
-`fitViewPadding: 96` to `createEditor` to customize the camera. Wheel,
-pinch, double-click, toolbar, and Fit view share the inclusive range. Both limits must
-be finite and positive, and equal limits fix the zoom. An explicit
-`viewport` must be in range. Without one, ZLOZ starts at the allowed zoom
-closest to 1.
-
-Fit view uses CSS pixels for padding and caps the inset at a quarter of the
-shorter canvas side. The defaults are 0.1–4× and 24 px. Dispatch
-`ViewportConstraintsChanged` while idle to change both settings. If the
-current zoom falls outside the new range, ZLOZ clamps around the canvas
-center and stops any running fit. For host-controlled camera operations,
-`zoomAt` and `fitViewport` take the same `ZoomLimits` as an optional fourth
-argument.
-
-Pass `fitViewDuration: 400` to `createEditor` to animate Fit view over
-400 milliseconds. The default is zero for instant fitting. The FoldKit
-view fits immediately when the browser prefers reduced motion. Panning,
-zooming, or starting a canvas gesture takes over from the current camera
-position. Dispatch `FitViewDurationChanged` to update the preference at
-runtime. Camera movement stays outside graph history.
-
-Set `pinchZoom: true` on the FoldKit view for two-finger touch navigation.
-Move both fingers together to pan or change their distance to zoom around
-the midpoint. A second touch cancels an active graph drag. Lifting a finger
-ends navigation without starting another edit. Pinch and pan stay outside
-graph undo and are available in read-only views.
-
-Set `viewportControls: true` and `selectionModeControl: true` to show the
-**Box select** toggle. While it is active, dragging the background draws a
-selection box with touch or a mouse. Toggle it off to resume background pan.
-Two-finger navigation and Shift-drag still work. The mode is editor session
-state and can also be set initially with `selectionMode` or toggled by sending
-`SelectionModeToggled`.
-
-The editor's clipboard lives in session state. Copy includes selected groups,
-their descendants, and connections with both endpoints in the selection.
-Pasted nodes get new IDs, retain their internal hierarchy, and are offset
-from the originals. If a copied node's parent was outside the selection,
-its copy becomes a top-level node. Paste and Duplicate are single undo steps.
-
-Set `contextActions: true` on the FoldKit view to open actions with a
-right-click on a node or edge. Use Shift+F10 or the context menu key on a
-focused node title or connection. Nodes offer Duplicate and Delete, and edges
-offer Delete. Escape dismisses the panel.
-
-The same option adds More actions buttons on nodes and beside entries in
-the Connections list for touch and keyboard access.
-
-Set a child's `extent: 'parent'` to constrain pointer drags and keyboard nudges
-to its parent's authored bounds. The child keeps its parent on drag-out.
-A selection moves by one common clamped offset. Moving the parent still moves
-its descendants. Nodes larger than the parent are held on the oversized axis.
-Sizing and content measurement are independent of this movement constraint.
-The optional field is preserved by graph export and import.
-
-Set a child's `expandParent: true` to grow its parent when an authored width
-change or measured content height exceeds the group bounds. Growth adds
-16 units of padding on overflowing sides and preserves canvas positions.
-Enable expansion on an inner group to propagate growth to its own parent.
-Pointer resizing and parent growth share one undo step. Smaller content
-keeps the group's grown bounds.
-
-Send `GroupFitClicked` with a group ID to fit its authored boundary to all
-descendants. The group context panel exposes **Fit group to contents**.
-Fitting preserves child positions, reserves header space and padding, and
-commits one undo step. Empty groups keep their bounds. A constrained group
-requires enough space in its parent or enabled parent expansion.
+Run `bun run --filter @opsydyn/zloz-demo dev` for the Effect UI workbench.
+It demonstrates endpoint search and connection creation, context actions,
+read-only history, custom artwork, port inspection and layout measurement.
+
+- Use `endpointField` with a current creation or reconnection context. Set
+  `search` to bind a host-owned query, and use `groupByNode` and `groupLabel`
+  to customize option groups. Protected choices retain their reasons.
+- Use `portInspectorContext` and `portAdditionContext` with the current policy
+  for independent label, position and removal decisions. Use
+  `portPositionDraft`, `updatePortPositionDraft`, `portPositionFromDraft` and
+  `portPositionInput` for a host-owned draft.
+- Enable port editing affordances with `portAnchors`. Options include
+  `guides`, `keyboardTargets`, `snapBypass`, `renderHandle`, and `renderGuide`.
+  Anchor snap settings and current policy still come from the editor and host.
+- Customize labels using `portLabels`, `portLabelPlacement`, and
+  `renderPortLabel`. Default labels are decorative and use the authored
+  port center. Ports keep their independent accessible names.
+- Use scoped themes via `theme` and the light and dark presets. Place custom
+  diagrams and controls under the same CSS theme if they share tokens.
+
+For the retired adapter's examples, see the
+[pre-cutover package reference](https://github.com/opsydyn/fold-kit-experiments/blob/f5784e68/packages/foldkit-zloz/README.md).
 
 ### Per-node resize limits
 
@@ -2057,45 +917,11 @@ result, including the centered dimension. A conflicting intersection is a no-op.
 
 ### Background grids
 
-`zlozView` defaults to dots even when snapping is off. Built-in backgrounds accept
-positive finite `gap` (graph units) and `size` (dot radius or square line width),
-plus a CSS `color`. An omitted gap follows `editor.gridSpacing` (default 20);
-size defaults to 1. An explicit visual gap overrides spacing only for that backdrop. Use `{ type: 'none' }` for a plain canvas.
-
-```ts
-zlozView(h, model.editor, {
-  id: 'workflow',
-  label: 'Workflow',
-  onEvent: (message) => Message.ObservedZlozInput({ message }),
-  background: { type: 'squares', gap: 20, size: 1, color: 'var(--grid-color)' },
-});
-```
-
-For a custom layout, use `{ type: 'custom', render }`. The callback receives
-`{ id, viewport, surface, spacing }` and the host's typed `HtmlBuilder`. `surface`
-can be `null` before measurement. Return ordinary FoldKit HTML/SVG; keep it
-decorative. ZLOZ places it behind the graph in a non-interactive, aria-hidden
-screen-space layer. Apply the supplied viewport when drawing canvas-space grids.
-No browser mutation, effects, or second UI runtime is needed.
-
-```ts
-background: {
-  type: 'custom',
-  render: ({ viewport, spacing }, builder) => builder.div([
-    builder.Style({
-      position: 'absolute', inset: '0',
-      'background-image': 'radial-gradient(circle, #64748b 1px, transparent 1px)',
-      'background-size': `${spacing * viewport.zoom}px ${spacing * viewport.zoom}px`,
-      'background-position': `${viewport.x - spacing * viewport.zoom / 2}px ${viewport.y - spacing * viewport.zoom / 2}px`,
-    }),
-  ], []),
-}
-```
-
-`ZlozBackground<Message>` and `ZlozBackgroundRenderContext` are exported from
-`@opsydyn/foldkit-zloz/foldkit`. Background selection belongs to the host Model;
-it never changes the graph or Undo history. The sample demonstrates dots,
-squares, a composed custom graph-paper renderer, and no grid.
+Set the canvas `background` to `{ type: 'dots' }`, `{ type: 'squares' }`,
+or `{ type: 'none' }`. Presets use editor grid spacing unless an explicit
+positive gap is supplied. A custom background receives the surface ID,
+viewport, dimensions, and spacing through its renderer. Canvas snapping
+continues to use the editor's current grid settings.
 
 ### Shared grid spacing
 
@@ -2126,7 +952,7 @@ the closest matched edge drives uniform scaling. Content, parent and size limits
 remain authoritative: a guide is shown only if the resulting edge reaches its
 target. Guides live in the resize gesture, clear when leaving the target, and
 vanish on release or Escape. A completed resize remains one Undo step. The
-FoldKit renderer draws them using the existing `--flow-alignment-guide` token.
+Effect UI canvas draws them using the existing `--flow-alignment-guide` token.
 
 Use `renderAlignmentGuide(context, h)` to replace the decorative SVG for
 either drag or resize guides. The context provides the resolved guide,
@@ -2155,8 +981,8 @@ and keyboard nudging. Return `null` to allow a node to move, or a reason to
 block it. A move checks the entire selection, including descendants of groups.
 One locked node blocks the whole move. A drag uses the graph as it was at the
 start of the gesture and checks the policy again before committing. Pass the
-same callback to `zlozView` to expose the lock on node handles. Custom shells
-receive `moveDisabledReason` and can still use `zlozDragHandle` for selection.
+same callback to `graphSurface` to expose the lock on node handles. Custom shells
+receive `moveDisabledReason`. The canvas keeps selection available.
 
 ### Lock node dimensions
 
@@ -2166,7 +992,7 @@ covers pointer resizing, keyboard resize steps, direct dimension edits, and
 Fit group to contents. If an edit would also grow an ancestor with locked
 dimensions, ZLOZ rejects the whole edit.
 
-Pass the same callback to `zlozView` to hide locked resize handles and
+Pass the same callback through the canvas `policy` option to hide locked resize handles and
 disable group dimension controls. Custom node shells receive
 `resizeDisabledReason`. Movement permissions apply separately.
 
@@ -2178,7 +1004,7 @@ the item. ZLOZ checks direct selection and interactions that select an item,
 such as opening its context menu. An excluded group can still contain
 individually selectable nodes.
 
-Pass the same callbacks to `zlozView` so selection controls and the marquee
+Pass the same callbacks through the canvas `policy` option so selection controls and the marquee
 preview agree with the reducer. Excluded items remain visible. Custom node
 shells, connection rows, and edge labels receive `selectionDisabledReason`.
 These callbacks govern new selection attempts. To clear a selection after
@@ -2188,7 +1014,7 @@ changing the policy, send `SelectionCleared`.
 
 Set `fitSelectionControl: true` with `viewportControls: true` to show
 **Fit selection**. Custom viewport controls can render
-`context.actions.fitSelection` with `zlozViewportControl`. The action
+`context.actions.fitSelection` with `viewportControl`. The action
 emits `{ type: 'FitSelectionClicked' }`.
 
 Fit selection frames selected visible nodes and connections together.
@@ -2202,7 +1028,7 @@ preserved. Custom SVG geometry can extend outside the fitted bounds.
 
 Set `zoomAreaControl: true` with `viewportControls: true` to show **Zoom to
 area**. Custom viewport controls can use `context.actions.zoomArea` with
-`zlozViewportControl`. The action emits `ZoomAreaModeToggled`. The next
+`viewportControl`. The action emits `ZoomAreaModeToggled`. The next
 background drag fits its rectangle and returns to the previous canvas mode.
 Each side must span at least 5 CSS pixels. Escape on the canvas or the
 pressed control cancels.
@@ -2218,7 +1044,7 @@ hide the decoration.
 
 Set `previousViewControl: true` with `viewportControls: true` to show
 **Back to previous view**. Custom controls can use
-`context.actions.previousView` with `zlozViewportControl`, or send
+`context.actions.previousView` with `viewportControl`, or send
 `{ type: 'PreviousViewClicked' }` directly.
 
 ZLOZ keeps one session checkpoint. Fit view, Fit selection, Zoom to area,
@@ -2272,113 +1098,17 @@ history, routes, and active gestures are session state. The viewport must
 have finite pan coordinates and a positive finite zoom. Hosts using custom
 zoom limits can bound the saved zoom before initializing the editor.
 
-### Retain built-in node views during camera and chooser updates
+### Retain artwork while controls stay live
 
-Pass one FoldKit `createLazy()` slot per canvas as `nodeViewCache`.
-Keep `onEvent` and any `renderNode` callback stable to reuse the node and
-port layer across camera-only renders. With viewport culling enabled, the
-layer is reused while the mounted node set stays the same. Entering or leaving
-the overscan area rebuilds the layer from the current graph. The slot holds
-one layer per canvas. Graph edits, selection changes, and changes to the
-other layer inputs also rebuild it. Pending connection creation is eligible:
-the staged source is a layer input, so source changes, cancellation and creation
-refresh native port feedback while unrelated chooser filtering can reuse the layer.
-Read-only changes also rebuild the layer. With culling, a staged source remains
-pinned until cancellation or creation changes the mounted set.
-
-Whole-layer retention falls back to live views for custom node shells, node policies,
-node filtering through visibility or group collapse, open context panels,
-custom ports and editing gestures. Port policies stay live so changing
-protection reasons remain current. The retained context trigger resolves its
-anchor against the latest viewport when activated.
-
-### Retain bodies while ports stay live
-
-For policy-controlled or custom ports, supply a separate per-canvas body cache:
-
-```ts
-import { createLazy } from 'foldkit/html';
-import { createZlozNodeBodyCache, zlozView } from '@opsydyn/foldkit-zloz/foldkit';
-
-const nodeViewCache = createLazy();
-const nodeBodyCache = createZlozNodeBodyCache();
-
-// Inside the host view; keep these cache instances stable for this canvas.
-zlozView(h, editor, {
-  id: 'workflow',
-  label: 'Workflow',
-  onEvent,
-  nodeViewCache,
-  nodeBodyCache,
-  canConnectPort: policy.canConnectPort,
-});
-```
-
-`nodeBodyCache` also works independently. When both are supplied, the whole-layer
-slot is preferred where eligible; otherwise the built-in frame and ports render
-live around retained bodies. Port callbacks and custom `renderPort` hooks run on
-every view. Native disabled states, protection reasons and pending-source feedback
-therefore follow the current Model without becoming cache permissions.
-
-The body contains the title/drag handle, context/resize controls and `renderNode`
-content. A layout-transparent wrapper preserves control order and leaves ports
-as direct frame children. That wrapper stays consistent across cache/fallback
-transitions while the body option is present, preserving focused body controls.
-Bodies track node identity, selection, read-only state and their rendering inputs,
-not the pending source or a graph snapshot. Keep `onEvent` and content callbacks
-stable; replace a callback when its captured display inputs change.
-
-The factory uses weak immutable node identities rather than retaining a permanent
-map of editor IDs. Use one instance per canvas; never share a slot between two
-simultaneously mounted canvases. Replacing a node object rebuilds that body.
-Custom shells, node-body policies, open context panels, visibility/group filtering
-and editing gestures keep their live path. This is view memoization only; graph
-edits, current permission checks, measurements and Undo remain Model-owned.
-
-### Compose the cache inside a custom shell
-
-Custom shells can call the same public cache explicitly. The workbench Orbit
-node caches its SVG/label using `[h, node, selected, selectionPreview]`; the Orbit
-group caches only its label using `[h, node]`. Handles, resize/collapse buttons,
-frames and sockets stay live. Do not pass the complete context, graph or a port
-policy into an artwork-only key.
-
-```ts
-const shellCache = createZlozNodeBodyCache(); // one cache per canvas/body position
-
-// Inside a custom shell; drawArtwork accepts exactly these immutable inputs.
-const artwork = shellCache(context.node, drawArtwork, [
-  h,
-  context.node,
-  selected,
-  context.selectionPreview,
-]);
-return zlozNodeFrame(
-  h,
-  context,
-  [],
-  [
-    zlozDragHandle(h, context, [], [artwork]),
-    ...context.resizeHandles,
-    ...(context.ports ??
-      context.node.ports.map((port) =>
-        zlozPort(h, context, port, [], [port.kind === 'output' ? '→' : '←']),
-      )),
-  ],
-);
-```
-
-Use the same artwork constructor and root shape with caching on or off so an
-optional optimization does not replace live controls. Include every value the
-artwork actually reads in its arguments. The automatic `nodeBodyCache` option
-still falls back for complete custom shells; this is explicit composition using
-public frames, controls and cache functions, without private input attributes or
-an alternate permission path. See the
-[Orbit composition evidence](../../apps/zloz-demo/evidence/orbit-body-cache.md).
+Effect UI uses stable node and control identities by default. For expensive
+custom artwork, use the host builder's `lazy` with a stable key and all
+authored inputs the artwork reads. Keep policies and current port feedback
+in the live shell and socket options. A staged source stays mounted under
+culling until creation or cancellation.
 
 ### Cull canvas items outside the viewport
 
-Set `viewportCulling: true` on `zlozView` to mount canvas items near the
+Set `viewportCulling: true` on `graphSurface` to mount canvas items near the
 measured viewport. The default is off. Use `{ overscan: 96 }` to customize the
 buffer in CSS pixels. Before the surface is measured, the whole canvas renders.
 
@@ -2430,10 +1160,15 @@ const canDelete: NonNullable<EditorPolicy['canDelete']> = ({ nodes, edges }) =>
     : null;
 
 const next = updateEditor(state, event, { canDelete });
-const view = zlozView(h, next, { id: 'workflow', label: 'Workflow', onEvent, canDelete });
+const view = graphSurface(h, next, {
+  id: 'workflow',
+  label: 'Workflow',
+  onInput,
+  policy: { canDelete },
+});
 ```
 
-Pass the same callback to `zlozView` for disabled Delete actions and their
+Pass the same callback through the canvas `policy` option for disabled Delete actions and their
 reason in the built-in context panels and edge toolbar. Custom controls can
 read `disabledReason` from the action descriptors or call `resolveDeletion`
 with their own targets. The policy may run during rendering and again when
@@ -2492,12 +1227,12 @@ minimal mode.
 
 ### Live resize dimensions
 
-The FoldKit view shows a width × height readout in the canvas's lower-left corner
+The Effect UI canvas shows a width × height readout in the canvas's lower-left corner
 during pointer resizing. With `resizeHandles: true`, it also stays visible for a
 single selected, expanded group so keyboard resizing has the same feedback.
 Card readouts are transient. Read-only views and collapsed/hidden groups omit it.
 Set `resizeReadout: false` to disable the readout. To replace its appearance,
-use `renderResizeReadout(context, h)` with the host's typed FoldKit builder.
+use `renderResizeReadout(context, h)` with the host's Effect UI builder.
 
 ```ts
 renderResizeReadout: ({ node, widthText, heightText }, h) =>
@@ -2522,7 +1257,7 @@ Selection clearing hides it. Theme it with `--flow-resize-readout-background` an
 
 ### Numeric group dimensions
 
-With `contextActions: true`, open a group's **More actions** panel to edit Width
+With `contextActions` configured, open a group's **More actions** panel to edit Width
 and Height in graph units. Each field applies on native change (for example,
 leaving the field), creating one Undo step. The panel stays open for sequential
 edits and displays the resulting dimensions after grid snapping, size/content
@@ -2538,205 +1273,25 @@ edits are ignored; repeated clamped values add no history. `NodeWidthChanged`
 continues to support group width through the same geometry path. The fields trim
 floating-point display noise without rounding authored geometry.
 
-### Custom canvas help and status
+### Canvas help, status, and diagnostics
 
-Use `renderCanvasHelp` for instructions and `renderCanvasStatus` for notices
-or a diagram summary. Both receive `defaultText` and the effective
-`visible` flag. Help also includes the selection mode, toolbar availability,
-and read-only state. Status includes the current notice and visible node
-and connection counts.
+Use `canvasHelpContext` and `canvasStatusContext` to derive host copy.
+Set the graph surface's `descriptionId` to the mounted help element.
+Use `visuallyHidden` for help and polite status announcements that remain
+available to assistive technology when suppressed visually.
 
-```ts
-renderCanvasHelp: ({ defaultText }, h) =>
-  h.div([h.Class('canvas-help-card')], [
-    h.strong([], ['Canvas controls']),
-    h.p([], [defaultText]),
-  ]),
-renderCanvasStatus: ({ defaultText }, h) =>
-  h.span([h.Class('canvas-status-badge')], [defaultText]),
-```
-
-ZLOZ keeps the description ID referenced by the canvas and node controls,
-and updates status inside the existing polite live region. Diagnostics
-visually hide these containers while preserving their accessible content.
-Keep meaningful text in both renderers, including when `visible` is false.
-Return `undefined` to use the default copy.
-
-### Diagnostics and minimal mode
-
-Use `minimalMode: true` for a clean package view, or `diagnostics: false` to
-suppress all diagnostic presentation. Both override individual flags. Defaults
-preserve existing presentation. Configure individual diagnostics with:
-
-```ts
-zlozView(h, model.editor, {
-  id: 'workflow',
-  label: 'Workflow',
-  onEvent: (message) => Message.ObservedZlozInput({ message }),
-  minimalMode: model.minimalMode,
-  diagnostics: {
-    measurements: false, // size readout, numeric group inputs and numeric resize tips
-    alignmentGuides: false, // visual lines; snapping remains active
-    zoomLevel: false, // percentage; zoom controls remain usable
-    status: false, // visually hide notices/counts, retain polite announcements
-    instructions: false, // visually hide help, retain accessible descriptions
-    overview: false, // hide an enabled minimap
-    connectionList: false, // replace the verbose list with a compact Connections disclosure
-  },
-});
-```
-
-Connection actions remain keyboard-accessible through the compact disclosure.
-Its `ConnectionListToggled` fact updates editor session state without changing
-graph geometry, revision or Undo history; it also works in read-only views.
-Opening it is an explicit inspection action. Full lists keep their existing
-presentation. Graph labels, ports, selection/resize handles, background styles
-and editing controls are not diagnostics and retain their own options.
-
-`resolveZlozDiagnostics(options)` and the `ZlozDiagnostics` /
-`ZlozDiagnosticOptions` types are exported from `/foldkit`. Use the resolver in
-custom node renderers or host chrome to apply the same effective flags; the
-package cannot identify diagnostics in arbitrary consumer content. The existing
-`resizeReadout: false` option still independently hides just the size badge.
-These are view preferences, not graph document fields. Minimal mode never turns
-off snapping, constraints or other editing behavior. The workbench demonstrates
-global and individual toggles, retains stored flag choices, and hides its own
-inline controls without changing node footprints.
-
-### Design freedom and public composition
-
-With `viewportControls: true`, supply `renderViewportControls` to lay out or
-omit any action. The context contains `actions`, `diagnostics`,
-`selectionModeControl`, and the current `state`. Use `zlozViewportControl` for
-native button semantics, or map an action's `event`, `disabled`, and `pressed`
-fields into your own component. The action `label` supplies the accessible name
-and can be translated or changed to match your visible text.
-
-```ts
-renderViewportControls: ({ actions }, h) =>
-  h.nav([h.AriaLabel('Diagram navigation')], [
-    zlozViewportControl(h, { ...actions.fitView, label: 'Frame graph' }, onEvent,
-      [h.Class('frame-action')], ['Frame graph']),
-  ]),
-```
-
-With `minimap: true`, `renderMinimap` receives visible nodes in paint order and
-world bounds from the current Model, including collapsed groups. Compose
-`zlozMinimap(h, context, onEvent, frameAttributes, svgChildren)` inside the ZLOZ
-surface for pointer input. Its inner SVG stretches to fit the frame and maps
-clicks using the area inside the border and padding. Draw node marks in world
-coordinates, and add `zlozMinimapViewport(h, context.geometry, svgAttributes)`
-when you want a camera outline. You can also draw your own outline from
-`geometry.visible`, or leave it out. Arrow keys pan the camera (Shift takes
-larger steps), Home fits, and Enter or Space centers the overview.
-
-Return `undefined` from either hook to use the shipped design. Existing feature
-flags still control whether hooks are called. Minimal mode and the `overview`
-diagnostic hide the minimap, while zoom and fit remain available. Navigation
-works in read-only mode and leaves graph history unchanged.
-
-### Design freedom and public composition
-
-Freedom and control apply to the engineering API as well as end-user preferences.
-The target is supported composition of complete presentation parts, with stable
-interaction primitives and a headless behavior core. Consumers should not need
-private DOM bindings, package forks or CSS specificity overrides to implement a
-design. Presentation and geometry responsibilities must remain explicit.
-
-The optional `/foldkit` entry now exposes `renderNodeShell(context, h)` and
-`renderGroupShell(context, h)` alongside the existing content-only `renderNode`.
-Return `undefined` from a shell hook to use the default for that node. A full shell
-owns its contents; the content-only callback is used only by the default card.
-
-```ts
-import {
-  zlozView,
-  zlozNodeFrame,
-  zlozGroupFrame,
-  zlozDragHandle,
-  zlozPort,
-} from '@opsydyn/foldkit-zloz/foldkit';
-
-zlozView(h, model.editor, {
-  id: 'diagram',
-  label: 'Architecture',
-  onEvent: (message) => Message.ObservedZlozInput({ message }),
-  renderNodeShell: (context, builder) =>
-    zlozNodeFrame(
-      builder,
-      context,
-      [builder.Class('my-node'), builder.Style({ padding: '16px', background: '#fff' })],
-      [
-        zlozDragHandle(builder, context, [], [context.node.label]),
-        ...context.node.ports.map((port) =>
-          zlozPort(builder, context, port, [builder.Class('my-port')], ['●']),
-        ),
-        ...context.resizeHandles,
-      ],
-    ),
-  renderGroupShell: (context, builder) =>
-    zlozGroupFrame(
-      builder,
-      context,
-      [builder.Class('my-boundary')],
-      [
-        zlozDragHandle(builder, context, [], [context.node.label]),
-        ...(context.collapseToggle ? [context.collapseToggle] : []),
-        ...context.resizeHandles,
-      ],
-    ),
-});
-```
-
-Use your host's normal event wrapper for `onEvent`. Every primitive accepts the
-host builder, Model-derived context, normal builder attributes and children.
-There are no default visual styles in the primitives. Classes and `h.Style` can
-own borders, shape, typography, padding, icons and colors directly. The bundled
-cards/groups use these same primitives.
-
-- `zlozNodeFrame`: one measured HTML frame per ordinary node. Model owns its
-  position and width; content controls height, reported through `NodeMeasured`.
-- `zlozGroupFrame`: one boundary per group, with both dimensions from Model.
-  Empty boundary space passes pointer events through to its descendants.
-- `zlozDragHandle`: a native button carrying selection, movement, focus and drag
-  behavior, with its node name and help description.
-- `zlozPort`: a native connection button, centered on the Model's authored anchor
-  independent of its visual size. Keep ports as direct children of the frame.
-- `zlozResizeHandle(builder, context, handle, attributes, children)`: a native
-  resize button. Groups support eight directions; ordinary nodes use width-only
-  resizing (`right`). Arrow keys resize groups; Left/Right resize ordinary nodes.
-  Shift increases the step. Grid snapping, limits, read-only policy and Undo use
-  the same core path as the bundled view.
-
-The context includes `node`, `state`, resolved `diagnostics`, `collapsed` and
-`dropTarget`. It also supplies optional `contextAction`, `collapseToggle` and
-`resizeHandles` from enabled default controls. Place or omit them freely, or use
-native host controls with public editor events. Omit nested interactive controls
-inside drag buttons. Consumers never need to copy private input attributes.
-
-**Geometry contract:** frame position, width, group height, box sizing and input
-markers belong to the primitives. Port position and transform belong to its Model
-anchor. The primitives merge style attributes and apply those geometry properties
-last. Keep frames at the supplied world coordinate level; avoid CSS transforms,
-margins, size constraints or ancestor positioning that would move/scale the frame
-away from Model geometry. Visual node height may intentionally change with
-content or a shell switch; ZLOZ remeasures it and rebases history. Fixed group
-bounds do not auto-fit to new content; use `GroupFitClicked` when desired.
-
-The sample's **Node design** selector switches between the default cards and
-complete circular SVG shells, including different group chrome, ports and resize
-controls. Both use the same graph and package input lifecycle. The SVG artwork is
-inside a measured HTML frame; native buttons retain keyboard behavior.
-
-`renderEdge` decorates the shared resolved path; the geometry policy below
-changes that path and its label anchor together. Follow-on boundaries are recorded in
-[ADR 0004](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/adr/0004-composable-flow-presentation.md).
+`resolveZlozDiagnostics` combines `minimalMode` with individual options for
+measurements, alignment guides, zoom level, status, instructions, overview
+and the connection list. Feed those flags into host presentation and the
+canvas's `alignmentGuides`, `resizeReadout`, and
+`contextActions.measurements` options. Graph data, editing and Undo use
+the same Model independently of the presentation flags.
 
 ### Shared custom edge geometry
 
 Use `ZlozEdgeGeometryPolicy` and `resolveEdgeGeometry` from the dependency-free
-root entry, or pass a policy as `zlozView`'s `edgeGeometry` option. The optional
-FoldKit entry also re-exports the policy/context/result types.
+root entry, or pass a policy as `graphSurface`'s `edgeGeometry` option. The optional
+Effect UI entry also re-exports the policy/context/result types.
 
 ```ts
 import type { ZlozEdgeGeometryPolicy } from '@opsydyn/foldkit-zloz';
@@ -2754,7 +1309,7 @@ const raisedArc: ZlozEdgeGeometryPolicy = ({ source, target, edge, route }) => {
   };
 };
 
-// Include these options alongside your normal id, label and onEvent options:
+// Include these options alongside your normal id, label and onInput options:
 // edgeGeometry: raisedArc,
 // edgeAppearance: (edge) => ({ hitWidth: 18 }),
 ```
@@ -2773,12 +1328,9 @@ on-canvas labels, label editing and toolbar placement. Set `labelPosition` to
 remain available. `renderEdge` receives this same resolved path/anchor and remains
 a decorative callback. Draw along `context.path` to retain interaction agreement.
 
-The public `zlozEdgeHitTarget(builder, { edge, path, hitWidth }, attributes?)`
-primitive encapsulates SVG selection bindings for composed presentations.
-`zlozView` uses it for both default and custom decoration, with a transparent
-12-unit selection corridor. `edgeAppearance.hitWidth` controls that width per
-edge. It must be positive and finite. Native connection-list controls continue
-to provide keyboard selection; reconnection handles stay anchored to ports.
+The canvas creates a transparent 12-unit selection corridor on the resolved
+path. `edgeAppearance.hitWidth` sets a positive, finite width per edge.
+Reconnection handles stay anchored to ports.
 
 Policies must be pure, keep their path endpoints at the supplied canonical
 anchors, and choose their label anchor deliberately. The package rejects empty
@@ -2798,7 +1350,7 @@ bun run --filter @opsydyn/foldkit-zloz docs
 # Open packages/foldkit-zloz/docs/index.html through a local static server.
 ```
 
-The TypeDoc reference covers the public core and FoldKit entry points, optional
+The TypeDoc reference covers the public core and Effect UI entry points, optional
 ELK and force adapters, and the lightweight force eligibility subpath. Signatures,
 fields, unions and source links come from TypeScript exports. Its landing page
 explains Model ownership, composition and package boundaries.
@@ -2839,13 +1391,11 @@ const curve = ({ source, target }: { source: Point; target: Point }) => ({
 const edgeGeometry: ZlozEdgeGeometryPolicy = curve;
 const connectionGeometry: ZlozConnectionGeometryPolicy = curve;
 
-// zlozView options alongside the host's normal id, label and onEvent:
+// graphSurface options alongside the host's normal id, label and onInput:
 // edgeGeometry,
 // connectionGeometry,
-// renderConnection: (context, builder) => builder.path([
-//   builder.D(context.path), builder.Fill('none'),
-//   builder.Stroke(context.stroke), builder.StrokeWidth('5'),
-// ], []),
+// renderConnection: (context) => new Html.Element('path')
+//   .attr('d', context.path).attr('fill', 'none').attr('stroke', context.stroke).children(),
 ```
 
 `connectionGeometry` returns the same geometry result shape as the finished-edge
@@ -2950,55 +1500,11 @@ These are repo-only diagnostic tools with no machine-dependent CI timing gate.
 
 ### Host-owned sidebar and fill-height layouts
 
-`height: 'fill'` sizes the view inside a bounded flex/grid parent; omitting height
-retains the 440px default and numbers still mean pixels. `renderLayout` receives
-`ZlozViewLayoutParts`: `canvas`, `canvasId`, `help`, `controls`, `creation`,
-`minimap`, `status` and `connections`. Controls, creation and minimap can be null
-when disabled. The same native parts implement the default presentation.
-
-```ts
-zlozView(h, model.editor, {
-  id: 'workflow',
-  label: 'Workflow canvas',
-  onEvent: zlozInput,
-  height: 'fill',
-  viewportControls: true,
-  minimap: true,
-  renderLayout: (parts, builder) =>
-    builder.div(
-      [
-        builder.Style({
-          display: 'grid',
-          'grid-template-columns': '20rem minmax(0, 1fr)',
-          height: '100%',
-          'min-height': '0',
-        }),
-      ],
-      [
-        builder.aside(
-          [builder.Style({ overflow: 'auto', 'min-height': '0' })],
-          [
-            builder.a([builder.Href('#' + encodeURIComponent(parts.canvasId))], ['Skip to canvas']),
-            parts.help,
-            ...(parts.controls ? [parts.controls] : []),
-            ...(parts.creation ? [parts.creation] : []),
-            ...(parts.minimap ? [parts.minimap] : []),
-            parts.connections,
-            parts.status,
-          ],
-        ),
-        builder.section([builder.Style({ 'min-width': '0', 'min-height': '0' })], [parts.canvas]),
-      ],
-    ),
-});
-```
-
-Give the host container a definite height. Keep each part at most once and retain
-the help/ID relationship. Theme variables scope the entire result, including
-relocated controls. Feature gates, diagnostics, policy reasons and typed events
-are already resolved. A relocated minimap retains native pointer/keyboard input
-through its own Live-scoped Mount; no canvas DOM protocol needs to be copied.
-The pure root export and numeric/default layout remain compatible.
+Place one `graphSurface` in a bounded flex or grid container. Compose
+`viewportControl`, `historyMinimap` and connection controls in an adjacent
+sidebar when wanted. Keep the canvas help ID and the mounted help element
+associated. In a compact connection list, `ConnectionListToggled` changes
+session state without changing the document or Undo history.
 
 ## Named editions and read-only history
 
@@ -3012,7 +1518,7 @@ import {
   updateHistoryReview,
   compareEditions,
 } from '@opsydyn/foldkit-zloz';
-import { zlozHistoryGhosts } from '@opsydyn/foldkit-zloz/foldkit';
+import { historyGhosts } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const edition = captureEdition({
   id: 'ordering-v1',
@@ -3027,7 +1533,7 @@ const review = createHistoryReview(reopened[0]!, model.editor);
 const nextReview = updateHistoryReview(review, event);
 const comparison = compareEditions(baselineEdition, selectedEdition);
 // Optional world-overlay content; emit an accessible change list alongside it.
-const ghosts = zlozHistoryGhosts(h, comparison, {
+const ghosts = historyGhosts(comparison, {
   enabled: model.showGhosts,
   nodes: true,
   edges: true,
@@ -3065,7 +1571,7 @@ external layout routes are not archived or compared. Use `semanticChanged` and
 `layoutChanged` flags independently; renaming an ID is an addition/removal, not a
 guessed identity match.
 
-`zlozHistoryGhosts` composes inside `renderWorldOverlay`. It creates inert SVG
+`historyGhosts` supplies `graphSurface`'s `worldOverlay`. It creates inert SVG
 outlines, dashed baseline edges and movement connectors without editor nodes,
 ports, hit targets or Undo entries. Node, edge and movement switches are
 independent; `enabled: false` omits the layer. Optional `renderNode`, `renderEdge`
@@ -3246,23 +1752,18 @@ The separate DDD `domain-event` role keeps its existing structural meaning.
 
 ```ts
 import { createArchitecturePattern, insertPattern } from '@opsydyn/foldkit-zloz';
-import { zlozEventStormingNode } from '@opsydyn/foldkit-zloz/foldkit';
 
 const result = insertPattern(editor, createArchitecturePattern('event-storming'));
-// In zlozView options:
-const renderNodeShell = (context, h) => zlozEventStormingNode(context, h);
+// Enable architectureNotation: true in the Effect UI graphSurface options.
 ```
 
 The starter shows Customer → Place order → Order placed → a policy → Request
 payment. Edges describe an illustrative process; notes do not execute policies or
 enforce causality. Adapt labels, ports, outlines and relationships to your model.
 
-`ZlozEventStormingNodeOptions` offers `renderType`, `renderName`,
-`renderDescription`, `renderBody`, `renderControls`, `attributes` and `bodyCache`.
-Undefined slot results retain defaults, null omits content, and an empty controls
-array hides chrome. Keep interactive UI in `renderControls`; sockets and control
-feedback stay outside cached inert artwork. Compose this renderer with C4/DDD
-renderers using their undefined fallback.
+Customize inert content through `notationParts`. Return `undefined` for default
+artwork or `null` to omit a part. Use the node or group shell to place
+interactive controls alongside the selection button.
 
 Scoped theme tokens `eventStormingCommand`, `eventStormingEvent`,
 `eventStormingPolicy` and `eventStormingActor` override role accents, including
@@ -3313,7 +1814,7 @@ the first without looping. Invalid identities, intervals or active elapsed value
 throw `ZlozError`. Replace the controller when the edition collection changes.
 
 Use `createHistoryReview` for the selected edition and `compareEditions` plus
-`zlozHistoryGhosts` for optional comparison. Preserve the working editor and its
+`historyGhosts` for optional comparison. Preserve the working editor and its
 Undo. Hosts must cancel subscriptions and reject stale scoped ticks after pause,
 model/collection changes, leaving history or lifecycle changes. The workbench
 uses a scoped Effect Stream timer with model/run identity, pauses for hidden
@@ -3332,21 +1833,21 @@ without putting edition data inside the cursor.
 
 ```ts
 import { resolveEditionPlaybackControls } from '@opsydyn/foldkit-zloz';
-import { zlozPlaybackControls, zlozPlaybackControl } from '@opsydyn/foldkit-zloz/foldkit';
+import { playbackControls, playbackControl } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const context = resolveEditionPlaybackControls(playback, {
   editionLabel: currentEditionName,
   blockedReason: editingReason,
   automaticReason: visibilityReason,
 });
-const controls = zlozPlaybackControls(h, context, toMessage, {
+const controls = playbackControls(h, context, toMessage, {
   renderControl: (action, builder, onEvent) =>
-    zlozPlaybackControl(builder, action, onEvent, [builder.Class('my-pill')], [action.label]),
+    playbackControl(builder, action, onEvent, (button) => button.class('my-pill'), [action.label]),
 });
 ```
 
-The Foldkit entry exposes the group composition and individual native helpers
-`zlozPlaybackControl`, `zlozPlaybackStatus` and `zlozPlaybackReason`. The component
+The `/effect-ui` entry exposes the group composition and individual native helpers
+`playbackControl`, `playbackStatus` and `playbackReason`. The component
 is unstyled. Customize `renderControl`, `renderStatus`, `renderReason` and
 `renderLayout`, or use the helpers independently inside your own frame. Slot
 undefined retains a default; null omits a part. `controls` sets an ordered subset
@@ -3395,7 +1896,7 @@ return a nonempty blocked reason. Applying the ready EditionSelected event pause
 playback and clears elapsed timing. The host projects a read-only review while
 preserving the working editor and Undo.
 
-The `/foldkit` entry exposes `zlozEditionScrubber` and individual input, readout,
+The `/effect-ui` entry exposes `editionScrubber` and individual input, readout,
 reason and Open-button helpers. The controlled native range supports browser
 keyboard navigation and uses `aria-valuetext` for human labels. Its readout is
 non-live to avoid another announcement of each range value. A single edition
@@ -3447,26 +1948,23 @@ and blank names reject with `ZlozError`. `GhostVisibilityChanged` sets an absolu
 value; native controls emit `GhostVisibilityToggled` for fresh-state updates.
 No-op requests return unchanged; denied requests return blocked with a reason.
 
-Use `context.effectiveGhosts` with `zlozHistoryGhosts`. Minimal mode and the master
+Use `context.effectiveGhosts` with `historyGhosts`. Minimal mode and the master
 switch retain each layer choice. Preferences can be configured before reviewing.
 Global `blockedReason`, `baselineReason` and per-part `ghostReasons` protect
 controls independently, with visible reasons. Labels and edition names can be
 localized through context options.
 
 ```ts
-import {
-  zlozHistoryComparisonControls,
-  zlozHistoryGhostToggle,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { historyComparisonControls, historyGhostToggle } from '@opsydyn/foldkit-zloz/effect-ui';
 
-const controls = zlozHistoryComparisonControls(h, context, toMessage, {
+const controls = historyComparisonControls(h, context, toMessage, {
   renderGhost: (control, builder, onRequest) =>
-    builder.label([], [zlozHistoryGhostToggle(builder, control, onRequest), control.label]),
+    builder.label(historyGhostToggle(builder, control, onRequest), control.label),
 });
 ```
 
-The optional entry also exports `zlozHistoryBaselineSelect`,
-`zlozHistoryComparisonStatus` and `zlozHistoryComparisonReason`. Helpers are
+The optional entry also exports `historyBaselineSelect`,
+`historyComparisonStatus` and `historyComparisonReason`. Helpers are
 unstyled native controls. Compose individually or customize `renderBaseline`,
 `renderGhost`, `renderStatus`, `renderReason` and `renderLayout`. Undefined keeps
 defaults; null omits a part. `ghosts` selects/reorders visible layers (duplicates
@@ -3486,17 +1984,17 @@ never changes the comparison or ghost preferences.
 
 ```ts
 import { resolveHistoryChangeNavigator, resolveHistoryChangeFocus } from '@opsydyn/foldkit-zloz';
-import { zlozHistoryChangeNavigator, zlozHistoryChangeButton } from '@opsydyn/foldkit-zloz/foldkit';
+import { historyChangeNavigator, historyChangeButton } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const options = { filters, blockedReason: busyReason };
 const context = resolveHistoryChangeNavigator(comparison, options);
-const view = zlozHistoryChangeNavigator(
+const view = historyChangeNavigator(
   h,
   context,
   { onFilter, onFocus },
   {
     renderEntry: (entry, builder, focus) =>
-      builder.li([], [zlozHistoryChangeButton(builder, entry, focus, [], [entry.summary])]),
+      builder.li(historyChangeButton(builder, entry, focus, undefined, [entry.summary])),
   },
 );
 // In update, recheck current comparison, preferences and policy:
@@ -3520,8 +2018,8 @@ and host/model scope. Camera focus leaves keyboard focus on the native button;
 no DOM focus is performed. Ghost visibility remains independent, including when
 focusing a removed item with its ghost hidden.
 
-The optional entry also exports `zlozHistoryChangeFilter`,
-`zlozHistoryChangeStatus` and `zlozHistoryChangeReason`. Composition supports
+The optional entry also exports `historyChangeFilter`,
+`historyChangeStatus` and `historyChangeReason`. Composition supports
 nullable `renderFilter`, `renderEntry`, `renderStatus`, `renderReason`, and a
 `renderLayout` hook. Undefined keeps defaults; null omits parts. `filters` in view
 options selects/reorders filter **controls**, while core options decide which
@@ -3672,30 +2170,21 @@ choice. Inference cannot replace authored descriptions for the same semantic key
 
 ```ts
 import {
-  zlozEventStormingRelationshipControls,
-  zlozEventStormingRelationshipSelect,
-  zlozEventStormingRelationshipInference,
-} from '@opsydyn/foldkit-zloz/foldkit';
+  eventStormingRelationshipControls,
+  eventStormingRelationshipSelect,
+  eventStormingRelationshipInference,
+} from '@opsydyn/foldkit-zloz/effect-ui';
 
-const controls = zlozEventStormingRelationshipControls(h, context, toMessage, {
+const controls = eventStormingRelationshipControls(h, context, toMessage, {
   renderSelect: (context, builder, onRequest) =>
-    builder.label(
-      [],
-      [context.label, zlozEventStormingRelationshipSelect(builder, context, onRequest)],
-    ),
+    builder.label(context.label, eventStormingRelationshipSelect(builder, context, onRequest)),
   renderInference: (action, builder, onRequest) =>
-    zlozEventStormingRelationshipInference(
-      builder,
-      action,
-      onRequest,
-      [],
-      ['Use inferred meaning'],
-    ),
+    eventStormingRelationshipInference(builder, action, onRequest, ['Use inferred meaning']),
 });
 ```
 
-Individual native helpers also include `zlozEventStormingRelationshipStatus` and
-`zlozEventStormingRelationshipReasons`. Composition supports `renderSelect`,
+Individual native helpers also include `eventStormingRelationshipStatus` and
+`eventStormingRelationshipReasons`. Composition supports `renderSelect`,
 `renderInference`, `renderStatus`, `renderReasons` and `renderLayout`. Undefined
 keeps defaults; null omits a part. Frame/status/reasons names, native attributes,
 button/status content and wrappers are customizable. Default reasons show both
@@ -3826,39 +2315,26 @@ navigation, and apply the event to the selected source editor. A historical sour
 should be opened read-only rather than copied into the working graph. Filters
 remain usable while other controls are protected.
 
-The optional Foldkit composition is unstyled and supports custom cards/badges:
+The Effect UI composition supports custom cards and badges.
 
 ```ts
-import { zlozAuditComparisonControls, zlozAuditFindingButton } from '@opsydyn/foldkit-zloz/foldkit';
+import { auditComparisonControls, auditFindingButton } from '@opsydyn/foldkit-zloz/effect-ui';
 
-const controls = zlozAuditComparisonControls(h, context, toMessage, {
+const controls = auditComparisonControls(h, context, toMessage, {
   showCounts: false,
   renderStatus: () => null,
-  renderEntry: (entry, builder, onRequest) =>
-    builder.li(
-      [],
-      [
-        zlozAuditFindingButton(
-          builder,
-          entry,
-          onRequest,
-          [],
-          [builder.strong([], [entry.kind]), ` ${entry.label}`],
-        ),
-      ],
+  renderEntry: (entry, h, onRequest) =>
+    h.li.children(
+      auditFindingButton(h, entry, onRequest, { content: `${entry.kind}: ${entry.label}` }),
     ),
 });
 ```
 
-Individual helpers are `zlozAuditEditionSelect`, `zlozAuditFindingFilter`,
-`zlozAuditFindingButton`, `zlozAuditComparisonStatus` and
-`zlozAuditComparisonReason`. Attributes, text, control names, filter order/subsets,
-selectors, entries, status, reason and layout are customizable. Undefined keeps
-default parts; null omits them. Custom entries own list-item semantics. The native
-helpers retain model-derived selection, protection and descriptions. `showCounts`
-hides numeric filter and status readouts without changing preferences. Hosts can
-bind it to diagnostics or minimal mode and omit status through its render slot.
-Rendering preferences do not replace functional protection policies.
+Use `auditEditionSelect`, `auditFindingFilter` and `auditFindingButton` to
+compose controls that retain the resolved selection, protection and
+descriptions. Composition slots keep defaults for `undefined` and omit parts
+for `null`. Custom entries supply their own list-item semantics. The
+`showCounts` option controls numeric filter and status readouts.
 
 <a id="ddd-relationship-contracts-unreleased"></a>
 
@@ -3972,31 +2448,17 @@ uses the same factory; `insertPattern` retains its existing policy, remapping an
 one-Undo transaction.
 
 ```ts
-import { createContextMapPattern, resolveContextMapRelationship } from '@opsydyn/foldkit-zloz';
-import {
-  zlozView,
-  zlozContextMapConnector,
-  zlozContextMapLabel,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { graphSurface } from '@opsydyn/foldkit-zloz/effect-ui';
 
-// In view: resolve from the current displayed graph, including read-only review.
-const meanings = new Map(
-  editor.graph.edges.flatMap((edge) => {
-    const relationship = resolveContextMapRelationship(editor.graph, edge);
-    return relationship ? [[edge.id, relationship] as const] : [];
-  }),
-);
-const canvas = zlozView(h, editor, {
+const canvas = graphSurface(h, editor, {
   id: 'context-map',
   label: 'Context map',
-  onEvent,
-  renderEdge: (context, h) => {
-    const meaning = meanings.get(context.edge.id);
-    return meaning ? zlozContextMapConnector(h, context, meaning) : undefined;
-  },
-  renderEdgeLabel: (context, h) => {
-    const meaning = meanings.get(context.edge.id);
-    return meaning ? zlozContextMapLabel(h, context, meaning, onEvent) : undefined;
+  onInput,
+  contextMapPresentation: true,
+  edgeEditing: { onEdit },
+  contextMapLabelOptions: {
+    renderName: () => null,
+    renderPattern: (relationship, builder) => builder.strong(relationship.pattern),
   },
 });
 ```
@@ -4009,7 +2471,8 @@ Unknown custom meanings have no assumed arrow direction. A known builtin omitted
 from the current convention still shows its authored direction plus an explicit
 restriction. This is presentation of intent, not a DDD audit or technical data flow.
 
-The optional entry also exports `zlozContextMapParticipant`,
+The `/effect-ui` entry exports `contextMapConnector`, `contextMapLabel`,
+`contextMapParticipant`,
 `ZlozContextMapConnectorOptions`, `ZlozContextMapLabelOptions`,
 `ZlozContextMapParticipantOptions` and `ZlozContextMapLabelParts`. All use the host
 builder and existing theme variables. Use `edgeAppearance` for color/width/dashes;
@@ -4018,7 +2481,7 @@ links have no arrow by default. Marker override and a nullable custom path rende
 are explicit choices. Supply matching current edge/relationship contexts.
 
 Label pattern, authored name, both participants, reason and layout are replaceable
-or nullable. Participant name/badge renderers and attributes allow custom visual
+or nullable. Participant name and badge renderers allow custom visual
 language. Parts inside the native edit action must be inert; use the existing
 `renderEdgeLabelEditor` hook for interactive forms. Native actions respect read-only
 and selection restrictions, with full side-role accessible descriptions. Semantic
@@ -4042,10 +2505,10 @@ See [ADR 0039](../../docs/adr/0039-compose-context-map-presentation.md).
 The headless root exports `resolveDddRelationshipControls` and
 `resolveDddRelationshipRequest`. Context, options, request/decision, choice,
 upstream/downstream role and control types are public `ZlozDdd*` contracts. The
-optional Foldkit entry exports `zlozDddRelationshipControls`,
-`zlozDddRelationshipPatternSelect`, `zlozDddUpstreamRole`,
-`zlozDddDownstreamRoleSelect`, `zlozDddRelationshipStatus`,
-`zlozDddRelationshipReasons`, `ZlozDddRelationshipControlsViewOptions` and
+`/effect-ui` entry exports `dddRelationshipControls`,
+`dddRelationshipPatternSelect`, `dddUpstreamRole`,
+`dddDownstreamRoleSelect`, `dddRelationshipStatus`,
+`dddRelationshipReasons`, `ZlozDddRelationshipControlsViewOptions` and
 `ZlozDddRelationshipControlsParts`.
 
 ```ts
@@ -4055,11 +2518,11 @@ import {
   dddRelationshipPolicy,
   updateEditor,
 } from '@opsydyn/foldkit-zloz';
-import { zlozDddRelationshipControls } from '@opsydyn/foldkit-zloz/foldkit';
+import { dddRelationshipControls } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const options = { policy: dddRelationshipPolicy(conventions, hostPolicy), conventions };
 const context = resolveDddRelationshipControls(editor, inspectedEdgeId, options);
-const controls = zlozDddRelationshipControls(h, context, onRequest, {
+const controls = dddRelationshipControls(h, context, onRequest, {
   renderStatus: () => (minimalMode ? null : undefined),
 });
 // In the host update, recheck current editor/inspector and live options:
@@ -4528,8 +2991,8 @@ whole source/target; receipt retention is host-owned and independent. Empty/equa
 patches return `unchanged` without history or receipt. Imported previews, receipts
 and unsigned actor claims are not permission. There is no CLI Apply.
 
-The optional `/foldkit` entry exports `zlozModellingPatchReview`,
-`zlozModellingPatchAcknowledgement`, `zlozModellingPatchApply` and view/parts types.
+The `/effect-ui` entry exports `modellingPatchReview`,
+`modellingPatchAcknowledgement`, `modellingPatchApply` and view/parts types.
 Native defaults show provenance, expandable source identity and before/after
 values, findings, explicit acknowledgement, Apply and live reasons. Nullable
 summary/finding/change slots, layout, attributes and action helpers support custom
@@ -4572,16 +3035,16 @@ const step = updatePngReview(state, context, {
 `state` is created with `createPngReview(context.scope)`; the context supplies the
 live snapshot, revision, scope, title, theme and renderer declarations, plus optional
 choices, font resources, filename, pixel budgets and protection callback. The
-`/foldkit` entry provides `zlozPngReview`, `zlozPngPreview`, `zlozPngAction` and
-nullable settings/preview/findings/acceptance/render/download/status/readout/layout
-slots. Minimal diagnostics hide measurements/instructions without hiding findings
-or protection. Wire the pure lifecycle to your parent Model; browser work belongs
+`/effect-ui` entry provides `pngReview` with labeled settings, preview, findings,
+acceptance and guarded actions. Use `renderLayout` to compose these elements.
+Minimal diagnostics hide measurements and instructions while keeping findings and
+protection visible. Wire the pure lifecycle to your parent Model; browser work belongs
 in Commands. Source/settings/model changes invalidate acceptance and results;
 late/cancelled/previous-generation replies cannot publish. Live protection is
 checked again at completion/download. Export never mutates the graph or Undo.
 
 The optional `/browser` entry is safe to import under Node/SSR and has no required
-Foldkit/Effect dependency; rendering there returns `unsupported`. It accepts only
+Effect UI or Effect dependency; rendering there returns `unsupported`. It accepts only
 canonical snapshots and safe SVG options/adapters, rebuilds the SVG and checks an
 optional `expectedSvg`. Direct rendering requires `writing.allowLosses: true` after
 reviewing findings (the review controller supplies this). It uses browser image,
@@ -4604,7 +3067,7 @@ and [browser/download evidence](../../apps/zloz-demo/evidence/png-export.md).
 
 `{ family: 'ddd', role: 'read-model' }` is a native ordinary-node descriptor for an
 explicitly authored query-oriented representation. `architectureNodePresets`,
-`createArchitectureNode`, the optional `zlozDddNode` renderer and its existing
+`createArchitectureNode`, Effect UI DDD notation and its existing
 content/appearance slots support it. It is not a group or a prescribed database
 shape. The role does not make the diagram node read-only; normal editor permissions
 and host policies still govern authoring.
@@ -4721,7 +3184,7 @@ typed requests; it is not a decoder for unknown input. Existing requests without
 `edgeLabels` retain their shape and behavior. Engines without label support cannot
 satisfy a request that declares bounds.
 
-The Foldkit view places `renderEdgeLabel` at the retained center while using the
+The Effect UI canvas places `edgeEditing.renderLabel` at the retained center while using the
 engine route. Make its complete rendered envelope match the declared dimensions.
 Authored waypoints/path style and collapsed group endpoints take precedence; your
 `edgeGeometry` policy can override label placement. Headless consumers can forward
@@ -4735,7 +3198,7 @@ not implied.
 
 ### Opt-in measured label bounds
 
-Core owns the request and validation; the optional Foldkit adapter measures rendered
+Core owns the request and validation; the Effect UI probe measures rendered
 HTML labels. Start a fresh run and store its state in your Model:
 
 ```ts
@@ -4749,16 +3212,10 @@ const measurements = startLabelMeasurement(editor, 'labels:17', rendererKey);
 // Optional fourth argument: the IDs of the rendered edges to measure.
 ```
 
-Use `zlozView`'s `labelMeasurement` option only while the request is pending and
-`resolveLabelMeasurements(editor, measurements, rendererKey).type === 'pending'`:
-
-```ts
-labelMeasurement: {
-  request: measurements.request, // narrowed to pending
-  timeoutMs: 3000,              // optional; positive, finite, at most 60000ms
-  onMeasured: (result) => Message.ObservedLabels({ result }),
-}
-```
+While the request is pending, render `labelMeasurementProbe` inside a
+`data-zloz-label-measurement-scope` container. Give each rendered label the
+`data-zloz-measured-label` attribute with its edge ID. The probe emits the
+scoped result with a positive finite timeout of at most 60000 milliseconds.
 
 Handle the fact in your update function with
 `updateLabelMeasurements(editor, currentMeasurements, currentRendererKey, result)`.
@@ -4796,11 +3253,11 @@ fragmented or unsupported targets fail visibly; cleanup releases the observer an
 timer and ignores late callbacks. SSR adds inert hooks without measuring anything.
 No automatic arrangement or continuous resize observation is installed.
 
-For custom hosts, import `zlozLabelMeasurement` and its optional
-`ZlozLabelMeasurementOptions` from `@opsydyn/foldkit-zloz/foldkit`. Put the keyed probe
+Import `labelMeasurementProbe` and its optional `ZlozBoxMeasurementOptions`
+from `@opsydyn/foldkit-zloz/effect-ui`. Put the keyed probe
 directly inside an element marked `data-zloz-label-measurement-scope`; mark each
 rendered HTML border-box target `data-zloz-measured-label="edge-id"`. Nested scopes
-are isolated. The ordinary view handles these hooks for you. Render every requested
+are isolated. Render every requested
 target; when using culling, request a rendered subset or disable culling for the
 measurement. Content margins, shadows, overflow, local transforms, portals, SVG
 labels and later image/font changes are outside this border-box contract. Ensure
@@ -4845,20 +3302,11 @@ Writable layout remains one Undo; detached read-only layout retains Undo history
 Requests without hints keep their previous shape. Other engines must satisfy these
 bounds too; ELK is the qualified optional adapter.
 
-Pass the same configuration to C4 or DDD group views:
-
-```ts
-zlozDddGroup(context, h, {
-  groupHeader: headers.find((header) => header.id === context.node.id),
-  renderBody: ({ node }, builder) => builder.div([], [node.label, ' · Architecture review']),
-  renderControls: () => [],
-});
-```
-
-`zlozC4Group` supports the same option. Existing content slots compose inside the
-header area, with the declared width/height and clipping; collapsed groups keep
-compact headings. If retaining separately positioned controls, reserve room with
-padding or use `renderControls`. Custom shells can use the pure geometry helper.
+Pass the same configuration to `graphSurface` through
+`groupHeader: (node) => headers.find((header) => header.id === node.id)`.
+Content slots render inside the declared header and collapsed groups use compact
+headings. Reserve space for adjacent controls using padding. Custom shells can
+use the pure geometry helper.
 Keep the configuration in your immutable Model and cancel/supersede in-flight
 layout when it changes. A heading preference alone does not change editor revision.
 Space is guaranteed after accepting layout against those hints; applying a larger
@@ -4896,9 +3344,9 @@ const measurement = startGroupHeaderMeasurement(editor, 'headings:17', rendererK
 ```
 
 Store the returned `idle | pending | ready | failed` state in your Model. Render
-headings with `groupHeader: { ...spec, sizing: 'intrinsic' }` in `zlozC4Group` or
-`zlozDddGroup`. `ZlozGroupHeaderOptions` discriminates intrinsic specs from declared
-sized envelopes; ordinary `LayoutGroupHeader` options remain compatible. Compose
+headings with `groupHeader: () => ({ ...spec, sizing: 'intrinsic' })` in Effect UI.
+`NativeGroupHeader` accepts intrinsic specs and declared `LayoutGroupHeader`
+envelopes. Compose
 content through existing slots, using natural/intrinsic CSS dimensions. Collapsed
 groups keep compact heading geometry; choose compact content in your shell when an
 expanded custom body cannot fit.
@@ -4945,9 +3393,9 @@ No automatic arrangement, continuous observation or graph serialization is added
 The shared one-shot Mount measures fractional HTML border boxes after used-font
 readiness, independent of camera zoom. It isolates nested canvases and releases its
 observer/timer on completion, failure or unmount. For custom hosts, compose
-`zlozGroupHeaderMeasurement` from `/foldkit` directly inside a host marked
+`groupHeaderMeasurementProbe` from `/effect-ui` directly inside a host marked
 `data-zloz-group-header-measurement-scope` and tag each target
-`data-zloz-group-header="group-id"`. C4/DDD group views supply targets automatically.
+`data-zloz-group-header="group-id"`. Tag the intrinsic HTML heading in the group view.
 Every requested target must render; disable culling or request a rendered subset.
 This is a typed lifecycle contract, not a decoder for unknown input. Overflow,
 shadows, local transforms, portals, SVG content and later resources are outside the
@@ -5142,11 +3590,9 @@ data, not an authorization credential. The host owns state and routes reveal eve
 to the indicated current editor or immutable history review. These APIs never
 restore snapshots, mutate graphs, select edit targets or add Undo entries.
 
-The optional `@opsydyn/foldkit-zloz/foldkit` entry exports:
-
-- `zlozDddAuditControls` and `ZlozDddAuditViewOptions` / `ZlozDddAuditParts`.
-- `zlozDddAuditEditionSelect`, `zlozDddAuditFindingFilter`,
-  `zlozDddAuditFindingButton`, `zlozDddAuditStatus`, `zlozDddAuditReason`.
+The `/effect-ui` entry exports `dddAuditControls`, `ZlozDddAuditViewOptions`,
+`AuditParts`, and the individual `auditEditionSelect`, `auditFindingFilter`
+and `dddAuditFindingButton` helpers.
 
 Native selectors, checkboxes and edge/source/target buttons have accessible labels
 and visible convention/protection reasons. All selectors, filters, entries, status,
@@ -5259,7 +3705,7 @@ New vocabulary does not authorize automatic DDD/C4 interpretation or Apply.
 `architectureNodePresets` includes headless entries (hotspot status open, lane group
 kind), not qualified artwork. `createArchitectureNode` validates supplied ports and
 kind; it never silently drops ports or changes kind to satisfy a preset. The optional native node/lane renderers now support these roles, as documented
-below. Their original headless-only artwork guard is superseded for FoldKit views. The portable workshop projection below now qualifies built-in SVG artwork.
+below. Their original headless-only artwork guard is superseded for Effect UI canvass. The portable workshop projection below now qualifies built-in SVG artwork.
 Explicit host SVG adapters or loss-declared custom-shell fallback remain available.
 Mermaid projection reports omitted semantics and preserves node/parent identity;
 portable packets retain the complete authored descriptors and chosen catalogue.
@@ -5282,16 +3728,10 @@ import {
   resolveEventStormingWorkshopRequest,
   updateEditor,
 } from '@opsydyn/foldkit-zloz';
-import {
-  zlozEventStormingNode,
-  zlozEventStormingGroup,
-  zlozEventStormingWorkshopControls,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { graphSurface, workshopControls } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const editor = createEditor(createEventStormingWorkshopPattern());
-// In your zlozView options:
-const renderNodeShell = (context, h) => zlozEventStormingNode(context, h);
-const renderGroupShell = (context, h) => zlozEventStormingGroup(context, h);
+// Render the workshop with graphSurface and architectureNotation: true.
 // Resolve against your selected node and current host policy, not a cached permission.
 const context = resolveEventStormingWorkshopControls(selectedEditor, selectedId, { policy });
 const decision = resolveEventStormingWorkshopRequest(selectedEditor, selectedId, request, {
@@ -5308,20 +3748,12 @@ policies itself. Opt into `eventStormingWorkshopRelationshipRules` when using it
 causal edges. Its sample metadata can be used by host protection; core does not
 interpret `workshopStatusLocked` as permission.
 
-`zlozEventStormingNode` renders ordinary notes, external-system dashed outlines,
-and hotspots with text status. `zlozEventStormingGroup` renders portless lanes with
-native selection, drag, collapse, context and resize controls. Both use authored
-core geometry. Hotspots never gain sockets. Existing group membership, world
-positions, clipboard, history and Undo apply unchanged.
-
-`ZlozEventStormingNodeOptions` adds `renderStatus`, `describeMeaning` and
-`groupHeader` to the existing content/body/control/cache composition contract.
-Status and all other content slots return undefined for defaults or null to omit;
-`renderBody` replaces the complete inert content. `renderControls` owns interactive
-content outside the drag handle/cache; an empty array omits chrome. Header geometry
-uses the existing declared/intrinsic contract with matching group ID; collapsed
-lanes use the compact header. Cache only inert artwork; policy-controlled controls
-and sockets remain live. Keep options stable when retaining artwork.
+Effect UI renders process notes, dashed external-system outlines, hotspot status,
+and portless lanes. Node and group controls use the canvas selection, drag,
+collapse, context, and resize behavior. Use `notationParts.renderStatus` to
+customize visible status and `notationParts.describeMeaning` to replace the
+accessible description. Use the canvas `groupHeader` option for declared or
+intrinsic headings.
 
 New scoped theme tokens are `eventStormingExternalSystem`,
 `eventStormingHotspotOpen`, `eventStormingHotspotResolved` and `eventStormingLane`.
@@ -5347,8 +3779,8 @@ model/session identity and must reject messages from a different session. Reques
 scope is freshness data, not an authorization credential. Apply immediately through
 `updateEditor` with the same policy to keep one Undo and current policy enforcement.
 
-The optional entry provides `zlozEventStormingWorkshopControls`,
-`zlozWorkshopSelect`, `zlozWorkshopStatusButton`, `ZlozWorkshopParts` and
+The `/effect-ui` entry provides `workshopControls`,
+`workshopSelect`, `workshopStatusButton`, `ZlozWorkshopParts` and
 `ZlozWorkshopViewOptions`. Default hotspot status has explicit Open/Resolved native
 pressed buttons for Tab/Enter/Space; the select helper is available for custom
 compositions. Role, status, meaning, reasons and layout each support replacement or
@@ -5363,7 +3795,7 @@ convention/protection toggles, native lane controls, readonly historical review,
 light/dark and diagnostics preferences in the left sidebar. Select **Open workshop
 semantics example**, then **Inspect**.
 
-This qualifies native FoldKit views and controls. The portable projection below
+This qualifies native Effect UI canvass and controls. The portable projection below
 separately qualifies built-in SVG/PNG artwork; custom views still need explicit
 SVG adapters/fidelity fallback.
 Mermaid loss handling, causal default catalogues and wire formats are unchanged.
@@ -5744,7 +4176,7 @@ See [ADR 0093](../../docs/adr/0093-adopt-connection-mode-in-headless-editor.md) 
 
 ### Native and custom port interactions
 
-`zlozView` follows `editor.connectionMode`. In loose sessions mouse/touch drags can
+`graphSurface` follows `editor.connectionMode`. In loose sessions mouse/touch drags can
 start at either kind, and exact/nearby targets include both kinds. Native port
 activation offers a source before staging and a target afterward, including Enter,
 Space and touch taps. Authored `kind` stays unchanged. Current policy, read-only,
@@ -5752,21 +4184,17 @@ duplicate and history checks still run in the reducer.
 
 Custom port renderers receive `context.connectionEnd` (`source | target`) for
 activation feedback, alongside `active`, accepted `target` and `disabledReason`.
-Compose `zlozPort` to retain its native button semantics, anchoring, labels and
-input data attributes:
+Return display options from `renderPort`. The canvas keeps the native
+button's anchor, accessible label and input bindings.
 
 ```ts
-renderPort: (context, h) =>
-  zlozPort(
-    h,
-    context,
-    context.port,
-    [h.Class('my-port')],
-    [context.disabledReason ?? `${context.port.kind} · ${context.connectionEnd}`],
-  );
+renderPort: (context) => ({
+  className: 'my-port',
+  content: context.disabledReason ?? `${context.port.kind} · ${context.connectionEnd}`,
+}),
 ```
 
-Use distinct `zlozView` IDs for independent sessions. The ID scopes native Mount
+Use distinct `graphSurface` IDs for independent sessions. The ID scopes native Mount
 lifetime and message mapping, while each complete editor retains its own history.
 View retention includes mode in its dependency tuple. Pointer release publishes a
 wire intent once; the subsequent pointer click is consumed while keyboard
@@ -5999,16 +4427,16 @@ partial. No npm publication or deployment.
 
 ### V2 comparison status and ghosts
 
-Compose the headless presentation with optional FoldKit parts. The resolver
+Compose the headless presentation with optional Effect UI parts. The resolver
 validates both chosen checkpoints; it owns no editor, selection or lifecycle.
 
 ```ts
 import { resolveHistoryComparisonPresentationV2 } from '@opsydyn/foldkit-zloz';
 import {
-  zlozHistoryComparisonPresentationV2,
-  zlozHistoryGhostsV2,
-  zlozView,
-} from '@opsydyn/foldkit-zloz/foldkit';
+  historyComparisonV2,
+  historyGhostsV2,
+  graphSurface,
+} from '@opsydyn/foldkit-zloz/effect-ui';
 
 const context = resolveHistoryComparisonPresentationV2(baseline, selected, {
   ghosts: savedGhostPreferences, // existing comparison controls' visibility type
@@ -6016,14 +4444,14 @@ const context = resolveHistoryComparisonPresentationV2(baseline, selected, {
   formatMode: (_change, text) => text, // replace for host language
 });
 
-const status = zlozHistoryComparisonPresentationV2(h, context, {
-  renderMode: (current, builder) => builder.strong([], [current.modeText]),
+const status = historyComparisonV2(h, context, {
+  renderMode: (current, builder) => builder.strong(current.modeText),
 });
-const canvas = zlozView(h, review.editor, {
+const canvas = graphSurface(h, review.editor, {
   id: 'edition-preview',
   label: 'Edition preview',
-  onEvent,
-  renderWorldOverlay: (_overlay, builder) => zlozHistoryGhostsV2(builder, context),
+  onInput,
+  worldOverlay: historyGhostsV2(context),
 });
 ```
 
@@ -6066,10 +4494,10 @@ import {
   resolveHistoryChangeFocusV2,
   resolveHistoryChangeStepV2,
 } from '@opsydyn/foldkit-zloz';
-import { zlozHistoryChangeNavigatorV2 } from '@opsydyn/foldkit-zloz/foldkit';
+import { historyChangeNavigatorV2 } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const navigation = resolveHistoryChangeNavigatorV2(comparison, chosenSide, options);
-const controls = zlozHistoryChangeNavigatorV2(h, navigation, {
+const controls = historyChangeNavigatorV2(h, navigation, {
   onFilter: (kind) => Message.ClickedHistoryFilter({ kind }),
   onFocus: (request) => Message.ClickedHistoryChange({ request }),
 });
@@ -6105,10 +4533,10 @@ Exceptions propagate without returning a target. `labelChange` and `filterLabels
 customize language while retaining identity. Context, entries, requests and filters
 are frozen; caller-owned preferences and comparator pins are untouched.
 
-`ZlozHistoryChangeNavigatorViewOptionsV2` supports attributes, accessible names,
+`ZlozHistoryChangeNavigatorViewOptionsV2` supports a class, accessible names,
 ordered filter controls, `renderFilter`, `renderEntry`, `renderStatus`,
 `renderReason` and `renderLayout`. Undefined keeps defaults; null omits a part.
-Compose `zlozHistoryChangeButtonV2` inside custom entries to keep native availability
+Compose `historyChangeButtonV2` inside custom entries to keep native availability
 and request behavior. Custom entries own list semantics. Status/counts can be
 replaced or omitted without changing filters, live reasons or core navigation.
 
@@ -6591,23 +5019,15 @@ const result = applyGroupConnectionV3(editor, request, livePolicy);
 ```
 
 `createGroupWorkbenchV3(document, { sessionId })` and
-`updateGroupWorkbenchV3(model, event, policy, { grid: 20 })` compose native/custom
-controls without creating a legacy editor. Keep the returned model in the host
-Foldkit Model. `zlozGroupWorkbenchV3`, `zlozGroupInspectorV3`,
-`zlozGroupActionV3` and `zlozGroupDragHandleV3` are optional `/foldkit` views.
-Use unique view IDs. Custom node content remains beside live ports; compose the
-drag-handle primitive and place custom interactive controls outside its button.
-Theme tokens and existing diagnostics/minimal settings apply. Policy reasons stay
-with protected controls; announcements remain accessible in minimal mode.
-Pointer/touch capture and cleanup use the existing scoped input resource.
+`updateGroupWorkbenchV3(model, event, policy, { grid: 20 })` compose the editor's
+model and event handling. Use `groupSurfaceV3` and `groupInspectorV3` from
+`@opsydyn/foldkit-zloz/effect-ui` with the owning component's HTML builder.
+Pass a unique canvas ID and map the emitted events into the host's messages.
 
-The v3 surface qualifies pointer node movement/connections, keyboard
-selection/nudging/connections, inspector resizing/group-port edits/reconnection,
-collapse and custom content/actions. Direct pointer resize/reconnection,
-port-anchor dragging, box selection, pinch and minimap remain outside this v3
-surface's qualified subset. `captureGroupWorkbenchDocumentV3` captures the live
-camera for save/checkpoint DTOs without mutating the editor. A host can publish
-that camera through the ordinary v3 transaction before capturing an edition.
+The surface supports pointer and keyboard movement, connection editing, group
+collapse, resize and anchor controls. The component owns the graph, permissions
+and undo history. `captureGroupWorkbenchDocumentV3` captures the live camera
+for save or checkpoint DTOs.
 
 ### Canonical v3 models and editions
 
@@ -6661,7 +5081,7 @@ publish nothing. Authored resize and parent-extent constraints also apply.
 `applyGroupWorkbenchLayoutV3` rejects an active gesture, updates the native
 controller and retains accepted routes transiently. `groupWorkbenchRoutesV3`
 returns routes only for its exact current document, idle gesture and uncollapsed
-projection. The `/foldkit` native view uses them with authored-waypoint precedence.
+projection. The Effect UI canvas uses them with authored-waypoint precedence.
 Undo restores the complete pre-layout document and invalidates routes. Layout of
 identical geometry is a no-op in history. Use a new request ID for every run and
 clear the active request on cancellation/replacement/read-only review. A source
@@ -6735,7 +5155,7 @@ const context: ZlozGroupSvgReviewContextV3 = {
   renderers: { nodes: 'built-in', edges: 'built-in' },
 };
 const controls = resolveGroupSvgReviewV3(review, context);
-// Render controls with /foldkit's composable zlozSvgReview primitives.
+// Render controls with svgReview from /effect-ui.
 // On a view request, recompute the context from the current Model:
 const next = updateGroupSvgReviewV3(review, context, request);
 // next.payload, when present, is a detached file payload for a host Command.
@@ -6785,7 +5205,7 @@ const context: ZlozGroupPngReviewContextV3 = {
   renderers: { nodes: 'built-in', edges: 'built-in' },
 };
 const controls = resolveGroupPngReviewV3(state, context);
-// Compose /foldkit's zlozPngReview, zlozPngAction and zlozPngPreview.
+// Render controls with pngReview from /effect-ui.
 const next = updateGroupPngReviewV3(state, currentContext, request);
 // When next.payload exists, a Command calls:
 // renderGroupPngExportV3(next.payload.input, { signal }) from /browser.
@@ -6883,7 +5303,7 @@ not captured by model/editions/Undo and is reset by a new session.
 occupied node anchors; exact custom placement remains available through the core
 factory. Set `pasteOffset` in controller options for keyboard placement.
 
-Optional `/foldkit` **`zlozGroupClipboardV3(h, model, options, pasteOffset?)`**
+The `/effect-ui` **`groupClipboardV3(h, model, options, pasteOffset?)`**
 composes Copy/Paste controls anywhere in a host's sidebar or custom shell.
 It emits source-bound requests, exposes current denial reasons and retains
 omission/detachment findings in minimal mode. Replace it entirely with headless
@@ -6905,7 +5325,7 @@ by default, errors always block, and review/download never edit source or Undo.
 See the [adapter API and limits](../foldkit-zloz-mermaid/README.md#native-v3-groups-and-loss-review-unreleased).
 Legacy exporters/CLI entries/readers stay version-fixed. Native packets, receipts,
 modelling patches and audits are separate adoption slices. The optional core
-Foldkit entry also exports `zlozThemeStyle` for shared token styling in adapters.
+Effect UI entry also exports `zlozThemeStyle` for shared token styling in adapters.
 
 <a id="native-v3-authoring-auditing-and-portable-evidence-unreleased"></a>
 
@@ -6933,15 +5353,12 @@ Undo frame. Conversion receipts retain the canonical source/target models and
 all archived checkpoint modes/capabilities. Strict receipt decoders recompute the
 recorded target. Imported evidence grants no current edit permission or consent.
 
-The optional `/foldkit` `zlozGroupWorkbenchV3` view now offers `resize`,
-`portAnchors`, `reconnect`, `boxSelection` and `pinchZoom` options. Controls remain
-opt-in; custom `renderResize` and `renderPortAnchor` slots can replace or omit
-handles. Compose `zlozNativeResizeHandleV3` for eight-direction custom handles.
-Keyboard arrows resize or move anchors, the inspector offers keyboard
-reconnection, Shift-background dragging selects visible roots, and Escape
-cancels. Preview geometry never becomes authority; release rechecks live policy.
-Required protection reasons remain visible in minimal mode. Geometry input uses
-a stable pointer origin across surface reflow.
+The `/effect-ui` `groupSurfaceV3` keeps resize, anchor movement,
+reconnection, box selection and pinch zoom enabled by default. Disable any
+of them through the corresponding surface option. Use `renderNode`,
+`renderPort`, `renderEdge`, `renderControls`, `renderResize` and
+`renderPortAnchor` to supply custom content. The surface still owns the
+interaction targets and exposes current protection reasons.
 
 `publishGroupWorkbenchResultV3` composes an already validated native Apply/Undo
 result into transient workbench presentation. It grants no transaction authority.

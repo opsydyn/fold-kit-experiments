@@ -1,3 +1,4 @@
+import { Command } from '@effect/ui';
 import type { ZlozPngReviewRequest } from '@opsydyn/foldkit-zloz';
 import type { ZlozSvgReviewRequest } from '@opsydyn/foldkit-zloz';
 import type { ZlozPlacementInput } from '@opsydyn/foldkit-zloz';
@@ -45,9 +46,8 @@ import {
   updatePortPositionDraft,
   portPositionFromDraft,
   type ZlozPortPositionDraftChange,
-} from '@opsydyn/foldkit-zloz/foldkit';
+} from '@opsydyn/foldkit-zloz/effect-ui';
 import { Option } from 'effect';
-import type { Return } from 'foldkit/update';
 
 import { alchemyAllowsMessage, isAlchemyMessage, updateAlchemyReview } from './alchemy-review';
 import { loadAuditExample, updateWorkbenchAudit } from './audit-comparison';
@@ -99,7 +99,7 @@ import {
   downloadWorkbenchConversion,
   conversionDownloadFeedback,
 } from './mapping-review';
-import { mermaidPreview } from './mermaid-preview';
+import { mermaidExportSource, mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
 import {
   groupedOnionGraph,
@@ -141,6 +141,7 @@ import { editWorkbenchRelationship } from './relationship-controls';
 import { updateWorkbenchPacket } from './review-packet';
 import { searchDiagram } from './search';
 import { updateWorkbenchSvgReview } from './svg-review';
+import type { Return } from './transition';
 import { editWorkbenchWorkshop } from './workshop';
 
 function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: EditorState) {
@@ -181,13 +182,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     if (paused !== model) return update(paused, message);
   }
   const cancelModelImport = () =>
-    model.modelImport
-      ? [
-          ImportZlozModel.Interrupt({ id: model.modelImport.id }, () =>
-            Message.CompletedCancelModelImport(),
-          ),
-        ]
-      : [];
+    model.modelImport ? [Command.interrupt(ImportZlozModel, { id: model.modelImport.id })] : [];
   if (
     model.modelImport &&
     new Set<string>([
@@ -205,15 +200,11 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     };
   const cancelEditionImport = () =>
     model.editionImport
-      ? [
-          ImportZlozEditions.Interrupt({ id: model.editionImport.id }, () =>
-            Message.CompletedCancelEditionImport(),
-          ),
-        ]
+      ? [Command.interrupt(ImportZlozEditions, { id: model.editionImport.id })]
       : [];
   if (model.historyReview) {
     if (message._tag === 'ObservedZlozInput') {
-      // SAFETY: zlozView emits EditorEvent values through the Schema.Unknown input field.
+      // SAFETY: The canvas supplies EditorEvent values through the workbench input field.
       const event = message.message as EditorEvent;
       const historyReview = updateHistoryReview(
         model.historyReview,
@@ -291,6 +282,17 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
       clipboard: model.editor.clipboard,
     };
   };
+  const isCurrentMermaidPanel = ({
+    modelId,
+    epoch,
+    revision,
+  }: ReturnType<typeof mermaidExportSource>) =>
+    model.sidebarSection === 'export' &&
+    model.mermaidPreviewOpen &&
+    !model.sidebarCollapsed &&
+    modelId === model.modelIdentity.id &&
+    epoch === model.modelEpoch &&
+    revision === model.editor.revision;
   const outcome: Return<Model, Message> = Message.match(message, {
     ObservedPngReviewInput: ({ request }) =>
       updateWorkbenchPngReview(
@@ -395,7 +397,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     }),
     ChoseModelDocumentFiles: ({ files }) => {
       if (!files.length)
-        return { model: { ...model, modelImport: null }, commands: cancelModelImport() };
+        return { model: { ...model, modelImport: null }, interrupts: cancelModelImport() };
       if (files.length !== 1 || files[0]!.size > editionArchiveByteLimit)
         return {
           model: {
@@ -403,7 +405,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
             modelImport: null,
             notice: 'Choose one model JSON file up to 5 MiB. Existing models are preserved.',
           },
-          commands: cancelModelImport(),
+          interrupts: cancelModelImport(),
         };
       if (modelSessionBusy({ ...model, modelImport: null }) || model.protectModelImport)
         return {
@@ -425,7 +427,8 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
           },
           notice: 'Reading model document…',
         },
-        commands: [...cancelModelImport(), ImportZlozModel({ id, file: files[0]! })],
+        interrupts: cancelModelImport(),
+        commands: [ImportZlozModel.make({ id, file: files[0]! })],
       };
     },
     ClickedCancelModelImport: () => ({
@@ -434,9 +437,8 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
         modelImport: null,
         notice: 'Model import cancelled. Existing models are preserved.',
       },
-      commands: cancelModelImport(),
+      interrupts: cancelModelImport(),
     }),
-    CompletedCancelModelImport: () => ({ model }),
     FailedModelDocumentImport: ({ id }) =>
       model.modelImport?.id === id
         ? {
@@ -475,13 +477,13 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     SelectedWorkingModel: ({ id }) => ({ model: selectWorkingModel(model, id) }),
     ClickedExportModel: () => ({
       model,
-      commands: [ExportZlozModel({ json: serializeModelDocument(workbenchDocument(model)) })],
+      commands: [ExportZlozModel.make({ json: serializeModelDocument(workbenchDocument(model)) })],
     }),
     ChoseEditionArchiveFiles: ({ files }) => {
       if (files.length === 0)
         return {
           model: { ...model, editionImport: null, notice: 'Edition import cancelled.' },
-          commands: cancelEditionImport(),
+          interrupts: cancelEditionImport(),
         };
       const file = files[0]!;
       if (files.length !== 1 || file.size > editionArchiveByteLimit)
@@ -492,7 +494,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
             notice:
               'Choose one edition archive up to 5 MiB. Your editions and working model are preserved.',
           },
-          commands: cancelEditionImport(),
+          interrupts: cancelEditionImport(),
         };
       const id = model.sequence + 1;
       return {
@@ -503,7 +505,8 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
           editionRestore: null,
           notice: 'Reading edition archive…',
         },
-        commands: [...cancelEditionImport(), ImportZlozEditions({ id, file })],
+        interrupts: cancelEditionImport(),
+        commands: [ImportZlozEditions.make({ id, file })],
       };
     },
     SucceededEditionArchiveImport: ({ id, editions: raw }) => {
@@ -545,10 +548,9 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
             },
           }
         : { model },
-    CompletedCancelEditionImport: () => ({ model }),
     ClickedCancelEditionImport: () => ({
       model: { ...model, editionImport: null, notice: 'Edition import cancelled.' },
-      commands: cancelEditionImport(),
+      interrupts: cancelEditionImport(),
     }),
     ClickedPreviewEditionRestore: () => {
       const edition = model.editions.find((item) => item.id === model.historyReview?.editionId);
@@ -790,7 +792,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     },
     ClickedExportEditions: () => ({
       model,
-      commands: [ExportZlozEditions({ json: serializeEditions(model.editions) })],
+      commands: [ExportZlozEditions.make({ json: serializeEditions(model.editions) })],
     }),
     CompletedExportEditions: () => ({
       model: { ...model, notice: 'Edition archive download started.' },
@@ -802,7 +804,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
       },
     }),
     ObservedZlozInput: ({ message: input }) => {
-      // SAFETY: zlozView and the toolbar emit the package's typed EditorEvent contract.
+      // SAFETY: The canvas and toolbar emit the package's typed EditorEvent contract.
       const event = input as EditorEvent;
       return {
         model: {
@@ -816,8 +818,9 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     }),
     ChangedDiagramSearch: ({ query }) => ({ model: { ...model, searchQuery: query } }),
     SelectedSearchScope: ({ scope }) => ({ model: { ...model, searchScope: scope } }),
-    SubmittedDiagramSearch: () => {
-      const result = searchDiagram(model.editor, model.searchQuery, model.searchScope)[0];
+    SubmittedDiagramSearch: ({ query, scope, modelId, epoch }) => {
+      if (model.modelIdentity.id !== modelId || model.modelEpoch !== epoch) return { model };
+      const result = searchDiagram(model.editor, query, scope)[0];
       if (!result) return { model };
       return { model: { ...model, editor: updateEditor(model.editor, result.event) } };
     },
@@ -1172,16 +1175,23 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     ChangedPortPositionNumber: ({ field, text }) =>
       changedPosition({ type: 'number', field, text }),
     ClickedCancelPortPosition: () => ({ model: { ...model, portPositionDraft: null } }),
-    SubmittedPortPosition: () => {
+    SubmittedPortPosition: (submitted) => {
       const draft = model.portPositionDraft;
-      if (!draft) return { model };
+      if (
+        !draft ||
+        submitted.modelId !== model.modelIdentity.id ||
+        submitted.epoch !== model.modelEpoch ||
+        submitted.nodeId !== draft.nodeId ||
+        submitted.portId !== draft.portId
+      )
+        return { model };
       const policy = workbenchPolicy(model);
       const context = Option.getOrUndefined(
         portInspectorContext(model.editor, draft.nodeId, policy),
       );
       const entry = context?.entries.find(({ port }) => port.id === draft.portId);
       if (!entry) return { model: { ...model, portPositionDraft: null } };
-      const position = Option.getOrUndefined(portPositionFromDraft(draft.draft));
+      const position = Option.getOrUndefined(portPositionFromDraft(submitted.draft));
       const reason =
         entry.positionControl.reason ??
         (position === undefined ? 'Enter a number from 0 to 1 for each position field.' : null);
@@ -1205,9 +1215,16 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
         : model,
     }),
     ClickedCancelPortLabel: () => ({ model: { ...model, portLabelDraft: null } }),
-    SubmittedPortLabel: () => {
+    SubmittedPortLabel: (submitted) => {
       const draft = model.portLabelDraft;
-      if (!draft) return { model };
+      if (
+        !draft ||
+        submitted.modelId !== model.modelIdentity.id ||
+        submitted.epoch !== model.modelEpoch ||
+        submitted.nodeId !== draft.nodeId ||
+        submitted.portId !== draft.portId
+      )
+        return { model };
       const node = model.editor.graph.nodes.find(({ id }) => id === draft.nodeId);
       const port = node?.ports.find(({ id }) => id === draft.portId);
       const policy = workbenchPolicy(model);
@@ -1228,7 +1245,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
             {
               type: 'PortLabelChanged',
               endpoint: { node: draft.nodeId, port: draft.portId },
-              label: draft.text === '' ? undefined : draft.text,
+              label: submitted.text === '' ? undefined : submitted.text,
             },
             policy,
           ),
@@ -1395,7 +1412,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     }),
     SelectedThemePreference: ({ themePreference }) => ({
       model: { ...model, themePreference },
-      commands: [SaveThemePreference({ themePreference })],
+      commands: [SaveThemePreference.make({ themePreference })],
     }),
     CompletedColorSchemeSave: () => ({ model }),
     FailedColorSchemeSave: () => ({
@@ -1445,7 +1462,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
       return {
         model: { ...model, active, sequence, notice: 'Arranging…' },
         commands: [
-          ArrangeFlow({
+          ArrangeFlow.make({
             engine,
             json: serializeGraph(active.graph),
             requestId: active.requestId,
@@ -1508,22 +1525,23 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
         },
       };
     },
-    ClickedMermaidLossConsent: () => ({
-      model: {
-        ...model,
-        mermaidLossConsentRevision:
-          model.mermaidPreviewOpen && model.mermaidLossConsentRevision !== model.editor.revision
-            ? model.editor.revision
-            : null,
-      },
-    }),
-    ClickedMermaidDownload: () => {
-      if (!model.mermaidPreviewOpen) return { model };
+    ClickedMermaidLossConsent: (source) => {
+      if (!isCurrentMermaidPanel(source)) return { model };
+      return {
+        model: {
+          ...model,
+          mermaidLossConsentRevision:
+            model.mermaidLossConsentRevision === source.revision ? null : source.revision,
+        },
+      };
+    },
+    ClickedMermaidDownload: (source) => {
+      if (!isCurrentMermaidPanel(source)) return { model };
       const result = mermaidPreview(model);
       if (result.status !== 'converted') return { model };
       return {
         model,
-        commands: [ExportMermaidBundle({ json: JSON.stringify(result.value, null, 2) })],
+        commands: [ExportMermaidBundle.make({ json: JSON.stringify(result.value, null, 2) })],
       };
     },
     CompletedMermaidDownload: () => ({
@@ -1540,7 +1558,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     }),
     ClickedExport: () => ({
       model,
-      commands: [ExportFlow({ json: snapshotJson() })],
+      commands: [ExportFlow.make({ json: snapshotJson() })],
     }),
     CompletedExport: () => ({ model: { ...model, notice: 'JSON download started.' } }),
     FailedExport: () => ({ model: { ...model, notice: 'Could not start the JSON download.' } }),
@@ -1559,7 +1577,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
           importing: { id, revision: model.editor.revision },
           notice: 'Reading diagram…',
         },
-        commands: [ImportZloz({ id, file })],
+        commands: [ImportZloz.make({ id, file })],
       };
     },
     FailedImport: ({ id }) =>
@@ -1599,7 +1617,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     },
     ClickedSave: () => ({
       model,
-      commands: [SaveZloz({ json: snapshotJson() })],
+      commands: [SaveZloz.make({ json: snapshotJson() })],
     }),
     ClickedLoad: () => {
       const id = model.sequence + 1;
@@ -1610,7 +1628,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
           importing: { id, revision: model.editor.revision },
           notice: 'Reading saved diagram…',
         },
-        commands: [LoadZloz({ id })],
+        commands: [LoadZloz.make({ id })],
       };
     },
     SucceededSave: () => ({ model: { ...model, notice: 'Saved on this browser.' } }),

@@ -1,7 +1,8 @@
+import { BrowserHost } from '@effect/ui/html';
 import type { Meta, StoryObj } from '@storybook/html';
 
-import * as ComparisonApp from '../apps/comparison/main';
-import { mountFoldkit } from './mount';
+import { Comparison } from '../apps/comparison/workbench';
+import { mountEffectUi } from './mount-effect-ui';
 
 export default {
   title: 'Charts/Comparison',
@@ -9,5 +10,6 @@ export default {
 } satisfies Meta;
 
 export const Workbench = {
-  render: () => mountFoldkit(ComparisonApp),
+  render: () =>
+    mountEffectUi((host) => BrowserHost.mountEffect(Comparison, {}, host, { head: false })),
 } satisfies StoryObj;

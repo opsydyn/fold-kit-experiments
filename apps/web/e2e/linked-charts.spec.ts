@@ -10,10 +10,25 @@ test('links keyboard inspection and histogram data through filter and empty stat
   const filter = example.getByRole('spinbutton', { name: 'Minimum years of experience' });
   const status = example.getByRole('status');
   await expect(status).toHaveText('30 observations');
+  const island = example
+    .locator('astro-island')
+    .filter({ has: page.getByRole('application', { name: /Scatter chart/ }) });
+  await expect(island.locator('[data-effect-ui-root]')).toHaveCount(1);
+  await expect(island).not.toHaveAttribute('ssr');
+  await expect(scatter.locator('svg desc')).toHaveJSProperty(
+    'namespaceURI',
+    'http://www.w3.org/2000/svg',
+  );
 
   await scatter.focus();
   await page.keyboard.press('ArrowRight');
   await expect(scatter.locator('[aria-live="polite"]')).toHaveText('1yr');
+  await expect(histogram.locator('[aria-live="polite"]')).not.toBeEmpty();
+  await page.keyboard.press('Escape');
+  await expect(histogram.locator('[aria-live="polite"]')).toBeEmpty();
+  await page.keyboard.press('Tab');
+  await expect(histogram).toBeFocused();
+  await page.keyboard.press('End');
   await expect(histogram.locator('[aria-live="polite"]')).not.toBeEmpty();
   await expect(histogram.getByRole('table', { name: 'Histogram bins' })).toBeAttached();
   await expect(histogram.getByRole('columnheader', { name: 'People' })).toBeAttached();
@@ -29,4 +44,7 @@ test('links keyboard inspection and histogram data through filter and empty stat
   await scatter.focus();
   await page.keyboard.press('ArrowRight');
   await expect(scatter.locator('[aria-live="polite"]')).toHaveText('10yr');
+  await scatter.locator('.plot-mark.plot-dot circle').last().hover();
+  await expect(scatter.locator('[aria-live="polite"]')).toHaveText('20yr');
+  await expect(histogram.locator('[aria-live="polite"]')).not.toBeEmpty();
 });

@@ -1,329 +1,72 @@
-/**
- * The scene Mount (ADR-002): runs one scene for the lifetime of its element inside
- * Foldkit's runtime. Everything acquired here is released, in reverse order, when the
- * element unmounts.
- *
- * @module
- */
-import {
-  createGatedFrames,
-  FrameSource,
-  type GatedFrames,
-  type PhysicsEngine,
-  type PointerInput,
-  ResourceRegistry,
-  type SceneEvent,
-  type SceneDescription,
-  SceneRuntime,
-  SceneSchema,
-} from '@opsydyn/effect-three';
-import { type Cause, Data, Effect, Option, Queue, Schema, Stream } from 'effect';
-import { Mount } from 'foldkit';
-import type { ViewState } from 'foldkit/mount';
+/** Connects an Effect UI mount scope and arguments to the browser scene host. */
+import { Mount } from '@effect/ui';
+import { SceneSchema, type SceneDescription } from '@opsydyn/effect-three';
+import { mountSceneHost, type Environment } from '@opsydyn/effect-three/browser';
+import { Effect, Schema, type Scope, Stream } from 'effect';
 
-import {
-  canvasIn,
-  reconciledDispatch,
-  removal,
-  sceneErrorDispatch,
-  sceneEventDispatch,
-  dispatchAssetNotice,
-} from './dom/canvas.ts';
-import { applying, createLatch, type Latch, routedWhileOpen } from './dom/latch.ts';
-import { containOverlays, createOverlayWriter, type OverlayWriter } from './dom/overlays.ts';
-import { claimsGestures, listenForPointer, touchActionSync } from './dom/pointer.ts';
-import { interceptProperty } from './dom/property.ts';
-import { typedScene } from './dom/typedScenes.ts';
-import { afterUpdate } from './dom/updates.ts';
-import {
-  measureViewport,
-  observePixelRatio,
-  observeReducedMotion,
-  observeSize,
-  observeVisibility,
-} from './dom/viewport.ts';
-import { createFrameGate, type FrameGate, xrTarget } from './dom/xrTarget.ts';
 import { SceneLifecycle } from './element.ts';
-import type { Environment } from './environment.ts';
 
-type SceneHandle = SceneRuntime.SceneHandle;
-
-/** Everything one mounted scene needs, gathered so helpers take one argument. */
-type Mounted = {
-  readonly environment: Environment;
-  readonly element: Element;
-  readonly canvas: HTMLCanvasElement;
-  readonly overlays: OverlayWriter;
-  readonly handle: SceneHandle;
-  readonly live: Latch;
-  readonly frames: GatedFrames;
-  readonly gate: FrameGate;
+/** Arguments supplied by a component whenever it renders the scene. */
+export type SceneMountArgs = {
+  readonly scene: SceneDescription;
+  readonly live?: boolean;
 };
 
-const decodeUnknownScene = Schema.decodeUnknownEffect(SceneSchema.SceneDescription);
+export type SceneMount<R = never> = Mount.Factory<
+  SceneMountArgs,
+  SceneLifecycle,
+  HTMLElement,
+  R | Scope.Scope
+>;
 
-/** Typed scenes from `view` skip validation; anything else is Schema-decoded. */
-const decodeScene = (value: unknown) =>
-  Option.fromNullishOr(typedScene(value)).pipe(
-    Option.match({ onNone: () => decodeUnknownScene(value), onSome: Effect.succeed }),
-  );
+const lifecycleFailure = (reason: string) => SceneLifecycle.FailedScene({ reason });
 
-const isLive = Schema.is(Schema.Literal('Live'));
-
-const acquireCanvas = (element: Element) => {
-  const create = Effect.sync(canvasIn(element));
-  return Effect.acquireRelease(create, (canvas) => Effect.sync(removal(canvas)));
-};
-
-const acquireSceneUpdates = () => {
-  const create = Queue.sliding<unknown>(1);
-  return Effect.acquireRelease(create, Queue.shutdown);
-};
-
-const interception = (element: Element, updates: Queue.Queue<unknown>) => () =>
-  interceptProperty(element, 'scene', (value) => Queue.offerUnsafe(updates, value));
-
-const acquireInterception = (element: Element, updates: Queue.Queue<unknown>) => {
-  const intercept = Effect.sync(interception(element, updates));
-  return Effect.acquireRelease(intercept, (intercepted) => Effect.sync(intercepted.restore));
-};
-
-const pointerListening =
-  (
-    canvas: HTMLElement,
-    onInput: (input: PointerInput) => ReadonlyArray<SceneEvent>,
-    claimsGestures: () => boolean,
-  ) =>
-  () =>
-    listenForPointer(canvas, onInput, claimsGestures);
-
-const acquirePointer = (canvas: HTMLElement, mounted: Mounted) => {
-  const listen = Effect.sync(
-    pointerListening(
-      canvas,
-      routedWhileOpen(mounted.live, mounted.handle.pointer),
-      claimsGestures(mounted.handle.graph),
-    ),
-  );
-  return Effect.acquireRelease(listen, Effect.sync);
-};
-
-/** Makes the scene presentable in the page's immersive sessions while it is mounted. */
-const xrRegistration = (mounted: Mounted) => () =>
-  mounted.environment.xrHub.register(
-    xrTarget({
-      element: mounted.element,
-      canvas: mounted.canvas,
-      live: mounted.live,
-      gate: mounted.gate,
-      settings: mounted.handle.graph.xr,
-      draw: mounted.handle.drawNow,
-      scene: mounted.handle.graph.scene,
-      follow: mounted.handle.graph.follow,
-      lend: mounted.handle.graph.store.lendGeometry,
-      object: mounted.handle.graph.object,
-      input: mounted.handle.xrInput,
-    }),
-  );
-
-const acquireXrTarget = (mounted: Mounted) => {
-  const register = Effect.sync(xrRegistration(mounted));
-  return Effect.acquireRelease(register, Effect.sync);
-};
-
-/** A stream of values from a DOM observer that returns a disconnect function. */
-const connectObserver =
-  <A>(observe: (emit: (value: A) => void) => () => void) =>
-  (queue: Queue.Queue<A, Cause.Done>) => {
-    const connect = Effect.sync(applying(observe, (value: A) => Queue.offerUnsafe(queue, value)));
-    return Effect.acquireRelease(connect, Effect.sync);
-  };
-
-const observed = <A>(observe: (emit: (value: A) => void) => () => void) =>
-  Stream.callback<A>(connectObserver(observe));
-
-/** What the scene asks for now, given to the environment's asset registry. */
-const asking = (mounted: Mounted, scene: SceneDescription) => () =>
-  mounted.environment.assetRegistry.want(mounted.element, scene.assets, (notice) =>
-    dispatchAssetNotice(mounted.element, notice),
-  );
-
-const lettingGo = (mounted: Mounted) => () =>
-  mounted.environment.assetRegistry.release(mounted.element);
-
-/** The scene's assets, asked for while it is mounted: going, it asks for none. */
-const acquireAssets = (mounted: Mounted, initial: SceneDescription) => {
-  const ask = Effect.sync(asking(mounted, initial));
-  return Effect.acquireRelease(ask, () => Effect.sync(lettingGo(mounted)));
-};
-
-/** An update applied, then what it asks for given to the registry (a refused one asks nothing). */
-const updated = (mounted: Mounted) => (scene: SceneDescription) => {
-  const ask = Effect.sync(asking(mounted, scene));
-  return Effect.tap(mounted.handle.update(scene), () => ask);
-};
-
-const applyUpdate = (mounted: Mounted) => (value: unknown) => {
-  const reportError = sceneErrorDispatch(mounted.element);
-  const reportReconciled = afterUpdate(
-    reconciledDispatch(mounted.element, mounted.environment.store),
-    [touchActionSync(mounted.canvas, mounted.handle.graph), mounted.overlays.rewrite],
-  );
-  const decoded = decodeScene(value);
-  const applied = decoded.pipe(
-    Effect.flatMap(updated(mounted)),
-    Effect.flatMap((ops) => Effect.sync(reportReconciled(ops))),
-  );
-  return applied.pipe(
-    Effect.catchTags({
-      SchemaError: (error) =>
-        Effect.sync(reportError({ _tag: 'MalformedScene', issue: error.message })),
-      InvalidScene: ({ error }) => Effect.sync(reportError(error)),
-    }),
-  );
-};
-
-const resize = (mounted: Mounted) => () =>
-  mounted.handle.resize(
-    measureViewport(
-      mounted.element,
-      mounted.environment.host.devicePixelRatio,
-      mounted.environment.pixelRatio,
-    ),
-  );
-
-const watchers = (
-  mounted: Mounted,
-  updates: Queue.Queue<unknown>,
-  viewStateChanges: Stream.Stream<ViewState>,
-) => {
-  const dispatchEvent = sceneEventDispatch(mounted.element, mounted.live);
-  const sizes = observed<void>((emit) => observeSize(mounted.element, emit));
-  const ratios = observed<void>((emit) => observePixelRatio(mounted.environment.host, emit));
-  const visibility = observed<boolean>((emit) => observeVisibility(mounted.element, emit));
-  const reducedMotion = observed<boolean>((emit) =>
-    observeReducedMotion(mounted.environment.host, emit),
-  );
-  return [
-    Stream.runForEach(Stream.fromQueue(updates), applyUpdate(mounted)),
-    Stream.runForEach(mounted.handle.events, (event) => Effect.sync(dispatchEvent(event))),
-    Stream.runForEach(viewStateChanges, (state) =>
-      Effect.sync(applying(mounted.live.set, isLive(state))),
-    ),
-    Stream.runForEach(sizes, resize(mounted)),
-    Stream.runForEach(ratios, resize(mounted)),
-    Stream.runForEach(visibility, (visible) =>
-      Effect.sync(applying(mounted.gate.setVisible, visible)),
-    ),
-    Stream.runForEach(reducedMotion, (reduced) => mounted.handle.setAnimating(!reduced)),
-  ];
-};
-
-/** The physics engine could not be loaded (Rapier's WebAssembly, say). */
-class PhysicsUnavailable extends Data.TaggedError('PhysicsUnavailable')<{
-  readonly cause: unknown;
-}> {}
-
-const sceneRuntimeFor =
-  (
-    environment: Environment,
-    element: Element,
-    canvas: HTMLCanvasElement,
-    overlays: OverlayWriter,
-    physics: PhysicsEngine | undefined,
-  ) =>
-  (scene: SceneDescription) => {
-    const frames = createGatedFrames(environment.frames);
-    const started = SceneRuntime.make({
-      scene,
-      renderer: environment.renderer(canvas),
-      behaviours: environment.behaviours,
-      physics,
-      labels: environment.labels,
-      placeOverlays: overlays.place,
-      viewport: measureViewport(element, environment.host.devicePixelRatio, environment.pixelRatio),
-    }).pipe(
-      Effect.provideService(FrameSource.FrameSource, FrameSource.fromScheduler(frames)),
-      Effect.provideService(ResourceRegistry.ResourceRegistry, { store: environment.store }),
-    );
-    return Effect.map(started, (handle) => ({ handle, frames }));
-  };
-
-function* runScene(
-  environment: Environment,
-  element: Element,
-  viewStateChanges: Stream.Stream<ViewState>,
-) {
-  const canvas = yield* acquireCanvas(element);
-  const updates = yield* acquireSceneUpdates();
-  const intercepted = yield* acquireInterception(element, updates);
-  const initial = yield* decodeScene(intercepted.initial);
-  const overlays = createOverlayWriter(element);
-  yield* Effect.sync(containOverlays(element));
-  const physics = yield* Effect.tryPromise({
-    try: () => environment.physics,
-    catch: (cause) => new PhysicsUnavailable({ cause }),
-  });
-  const { handle, frames } = yield* sceneRuntimeFor(
-    environment,
-    element,
-    canvas,
-    overlays,
-    physics,
-  )(initial);
-  const mounted: Mounted = {
-    environment,
-    element,
-    canvas,
-    overlays,
-    handle,
-    frames,
-    gate: createFrameGate(frames),
-    live: createLatch(true),
-  };
-  yield* acquireAssets(mounted, initial);
-  yield* acquirePointer(canvas, mounted);
-  yield* acquireXrTarget(mounted);
-  yield* Effect.sync(touchActionSync(canvas, handle.graph));
-  yield* Effect.sync(reconciledDispatch(element, environment.store)(handle.startupOps));
-  const forks = watchers(mounted, updates, viewStateChanges).map((watcher) =>
-    Effect.forkScoped(watcher),
-  );
-  yield* Effect.all(forks, { concurrency: 'unbounded' });
-  return SceneLifecycle.StartedScene();
-}
-
-const failure = (reason: string) => SceneLifecycle.FailedScene({ reason });
-
-const recoverStart = {
-  SchemaError: (error: Schema.SchemaError) =>
-    Effect.succeed(failure(`malformed scene: ${error.message}`)),
+const recoverStartup = {
   InvalidScene: ({ error }: { readonly error: { readonly _tag: string } }) =>
-    Effect.succeed(failure(`invalid scene: ${error._tag}`)),
-  RendererUnavailable: () => Effect.succeed(failure('renderer unavailable')),
-  PhysicsUnavailable: () => Effect.succeed(failure('physics unavailable')),
+    Effect.succeed(lifecycleFailure(`invalid scene: ${error._tag}`)),
+  RendererUnavailable: () => Effect.succeed(lifecycleFailure('renderer unavailable')),
+  PhysicsUnavailable: () => Effect.succeed(lifecycleFailure('physics unavailable')),
 };
 
-type ExecuteInput = {
-  readonly element: Element;
-  readonly viewStateChanges: Stream.Stream<ViewState>;
+const startScene = (
+  environment: Environment,
+  element: HTMLElement,
+  { scene, live }: SceneMountArgs,
+  changes: Stream.Stream<SceneMountArgs>,
+) => {
+  const updates = Stream.map(changes, (args) => args.scene);
+  const liveChanges = Stream.map(changes, (args) => args.live ?? true);
+  const startup = mountSceneHost({
+    environment,
+    element,
+    initial: scene,
+    initialLive: live ?? true,
+    updates,
+    liveChanges,
+  });
+  return startup.pipe(
+    Effect.map(() => SceneLifecycle.StartedScene()),
+    Effect.catchTags(recoverStartup),
+  );
 };
 
-const mountScene =
-  (environment: Environment) =>
-  ({ element, viewStateChanges }: ExecuteInput) => {
-    const scene = Effect.gen(() => runScene(environment, element, viewStateChanges));
-    return scene.pipe(Effect.catchTags(recoverStart));
-  };
+const mountArgs = { scene: SceneSchema.SceneDescription, live: Schema.optionalKey(Schema.Boolean) };
 
 /**
- * Defines the scene Mount for an environment. Call once at the application entry point
- * and pass the result to `view` as `mount`.
+ * Defines a scene mount with access to the component's environment. The provided
+ * Effect can read a shared service or acquire an environment scoped to the scene.
  */
-export const makeSceneMount = (environment: Environment) =>
-  Mount.define('EffectThreeScene', {
-    messages: [SceneLifecycle.StartedScene, SceneLifecycle.FailedScene],
-    execute: mountScene(environment),
-  });
+export const defineScopedSceneMount = <R>(
+  // oxlint-disable-next-line linteffect/no-manual-effect-channels -- Retain the caller's environment requirements.
+  environment: Effect.Effect<Environment, never, R>,
+): SceneMount<R> =>
+  Mount.make('EffectThreeScene', { args: mountArgs }, (element, args, changes) =>
+    Effect.flatMap(environment, (resolved) => startScene(resolved, element, args, changes)),
+  );
 
-export type SceneMount = ReturnType<typeof makeSceneMount>;
+/** Defines a scene mount for a shared environment owned by the caller. */
+export const makeSceneMount = (environment: Environment): SceneMount => {
+  // oxlint-disable-next-line linteffect/no-effect-succeed-variable -- The caller has already acquired the shared environment.
+  const shared = Effect.succeed(environment);
+  return defineScopedSceneMount(shared);
+};

@@ -1,42 +1,37 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import {
-  zlozPlaybackControls,
-  zlozPlaybackControl,
-  zlozPlaybackStatus,
+  playbackControls,
+  playbackControl,
+  playbackStatus,
   type ZlozPlaybackControlsViewOptions,
-} from '../src/foldkit';
+} from '../src/effect-ui';
 import {
   createEditionPlayback,
   resolveEditionPlaybackControls,
-  type ZlozPlaybackControlEvent,
   type ZlozPlaybackControlsContext,
 } from '../src/index';
 const context = resolveEditionPlaybackControls(createEditionPlayback(['a', 'b']), {
   editionLabel: 'Original',
 });
 async function render(
-  options: ZlozPlaybackControlsViewOptions<ZlozPlaybackControlEvent> = {},
+  options: ZlozPlaybackControlsViewOptions<string> = {},
   value: ZlozPlaybackControlsContext = context,
 ) {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: value }),
-        view: (model, h: HtmlBuilder<ZlozPlaybackControlEvent>) => ({
-          title: 'Playback',
-          body: zlozPlaybackControls(h, model, (event) => event, options),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const Review = Html.component({
+    name: 'Playback',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) => playbackControls(h, value, (event) => event.type, options),
+  });
+  const result = await Effect.runPromise(HtmlServer.renderToHtml(Review, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = result.html;
   return window.document;
@@ -70,13 +65,15 @@ test('slots can omit parts, retain defaults and replace content/layout through t
       action.name === 'pause'
         ? null
         : action.name === 'rewind'
-          ? zlozPlaybackControl(h, action, onEvent, [h.Class('custom-pill')], ['Start again'])
+          ? playbackControl(h, action, onEvent, (element) => element.class('custom-pill'), [
+              'Start again',
+            ])
           : undefined,
     renderStatus: (value, h) =>
-      zlozPlaybackStatus(h, value, [], [h.strong([], ['Review']), value.statusText]),
+      playbackStatus(h, value, undefined, [h.strong('Review'), value.statusText]),
     renderReason: () => null,
     renderLayout: (parts, _value, h) => [
-      h.div([h.Class('controls-first')], parts.controls),
+      h.div.class('controls-first').children(parts.controls),
       ...(parts.status ? [parts.status] : []),
     ],
   });
@@ -114,12 +111,12 @@ test('subsets, complete omission and localized labels do not change the cursor o
 test('native helpers retain disabled semantics with custom content and conflicting attributes', async () => {
   const document = await render({
     renderControl: (action, h, onEvent) =>
-      zlozPlaybackControl(
+      playbackControl(
         h,
         action,
         onEvent,
-        [h.Type('submit'), h.Disabled(false)],
-        [h.span([], ['Custom'])],
+        (element) => element.attr('type', 'submit').disabled(false),
+        [h.span('Custom')],
       ),
   });
   const play = document.querySelector('button[aria-label="Play editions"]');

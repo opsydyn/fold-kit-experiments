@@ -1,50 +1,39 @@
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { interpolateRgbBasis } from '@opsydyn/foldkit-viz/math/color';
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { geoGraticule } from '@opsydyn/foldkit-viz/shape/geo';
 import { clipGlobeLine, projectGlobePoint, type GlobeView } from '@opsydyn/foldkit-viz/shape/globe';
-import { Option } from 'effect';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
+import { svgMarkerActivation } from '../../ui/shared/svg-scene-input';
 import type { DecodedSnapshot, Earthquake } from './data';
 import { Message } from './message';
 import type { Model } from './model';
-import { globeEvents, GlobePointerMount } from './mount';
+import { GlobePointerMount } from './mount';
 
 import * as styles from './globe.css';
 
 const magnitudeRadius = linear({ domain: [-1, 8], range: [3, 10], clamp: true });
 const depthColour = interpolateRgbBasis(['#35c7b1', '#eda847', '#dd596f']);
 const graticule = geoGraticule(30);
-const handledKeys = new Set([
-  'ArrowLeft',
-  'ArrowRight',
-  'ArrowUp',
-  'ArrowDown',
-  '+',
-  '=',
-  '-',
-  'Home',
-]);
 const utc = (time: number) => new Date(time).toISOString();
 const value = (number: number | null, unit = '') =>
   number === null ? 'Unknown' : `${number}${unit}`;
 
-function control(h: HtmlBuilder<Message>, label: string, symbol: string, message: Message): Html {
-  return h.button(
-    [
-      h.Class(styles.iconButton),
-      h.Type('button'),
-      h.AriaLabel(label),
-      h.Title(label),
-      h.OnClick(message),
-    ],
-    [h.span([h.Attribute('aria-hidden', 'true')], [symbol])],
-  );
+function control(
+  h: Html.H<Message>,
+  label: string,
+  symbol: string,
+  message: Message,
+): View.Content<Message> {
+  return h.button
+    .attrs({ class: styles.iconButton, type: 'button', 'aria-label': label, title: label })
+    .on('click', message)
+    .children(h.span.attr('aria-hidden', 'true').children(symbol));
 }
 
-function scene(model: Model, snapshot: DecodedSnapshot, h: HtmlBuilder<Message>): Html {
+function scene(model: Model, snapshot: DecodedSnapshot, h: Html.H<Message>): View.Content<Message> {
   const view: GlobeView = { center: model.center, radius: 260 * model.zoom, translate: [300, 300] };
-  const pointer = globeEvents.withMessage(h);
   const grid =
     graticule.type === 'GeometryCollection'
       ? graticule.geometries.flatMap((line) =>
@@ -63,316 +52,255 @@ function scene(model: Model, snapshot: DecodedSnapshot, h: HtmlBuilder<Message>)
           ? 'var(--page-text)'
           : depthColour(Math.max(0, Math.min(700, event.depthKm)) / 700);
     return [
-      h.g(
-        [
-          h.Key(event.id),
-          h.Attribute('data-event-id', event.id),
-          h.Role('button'),
-          h.Tabindex(0),
-          h.AriaLabel(label),
-          h.AriaPressed(String(selected)),
-          h.OnClick(Message.ClickedMarker({ id: event.id, keyboard: false })),
-          h.OnKeyDownPreventDefault((key) =>
-            key === 'Enter' || key === ' '
-              ? Option.some(Message.ClickedMarker({ id: event.id, keyboard: true }))
-              : Option.none(),
-          ),
-          h.Style({ cursor: 'pointer' }),
-        ],
-        [
-          h.title(
-            [],
-            [
+      h
+        .el('g')
+        .attrs({
+          'data-event-id': event.id,
+          role: 'button',
+          tabindex: String(0),
+          'aria-label': label,
+          'aria-pressed': String(selected),
+          style: `cursor:pointer`,
+        })
+        .key(event.id)
+        .on(
+          'keydown',
+          svgMarkerActivation(Message.ClickedMarker({ id: event.id, keyboard: true })),
+          { preventDefault: true },
+        )
+        .children(
+          h
+            .el('title')
+            .children(
               `${event.place ?? event.id}: magnitude ${value(event.magnitude)}, depth ${value(event.depthKm, ' km')}`,
-            ],
-          ),
-          h.circle(
-            [
-              h.Cx(String(point.x)),
-              h.Cy(String(point.y)),
-              h.R(String(event.magnitude === null ? 5 : magnitudeRadius(event.magnitude))),
-              h.Fill(fill),
-              h.Stroke('var(--page-text)'),
-              h.StrokeWidth(selected ? '3' : '0.8'),
-              h.StrokeDasharray(event.depthKm === null ? '2 2' : 'none'),
-            ],
-            [],
-          ),
-        ],
-      ),
+            ),
+          h.el('circle').attrs({
+            cx: String(point.x),
+            cy: String(point.y),
+            r: String(event.magnitude === null ? 5 : magnitudeRadius(event.magnitude)),
+            fill: fill,
+            stroke: 'var(--page-text)',
+            'stroke-width': selected ? '3' : '0.8',
+            'stroke-dasharray': event.depthKm === null ? '2 2' : 'none',
+          }),
+        ),
     ];
   });
-  return h.svg(
-    [
-      h.Class(styles.globe),
-      h.ViewBox('0 0 600 600'),
-      h.Role('group'),
-      h.Tabindex(0),
-      h.AriaLabel('Earthquake globe'),
-      h.Attribute('data-longitude', String(model.center[0])),
-      h.Attribute('data-latitude', String(model.center[1])),
-      h.Attribute('data-zoom', String(model.zoom)),
-      h.OnMount(GlobePointerMount()),
-      pointer.OnFoldkitGlobePointer((message) => message),
-      h.OnKeyDownPreventDefault((key) =>
-        handledKeys.has(key) ? Option.some(Message.PressedGlobeKey({ key })) : Option.none(),
-      ),
-    ],
-    [
-      h.title([], ['Recorded earthquake epicentres']),
-      h.desc(
-        [],
-        [
+  return h
+    .el('svg')
+    .attr('xmlns', 'http://www.w3.org/2000/svg')
+    .attrs({
+      class: styles.globe,
+      viewBox: '0 0 600 600',
+      role: 'group',
+      tabindex: String(0),
+      'aria-label': 'Earthquake globe',
+      'data-longitude': String(model.center[0]),
+      'data-latitude': String(model.center[1]),
+      'data-zoom': String(model.zoom),
+    })
+    .onMount(GlobePointerMount())
+    .children(
+      h.el('title').children('Recorded earthquake epicentres'),
+      h
+        .el('desc')
+        .children(
           'Surface locations from the recorded USGS snapshot. Circle radius encodes magnitude; colour encodes depth in kilometres.',
-        ],
+        ),
+      h.el('defs').children(
+        h
+          .el('clipPath')
+          .attr('id', 'earthquake-globe-disk')
+          .children(h.el('circle').attrs({ cx: '300', cy: '300', r: String(view.radius) })),
       ),
-      h.defs(
-        [],
-        [
-          h.clipPath(
-            [h.Id('earthquake-globe-disk')],
-            [h.circle([h.Cx('300'), h.Cy('300'), h.R(String(view.radius))], [])],
-          ),
-        ],
-      ),
-      h.circle(
-        [
-          h.Cx('300'),
-          h.Cy('300'),
-          h.R(String(view.radius)),
-          h.Fill('var(--card-bg)'),
-          h.Stroke('var(--page-text)'),
-          h.StrokeWidth('1'),
-        ],
-        [],
-      ),
-      h.g(
-        [h.ClipPath('url(#earthquake-globe-disk)')],
-        [
+      h.el('circle').attrs({
+        cx: '300',
+        cy: '300',
+        r: String(view.radius),
+        fill: 'var(--card-bg)',
+        stroke: 'var(--page-text)',
+        'stroke-width': '1',
+      }),
+      h
+        .el('g')
+        .attr('clip-path', 'url(#earthquake-globe-disk)')
+        .children(
           ...grid.map((segment) =>
-            h.path(
-              [
-                h.D(segment.map(([x, y], index) => `${index === 0 ? 'M' : 'L'}${x},${y}`).join('')),
-                h.Fill('none'),
-                h.Stroke('var(--chart-label)'),
-                h.StrokeWidth('0.6'),
-                h.Attribute('aria-hidden', 'true'),
-              ],
-              [],
-            ),
+            h.el('path').attrs({
+              d: segment.map(([x, y], index) => `${index === 0 ? 'M' : 'L'}${x},${y}`).join(''),
+              fill: 'none',
+              stroke: 'var(--chart-label)',
+              'stroke-width': '0.6',
+              'aria-hidden': 'true',
+            }),
           ),
           ...marks,
-        ],
-      ),
-    ],
-  );
+        ),
+    );
 }
 
-function inspection(model: Model, snapshot: DecodedSnapshot, h: HtmlBuilder<Message>): Html {
+function inspection(
+  model: Model,
+  snapshot: DecodedSnapshot,
+  h: Html.H<Message>,
+): View.Content<Message> {
   const selected = snapshot.events.find((event) => event.id === model.selectedId);
-  const content: Html[] =
+  const content: View.Content<Message>[] =
     selected === undefined
-      ? [h.p([], ['No earthquake selected'])]
+      ? [h.p.children('No earthquake selected')]
       : [
-          h.h2([h.Class(styles.heading)], [selected.place ?? selected.id]),
-          h.p([], [`Magnitude ${value(selected.magnitude)}`]),
-          h.p([], [`Depth ${value(selected.depthKm, ' km')}`]),
-          h.p([], [`${selected.latitude}, ${selected.longitude}`]),
-          h.p([], [utc(selected.timeMs)]),
+          h.h2.attr('class', styles.heading).children(selected.place ?? selected.id),
+          h.div
+            .class(styles.summary)
+            .children(
+              h.span.children(`Magnitude ${value(selected.magnitude)}`),
+              h.span.children(`Depth ${value(selected.depthKm, ' km')}`),
+            ),
+          h.p.children(`${selected.latitude}, ${selected.longitude}`),
+          h.p.children(utc(selected.timeMs)),
           ...(selected.url === null
             ? []
             : [
-                h.a(
-                  [h.Href(selected.url), h.Target('_blank'), h.Rel('noopener noreferrer')],
-                  ['USGS event record'],
-                ),
+                h.a
+                  .attrs({ href: selected.url, target: '_blank', rel: 'noopener noreferrer' })
+                  .children('USGS event record'),
               ]),
         ];
-  return h.section(
-    [
-      h.Class(styles.details),
-      h.AriaLabel('Selected earthquake'),
-      h.Attribute('aria-live', 'polite'),
-      h.Attribute('aria-atomic', 'true'),
-    ],
-    content,
-  );
+  return h.section
+    .attrs({
+      class: styles.details,
+      'aria-label': 'Selected earthquake',
+      'aria-live': 'polite',
+      'aria-atomic': 'true',
+    })
+    .children(content);
 }
 
-function row(event: Earthquake, model: Model, h: HtmlBuilder<Message>): Html {
-  return h.tr(
-    [h.Key(event.id), h.Attribute('aria-selected', String(event.id === model.selectedId))],
-    [
-      h.td(
-        [],
-        [
-          h.button(
-            [
-              h.Class(styles.inspect),
-              h.Type('button'),
-              h.AriaLabel(`Inspect ${event.id}`),
-              h.OnClick(Message.ClickedEventRow({ id: event.id })),
-            ],
-            [event.id],
-          ),
-        ],
+function row(event: Earthquake, model: Model, h: Html.H<Message>): View.Content<Message> {
+  return h.tr
+    .attr('aria-selected', String(event.id === model.selectedId))
+    .key(event.id)
+    .children(
+      h.td.children(
+        h.button
+          .attrs({ class: styles.inspect, type: 'button', 'aria-label': `Inspect ${event.id}` })
+          .on('click', Message.ClickedEventRow({ id: event.id }))
+          .children(event.id),
       ),
-      h.td([], [value(event.magnitude)]),
-      h.td([], [value(event.depthKm)]),
-      h.td([], [utc(event.timeMs)]),
-      h.td([], [event.place ?? 'Unknown']),
-    ],
-  );
+      h.td.children(value(event.magnitude)),
+      h.td.children(value(event.depthKm)),
+      h.td.children(utc(event.timeMs)),
+      h.td.children(event.place ?? 'Unknown'),
+    );
 }
 
-function recorded(model: Model, snapshot: DecodedSnapshot, h: HtmlBuilder<Message>): Html {
+function recorded(
+  model: Model,
+  snapshot: DecodedSnapshot,
+  h: Html.H<Message>,
+): View.Content<Message> {
   const excluded = Object.values(snapshot.excluded).reduce((total, count) => total + count, 0);
   const warnings = Object.entries(snapshot.warnings)
     .map(([reason, count]) => `${reason}: ${count}`)
     .join(', ');
-  return h.div(
-    [h.Class(styles.root)],
-    [
-      h.div(
-        [h.Class(styles.toolbar), h.Role('group'), h.AriaLabel('Globe controls')],
-        [
-          control(h, 'Turn west', '\u2190', Message.ClickedTurn({ direction: 'west' })),
-          control(h, 'Turn east', '\u2192', Message.ClickedTurn({ direction: 'east' })),
-          control(h, 'Turn north', '\u2191', Message.ClickedTurn({ direction: 'north' })),
-          control(h, 'Turn south', '\u2193', Message.ClickedTurn({ direction: 'south' })),
-          control(h, 'Zoom in', '+', Message.ClickedZoomIn()),
-          control(h, 'Zoom out', '\u2212', Message.ClickedZoomOut()),
-          control(h, 'Reset globe', '\u21ba', Message.ClickedReset()),
-          h.output([h.AriaLabel('Zoom')], [`${model.zoom.toFixed(2)}x`]),
-        ],
+  return h.div.attr('class', styles.root).children(
+    h.div
+      .attrs({ class: styles.toolbar, role: 'group', 'aria-label': 'Globe controls' })
+      .children(
+        control(h, 'Turn west', '\u2190', Message.ClickedTurn({ direction: 'west' })),
+        control(h, 'Turn east', '\u2192', Message.ClickedTurn({ direction: 'east' })),
+        control(h, 'Turn north', '\u2191', Message.ClickedTurn({ direction: 'north' })),
+        control(h, 'Turn south', '\u2193', Message.ClickedTurn({ direction: 'south' })),
+        control(h, 'Zoom in', '+', Message.ClickedZoomIn()),
+        control(h, 'Zoom out', '\u2212', Message.ClickedZoomOut()),
+        control(h, 'Reset globe', '\u21ba', Message.ClickedReset()),
+        h.output.attr('aria-label', 'Zoom').children(`${model.zoom.toFixed(2)}x`),
       ),
-      h.div(
-        [h.Class(styles.workspace)],
-        [
-          h.div(
-            [],
-            [
-              scene(model, snapshot, h),
-              h.div(
-                [h.Class(styles.legend)],
-                ['Magnitude: -1 to 8 / radius 3 to 10 / hollow = unknown'],
-              ),
-              h.div(
-                [h.Class(styles.legend)],
-                [
-                  h.span([], ['Depth (km)']),
-                  ...[0, 350, 700].map((depth) =>
-                    h.span(
-                      [h.Class(styles.legend)],
-                      [
-                        h.span(
-                          [
-                            h.Class(styles.swatch),
-                            h.Style({ background: depthColour(depth / 700) }),
-                            h.Attribute('aria-hidden', 'true'),
-                          ],
-                          [],
-                        ),
-                        String(depth),
-                      ],
-                    ),
-                  ),
-                  h.span([], ['Dashed = unknown depth']),
-                ],
-              ),
-            ],
+    h.div.attr('class', styles.workspace).children(
+      h.div.children(
+        scene(model, snapshot, h),
+        h.div
+          .attr('class', styles.legend)
+          .children('Magnitude: -1 to 8 / radius 3 to 10 / hollow = unknown'),
+        h.div.attr('class', styles.legend).children(
+          h.span.children('Depth (km)'),
+          ...[0, 350, 700].map((depth) =>
+            h.span.attr('class', styles.legend).children(
+              h.span.attrs({
+                class: styles.swatch,
+                style: `background:${depthColour(depth / 700)}`,
+                'aria-hidden': 'true',
+              }),
+              String(depth),
+            ),
           ),
-          h.aside(
-            [h.Class(styles.side)],
-            [
-              h.h2([h.Class(styles.heading)], ['Recorded USGS M2.5+ / seven days']),
-              h.div(
-                [h.Class(styles.metadata)],
-                [
-                  h.p(
-                    [],
-                    [
-                      `${snapshot.events.length} accepted / ${excluded} excluded / ${snapshot.provenance.originalCount} original`,
-                    ],
-                  ),
-                  h.p([], [`Captured: ${snapshot.provenance.capturedAt}`]),
-                  h.p([], [`Generated: ${utc(snapshot.provenance.generatedAtMs)}`]),
-                  h.p(
-                    [],
-                    [
-                      snapshot.window === null
-                        ? 'Observed-event span: empty'
-                        : `Observed-event span: ${utc(snapshot.window[0])} to ${utc(snapshot.window[1])}`,
-                    ],
-                  ),
-                  h.a(
-                    [
-                      h.Href(snapshot.provenance.sourceUrl),
-                      h.Target('_blank'),
-                      h.Rel('noopener noreferrer'),
-                    ],
-                    ['USGS snapshot source'],
-                  ),
-                  ...(warnings ? [h.p([], [warnings])] : []),
-                  ...(excluded
-                    ? [
-                        h.p(
-                          [],
-                          [
-                            Object.entries(snapshot.excluded)
-                              .map(([reason, count]) => `${reason}: ${count}`)
-                              .join(', '),
-                          ],
-                        ),
-                      ]
-                    : []),
-                ],
-              ),
-              inspection(model, snapshot, h),
-            ],
-          ),
-        ],
+          h.span.children('Dashed = unknown depth'),
+        ),
       ),
-      ...(snapshot.events.length === 0
-        ? [h.p([], ['No earthquakes in this recorded snapshot'])]
-        : []),
-      h.div(
-        [h.Class(styles.tableScroll)],
-        [
-          h.table(
-            [h.Class(styles.table)],
-            [
-              h.caption([], ['Recorded earthquakes']),
-              h.thead(
-                [],
-                [
-                  h.tr(
-                    [],
-                    ['Event', 'Magnitude', 'Depth (km)', 'Time (UTC)', 'Location'].map((label) =>
-                      h.th([h.Attribute('scope', 'col')], [label]),
-                    ),
-                  ),
-                ],
-              ),
-              h.tbody(
-                [],
-                snapshot.events.map((event) => row(event, model, h)),
-              ),
-            ],
+      h.aside.attr('class', styles.side).children(
+        h.h2.attr('class', styles.heading).children('Recorded USGS M2.5+ / seven days'),
+        h.div.attr('class', styles.metadata).children(
+          h.p.children(
+            `${snapshot.events.length} accepted / ${excluded} excluded / ${snapshot.provenance.originalCount} original`,
           ),
-        ],
+          h.p.children(`Captured: ${snapshot.provenance.capturedAt}`),
+          h.p.children(`Generated: ${utc(snapshot.provenance.generatedAtMs)}`),
+          h.p.children(
+            snapshot.window === null
+              ? 'Observed-event span: empty'
+              : `Observed-event span: ${utc(snapshot.window[0])} to ${utc(snapshot.window[1])}`,
+          ),
+          h.a
+            .attrs({
+              href: snapshot.provenance.sourceUrl,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+            })
+            .children('USGS snapshot source'),
+          ...(warnings ? [h.p.children(warnings)] : []),
+          ...(excluded
+            ? [
+                h.p.children(
+                  Object.entries(snapshot.excluded)
+                    .map(([reason, count]) => `${reason}: ${count}`)
+                    .join(', '),
+                ),
+              ]
+            : []),
+        ),
+        inspection(model, snapshot, h),
       ),
-    ],
+    ),
+    ...(snapshot.events.length === 0
+      ? [h.p.children('No earthquakes in this recorded snapshot')]
+      : []),
+    h.div
+      .attr('class', styles.tableScroll)
+      .children(
+        h.table
+          .attr('class', styles.table)
+          .children(
+            h.caption.children('Recorded earthquakes'),
+            h.thead.children(
+              h.tr.children(
+                ['Event', 'Magnitude', 'Depth (km)', 'Time (UTC)', 'Location'].map((label) =>
+                  h.th.attr('scope', 'col').children(label),
+                ),
+              ),
+            ),
+            h.tbody.children(snapshot.events.map((event) => row(event, model, h))),
+          ),
+      ),
   );
 }
 
-export function view(model: Model, h: HtmlBuilder<Message>): Document {
-  const body =
-    model.data._tag === 'Failure'
-      ? h.div(
-          [h.Role('alert')],
-          [h.p([], [model.data.reason]), h.a([h.Href('/charts')], ['Chart gallery'])],
+export function view(model: Model, h: Html.H<Message>): View.Content<Message> {
+  return model.data._tag === 'Failure'
+    ? h.div
+        .attr('role', 'alert')
+        .children(
+          h.p.children(model.data.reason),
+          h.a.attr('href', '/charts').children('Chart gallery'),
         )
-      : recorded(model, model.data.snapshot, h);
-  return { title: 'Earthquake Globe - Astro + FoldKit', body };
+    : recorded(model, model.data.snapshot, h);
 }

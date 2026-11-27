@@ -1,7 +1,7 @@
-import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+import type { Html } from '@effect/ui/html';
+import { plotChart } from '@opsydyn/foldkit-viz/effect-ui/plot';
 import { compilePlot } from '@opsydyn/foldkit-viz/plot';
 import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { spec as worldSpec } from '../choropleth/spec';
 import { Message } from './message';
@@ -16,27 +16,22 @@ export const zoomedSpec = (model: Model): PlotSpec => ({
   projection: { type: 'naturalEarth1', zoom: model.zoom, center: model.center },
 });
 
-const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
-  h.button([h.Type('button'), h.Class(styles.button), h.OnClick(message)], [label]);
+const button = (h: Html.H<Message>, label: string, message: Message) =>
+  h.button.class(styles.button).attr('type', 'button').on('click', message).children(label);
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'Zoomable choropleth — foldkit-viz',
-  body: h.div(
-    [],
-    [
-      h.div(
-        [h.Class(styles.toolbar), h.Role('group'), h.AriaLabel('Map view')],
-        [
-          button(h, 'Zoom in', Message.ZoomedIn()),
-          button(h, 'Zoom out', Message.ZoomedOut()),
-          button(h, 'West', Message.PannedWest()),
-          button(h, 'East', Message.PannedEast()),
-          button(h, 'North', Message.PannedNorth()),
-          button(h, 'South', Message.PannedSouth()),
-          button(h, 'Reset', Message.ResetView()),
-        ],
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.div.children(
+    h.div
+      .class(styles.toolbar)
+      .attrs({ role: 'group', 'aria-label': 'Map view' })
+      .children(
+        button(h, 'Zoom in', Message.ZoomedIn()),
+        button(h, 'Zoom out', Message.ZoomedOut()),
+        button(h, 'West', Message.PannedWest()),
+        button(h, 'East', Message.PannedEast()),
+        button(h, 'North', Message.PannedNorth()),
+        button(h, 'South', Message.PannedSouth()),
+        button(h, 'Reset', Message.ResetView()),
       ),
-      plotChart(h, compilePlot(zoomedSpec(model))),
-    ],
-  ),
-});
+    plotChart(h, compilePlot(zoomedSpec(model))),
+  );

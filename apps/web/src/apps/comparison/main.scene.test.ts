@@ -1,41 +1,17 @@
-import { Option, Schema } from 'effect';
-import { Runtime } from 'foldkit';
+import { BrowserHost, Html, HtmlCommand } from '@effect/ui/html';
+import { Effect, Exit, Option, Scope } from 'effect';
 import { assert, expect, it, onTestFinished, vi } from 'vitest';
 
-import * as PlotPanel from '../../ui/plot-panel';
+import * as PlotPanel from '../../ui/plot-panel/core';
 import { linkedDots } from '../../ui/plot-panel/highlights.test-helper';
-import { FocusComparisonTarget } from './command';
 import { histogramSpec } from './data';
-import { Message } from './message';
-import { init } from './model';
-import type { Model } from './model';
-import { update } from './update';
-import { view } from './view';
+import { headingRef, workbenchCommands } from './workbench-focus';
+import { init, Message, Model, update } from './workbench-state';
+import { workbenchView } from './workbench-view';
 
 function required<T>(value: T | null | undefined): T {
   assert(value !== null && value !== undefined);
   return value;
-}
-
-function holdRenderFrames() {
-  const frames = new Map<number, FrameRequestCallback>();
-  let nextId = 1;
-  vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((callback) => {
-    const id = nextId++;
-    frames.set(id, callback);
-    return id;
-  });
-  vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation((id) => {
-    frames.delete(id);
-  });
-  onTestFinished(() => {
-    vi.restoreAllMocks();
-  });
-  return () => {
-    const pending = [...frames.values()];
-    frames.clear();
-    for (const callback of pending) callback(performance.now());
-  };
 }
 
 /** The panel elements, which take pointer and key input, in page order. */
@@ -64,50 +40,73 @@ function pointerOver(chart: PlotPanel.Model, key: string, box: DOMRect) {
 
 const liveText = (panel: Element) => panel.querySelector('[aria-live="polite"]')?.textContent;
 
-async function scene(initial: Model = init().model, missingTarget = false) {
+// Each scene owns a real renderer scope and exposes its host and observed messages.
+// oxlint-disable-next-line linteffect/no-effect-wrapper-alias
+async function scene(
+  initial: Model = init(),
+  options: {
+    readonly missingTarget?: boolean;
+    readonly beforeMoveCommit?: () => void;
+    readonly removeDuringMove?: boolean;
+  } = {},
+) {
   const host = document.createElement('div');
-  const container = document.createElement('div');
-  container.id = 'comparison-scene';
-  host.append(container);
   document.body.append(host);
-  let latest = initial;
-  const messages: Message[] = [];
-  const handle = Runtime.embed(
-    Runtime.makeApplication({
-      Model: Schema.declare<Model>(
-        (value): value is Model =>
-          value === initial || (typeof value === 'object' && value !== null && 'panels' in value),
-      ),
-      init: () => ({ model: initial }),
-      update: (model: Model, message: Message) => {
-        messages.push(message);
-        const result = update(model, message);
-        latest = result.model;
-        if (missingTarget && message._tag === 'ClickedAddPanel') {
-          latest = { ...model, panels: model.panels.filter(({ id }) => id !== 2) };
-          return {
-            model: latest,
-            commands: [FocusComparisonTarget({ selector: '#comparison-panel-2' })],
-          };
-        }
-        return result;
-      },
-      view,
-      container,
-      devTools: false,
-    }),
-  );
-  onTestFinished(() => {
-    handle.dispose();
+  const scope = Scope.makeUnsafe();
+  const dispose = () => {
+    const close = Scope.close(scope, Exit.void);
+    return Effect.runPromise(close);
+  };
+  onTestFinished(async () => {
+    await dispose();
     host.remove();
   });
-  await vi.waitFor(() => expect(host.querySelector('#comparison-add-scatter')).not.toBeNull());
-  const button = (name: string) => {
-    const target = host.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`);
-    expect(target).not.toBeNull();
-    return required(target);
-  };
-  return { host, handle, button, messages, model: () => latest };
+  let latest = initial;
+  const messages: Message[] = [];
+  const Scene = Html.component({
+    name: 'ComparisonScene',
+    model: Model,
+    message: Message,
+  }).make({
+    init: () => initial,
+    update: ($, message) => {
+      messages.push(message);
+      if (options.missingTarget && message._tag === 'ClickedAddPanel') {
+        latest = { ...$.model, panels: $.model.panels.filter(({ id }) => id !== 2) };
+        return $.set(latest).run(
+          HtmlCommand.focus(headingRef(2), () => Message.ChangedLinkInspections({ enabled: true })),
+        );
+      }
+
+      const result = update($.model, message);
+      if (message._tag === 'ObservedPanelMove') {
+        options.beforeMoveCommit?.();
+        if (options.removeDuringMove) {
+          const removed = update(result.model, Message.ClickedRemovePanel({ id: message.id }));
+          latest = removed.model;
+          return $.set(latest).run(...workbenchCommands(removed));
+        }
+      }
+      latest = result.model;
+      return $.set(latest).run(...workbenchCommands(result));
+    },
+    view: (h, model) => workbenchView(h, model, (message) => message),
+  });
+  await Effect.runPromise(
+    Scope.provide(BrowserHost.mountEffect(Scene, {}, host, { head: false }), scope),
+  );
+  await vi.waitFor(() =>
+    expect(
+      messages.filter(
+        (message) =>
+          message._tag === 'ReceivedPanelMessage' &&
+          message.message._tag === 'CompletedForwardPointer',
+      ),
+    ).toHaveLength(initial.panels.length),
+  );
+  const button = (name: string) =>
+    required(host.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`));
+  return { host, dispose, button, messages, model: () => latest };
 }
 
 it('focuses additions and next, previous, then add after removals', async () => {
@@ -138,14 +137,14 @@ it('keeps keyed nodes, local inspection and focused move control when reordered'
   expect(model().panels.map(({ id }) => id)).toEqual([2, 1]);
   expect(host.querySelector('#comparison-panel-1')).toBe(heading);
   expect(button('Move Scatter 1 later')).toBe(target);
-  expect(document.activeElement).toBe(target);
+  await vi.waitFor(() => expect(document.activeElement).toBe(target));
   expect(target.disabled).toBe(false);
   expect(target.getAttribute('aria-disabled')).toBe('true');
   expect(liveText(chart)).toBe('1yr');
 });
 
 it('routes actual histogram keys and pointer hover to equivalent interval facts', async () => {
-  const initial = init().model;
+  const initial = init();
   // Two bins, [10, 20) and [20, 30], so the facts are easy to read.
   const twoBins = PlotPanel.init({
     spec: {
@@ -227,10 +226,8 @@ it.each(['leave', 'histogram pointer', 'scatter key', 'histogram key'] as const)
       );
     const inputFacts = () =>
       messages.flatMap((message) => {
-        if (message._tag !== 'GotScatterMessage' && message._tag !== 'GotHistogramMessage')
-          return [];
-        // SAFETY: These envelopes come from the maintained typed chart panels in this runtime.
-        const child = message.message as PlotPanel.Message;
+        if (message._tag !== 'ReceivedPanelMessage') return [];
+        const child = message.message;
         return ['MovedPointer', 'LeftPlot', 'PressedKeyNav'].includes(child._tag)
           ? [`${message.id}:${child._tag}`]
           : [];
@@ -283,7 +280,7 @@ it('clears scatter inspection when movement and leave occur in separate tasks', 
 });
 
 it('removes a panel’s pointer listeners when it is removed and on host disposal', async () => {
-  const { host, button, handle } = await scene();
+  const { host, button, dispose } = await scene();
   const [scatter, histogram] = panelsIn(host);
   assert(scatter !== undefined && histogram !== undefined);
   const removedFromScatter = vi.spyOn(scatter, 'removeEventListener');
@@ -296,20 +293,20 @@ it('removes a panel’s pointer listeners when it is removed and on host disposa
     expect(removedFromScatter.mock.calls.some(([name]) => name === 'pointermove')).toBe(true),
   );
   expect(removedFromHistogram.mock.calls.some(([name]) => name === 'pointermove')).toBe(false);
-  handle.dispose();
+  await dispose();
   await vi.waitFor(() =>
     expect(removedFromHistogram.mock.calls.some(([name]) => name === 'pointermove')).toBe(true),
   );
 });
 
 it('a focus target removed before commit completes harmlessly without stealing focus', async () => {
-  const { host, messages } = await scene(init().model, true);
+  const { host, messages } = await scene(init(), { missingTarget: true });
   const add = required(host.querySelector<HTMLButtonElement>('#comparison-add-scatter'));
   expect(host.querySelector('#comparison-panel-2')).not.toBeNull();
   add.focus();
   add.click();
   await vi.waitFor(() =>
-    expect(messages.some(({ _tag }) => _tag === 'CompletedFocusComparisonTarget')).toBe(true),
+    expect(messages.some(({ _tag }) => _tag === 'ChangedLinkInspections')).toBe(true),
   );
   expect(document.activeElement).toBe(add);
   expect(host.querySelectorAll('h2')).toHaveLength(1);
@@ -366,85 +363,75 @@ it('native linking changes retain local inspection and clear only the derived ov
   expect(checkbox.checked).toBe(true);
 });
 
-it('schedules reorder focus protection only for valid moves, with data-only arguments', () => {
-  const model = init().model;
+it('captures focus only for a valid move and keeps the command arguments serializable', () => {
+  const model = init();
   const valid = update(model, Message.ClickedMovePanel({ id: 1, direction: 'later' }));
-  expect(valid.commands).toHaveLength(1);
-  expect(valid.commands?.[0]).toMatchObject({
-    name: 'RestoreComparisonFocus',
-    args: { panelId: 1 },
+  expect(valid.model).toBe(model);
+  expect(workbenchCommands(valid)).toHaveLength(1);
+  expect(workbenchCommands(valid)[0]).toMatchObject({
+    name: 'MoveComparisonPanel',
+    args: { id: 1, direction: 'later' },
   });
-  for (const message of [
-    Message.ClickedMovePanel({ id: 1, direction: 'earlier' }),
-    Message.ClickedMovePanel({ id: 2, direction: 'later' }),
-    Message.ClickedMovePanel({ id: 99, direction: 'later' }),
-  ])
-    expect(update(model, message)).toEqual({ model });
+  for (const facts of [
+    { id: 1, direction: 'earlier' },
+    { id: 2, direction: 'later' },
+    { id: 99, direction: 'later' },
+  ] as const) {
+    expect(update(model, Message.ClickedMovePanel(facts))).toEqual({ model });
+    expect(update(model, Message.ObservedPanelMove(facts))).toEqual({ model });
+  }
 });
 
 it('does not steal focus when an unfocused panel is moved programmatically', async () => {
-  const { host, button, messages } = await scene();
+  const { host, button } = await scene();
   const add = required(host.querySelector<HTMLButtonElement>('#comparison-add-scatter'));
   add.focus();
   button('Move Scatter 1 later').click();
   await vi.waitFor(() => expect(host.querySelector('h2')?.id).toBe('comparison-panel-2'));
-  await vi.waitFor(() =>
-    expect(messages.some(({ _tag }) => _tag === 'CompletedRestoreComparisonFocus')).toBe(true),
-  );
   expect(document.activeElement).toBe(add);
 });
 
 it.each([false, true])(
   'does not reclaim focus after another target takes it (then blurs: %s)',
   async (blurAfterFocus) => {
-    const { host, button, messages } = await scene();
-    const commit = holdRenderFrames();
+    const { host, button } = await scene(init(), {
+      beforeMoveCommit: () => {
+        const other = required(host.querySelector<HTMLButtonElement>('#comparison-add-histogram'));
+        other.focus();
+        if (blurAfterFocus) other.blur();
+      },
+    });
     const listeners = vi.spyOn(document, 'addEventListener');
     const removed = vi.spyOn(document, 'removeEventListener');
+    onTestFinished(() => {
+      vi.restoreAllMocks();
+    });
     const target = button('Move Scatter 1 later');
     target.focus();
     target.click();
+    await vi.waitFor(() => expect(host.querySelector('h2')?.id).toBe('comparison-panel-2'));
+    const registration = required(listeners.mock.calls.find(([type]) => type === 'focusin'));
     await vi.waitFor(() =>
-      expect(listeners.mock.calls.some(([type]) => type === 'focusin')).toBe(true),
-    );
-    const other = required(host.querySelector<HTMLButtonElement>('#comparison-add-histogram'));
-    other.focus();
-    if (blurAfterFocus) other.blur();
-    const focusBeforeCommit = document.activeElement;
-    commit();
-    await vi.waitFor(() =>
-      expect(messages.some(({ _tag }) => _tag === 'CompletedRestoreComparisonFocus')).toBe(true),
+      expect(removed).toHaveBeenCalledWith('focusin', registration[1], registration[2]),
     );
     expect(button('Move Scatter 1 later')).toBe(target);
-    expect(document.activeElement).toBe(focusBeforeCommit);
-    const registration = required(listeners.mock.calls.find(([type]) => type === 'focusin'));
-    expect(removed).toHaveBeenCalledWith('focusin', registration[1], registration[2]);
+    expect(document.activeElement).toBe(
+      blurAfterFocus ? document.body : host.querySelector('#comparison-add-histogram'),
+    );
   },
 );
 
-it('does not refocus a keyed control removed before the reorder commits', async () => {
-  const { host, button, messages, model } = await scene();
-  const commit = holdRenderFrames();
-  const listeners = vi.spyOn(document, 'addEventListener');
+it('does not refocus a keyed control removed during the reorder commit', async () => {
+  const { host, button, model } = await scene(init(), { removeDuringMove: true });
   const target = button('Move Scatter 1 later');
   target.focus();
-  target.click();
-  await vi.waitFor(() =>
-    expect(listeners.mock.calls.some(([type]) => type === 'focusin')).toBe(true),
-  );
   const focusedAgain = vi.spyOn(target, 'focus');
-  button('Remove Scatter 1').click();
-  await vi.waitFor(() => expect(model().panels.map(({ id }) => id)).toEqual([2]));
-  commit();
-  await vi.waitFor(() =>
-    expect(messages.some(({ _tag }) => _tag === 'CompletedRestoreComparisonFocus')).toBe(true),
-  );
-  await vi.waitFor(() => {
-    // A separately queued remove-focus Command may start after the first held frame.
-    commit();
-    expect(messages.some(({ _tag }) => _tag === 'CompletedFocusComparisonTarget')).toBe(true);
+  onTestFinished(() => {
+    vi.restoreAllMocks();
   });
-  expect(document.activeElement?.id).toBe('comparison-panel-2');
+  target.click();
+  await vi.waitFor(() => expect(document.activeElement?.id).toBe('comparison-panel-2'));
+  expect(model().panels.map(({ id }) => id)).toEqual([2]);
   expect(target.isConnected).toBe(false);
   expect(focusedAgain).not.toHaveBeenCalled();
   expect(host.querySelector('#comparison-panel-1')).toBeNull();

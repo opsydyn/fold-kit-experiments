@@ -1,12 +1,12 @@
+import type { Command } from '@effect/ui';
 import { Lockstep, Timeline, type Vec3 } from '@opsydyn/effect-three';
 import { Match, Option } from 'effect';
-import type { Return } from 'foldkit/update';
 
 import { nextPaint, type Paint } from '../palette';
-import { Message } from './message';
+import type { Message } from './message';
 import { fresh, type Model } from './model';
 import type { Record } from './replay';
-import { NameTab, type RelayService, Say, selfOf, WaitForWelcome } from './session';
+import { NameTab, Say, selfOf, WaitForWelcome } from './session';
 import {
   checkEvery,
   type Input,
@@ -20,7 +20,10 @@ import {
   type Wire,
 } from './wire';
 
-type AppReturn = Return<Model, Message, RelayService>;
+type AppReturn = {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Command<Message, Say>>;
+};
 type Live = Extract<Model['session'], { readonly _tag: 'Live' }>;
 
 /** The most balls on the table: older ones are cleared away as new ones come. */
@@ -292,7 +295,7 @@ const live = (model: Model, session: Live): Model => ({ ...model, session });
 
 /** Says `wire` to the others: through the relay when the page names one, else the channel. */
 const say = (model: Model, wire: Wire) =>
-  Say({ wire, via: Option.isSome(model.relay) ? 'relay' : 'tabs' });
+  Say.make({ wire, via: Option.isSome(model.relay) ? 'relay' : 'tabs' });
 
 /**
  * The Welcome for `peer`: the session as it is, every throw so far, and the latest
@@ -496,7 +499,7 @@ const alone = (model: Model, self: string): Model => {
 /** Says hello, and waits to be welcomed. */
 const hello = (model: Model, peer: string): AppReturn => ({
   model,
-  commands: [say(model, { _tag: 'Hello', peer }), WaitForWelcome()],
+  commands: [say(model, { _tag: 'Hello', peer }), WaitForWelcome.make()],
 });
 
 /**
@@ -537,7 +540,7 @@ const lost = (model: Model): Model => {
 /** Reconnecting: a new name, so this peer joins through the relay again as a newcomer. */
 const reconnect = (model: Model): AppReturn =>
   Option.exists(model.relay, (relay) => relay.link === 'Lost')
-    ? { model, commands: [NameTab()] }
+    ? { model, commands: [NameTab.make()] }
     : { model };
 
 /** No welcome came: this peer starts a session of its own, its world as it is. */
@@ -679,7 +682,7 @@ const changedVisibility = (model: Model, hidden: boolean): AppReturn => {
       commands: left.commands ?? [],
     };
   }
-  return !hidden && model.away ? { model, commands: [NameTab()] } : { model };
+  return !hidden && model.away ? { model, commands: [NameTab.make()] } : { model };
 };
 
 /** A tab named: it replays the record in its link, or joins the table live. */
@@ -696,23 +699,26 @@ const namedTab = (
   });
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    ClickedTable: ({ point }) => ({ model: throwToward(model, point) }),
-    ClickedRebuild: () => ({ model: propose(model, { _tag: 'Rebuild' }) }),
-    ReachedStep: ({ run, step, checksum, snapshot }) => ({
-      model: reach(model, run, step, checksum, snapshot),
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      ClickedTable: ({ point }) => ({ model: throwToward(model, point) }),
+      ClickedRebuild: () => ({ model: propose(model, { _tag: 'Rebuild' }) }),
+      ReachedStep: ({ run, step, checksum, snapshot }) => ({
+        model: reach(model, run, step, checksum, snapshot),
+      }),
+      ReceivedSceneLifecycle: ({ lifecycle }) =>
+        lifecycle._tag === 'StartedScene' ? { model, commands: [NameTab.make()] } : { model },
+      NamedTab: ({ peer, relay, predict, record }) => namedTab(model, peer, relay, predict, record),
+      WaitedForWelcome: () => ({ model: waited(model) }),
+      HeardWire: ({ wire }) => hear(model, wire),
+      TickedTurn: ({ at }) => tick(model, at),
+      LeftPage: () => bye(model),
+      ChangedVisibility: ({ hidden }) => changedVisibility(model, hidden),
+      CompletedSay: () => ({ model }),
+      ConnectedRelay: () => connected(model),
+      FailedRelay: () => ({ model: lost(model) }),
+      LostRelay: () => ({ model: lost(model) }),
+      ClickedReconnect: () => reconnect(model),
     }),
-    ReceivedSceneLifecycle: () => ({ model }),
-    NamedTab: ({ peer, relay, predict, record }) => namedTab(model, peer, relay, predict, record),
-    WaitedForWelcome: () => ({ model: waited(model) }),
-    HeardWire: ({ wire }) => hear(model, wire),
-    TickedTurn: ({ at }) => tick(model, at),
-    LeftPage: () => bye(model),
-    ChangedVisibility: ({ hidden }) => changedVisibility(model, hidden),
-    CompletedSay: () => ({ model }),
-    ConnectedRelay: () => connected(model),
-    FailedRelay: () => ({ model: lost(model) }),
-    LostRelay: () => ({ model: lost(model) }),
-    ReleasedRelay: () => ({ model }),
-    ClickedReconnect: () => reconnect(model),
-  });
+  );

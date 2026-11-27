@@ -45,6 +45,7 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
     );
     for (const name of [
       'astro',
+      '@effect/ui',
       'react',
       'foldkit',
       'effect',
@@ -54,6 +55,22 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
       '@mermaid-js/parser',
     ])
       expect(existsSync(path.join(directory, 'node_modules', name))).toBe(false);
+
+    const viewEntry = await exec(
+      'node',
+      [
+        '--input-type=module',
+        '-e',
+        "import { groupMermaidReviewV3 } from '@opsydyn/foldkit-zloz-mermaid/effect-ui'; console.log(typeof groupMermaidReviewV3)",
+      ],
+      { ...options, cwd: directory },
+    );
+    expect(viewEntry.stdout.trim()).toBe('function');
+    const viewTypes = await readFile(
+      path.join(directory, 'node_modules/@opsydyn/foldkit-zloz-mermaid/dist/effect-ui.d.mts'),
+      'utf8',
+    );
+    expect(viewTypes).toMatch(/from ["']@effect\/ui\/html["']/);
 
     const source = `import { createEditor, createModelEditorV2 } from '@opsydyn/foldkit-zloz';
 import { createReviewPacketV2, parseReviewPacketV2, openReviewPacketV2, createReviewReader, updateReviewReader, resolveReviewReader, parseReviewPacket, type ZlozReviewPacketParseResult, resolveReviewPacketControls, resolveReviewPacketRequest, createReviewPacket, type ZlozReviewPacketResult, exportConnectionMermaid, type MermaidExportResultV2, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';
@@ -153,7 +170,7 @@ console.log('mermaid-consumer-ok');
       });
       expect(result.stdout.trim()).toBe('mermaid-consumer-ok');
     }
-    // The optional view entry must also work from the installed tarball, without coupling the root to Foldkit.
+    // Install the pinned renderer for the optional view entry.
     await exec(
       'npm',
       [
@@ -162,24 +179,30 @@ console.log('mermaid-consumer-ok');
         '--ignore-scripts',
         '--no-audit',
         '--no-fund',
-        'foldkit@0.170.0',
-        'effect@4.1.0',
-        '@effect/platform-browser@4.1.0',
+        '@effect/ui@https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92',
+        'effect@4.1.6',
       ],
       { ...options, cwd: directory },
     );
-    const viewSource = `import {zlozGroupMermaidReviewV3} from '@opsydyn/foldkit-zloz-mermaid/foldkit';
-import {Effect,Schema} from 'effect';
-import {renderToString} from 'foldkit/experimental/server';
-import type {HtmlBuilder} from 'foldkit/html';
-import {captureGroupDocumentV3} from '@opsydyn/foldkit-zloz';
-import {createGroupMermaidReviewV3,resolveGroupMermaidReviewV3,type ZlozGroupMermaidReviewRequestV3} from '@opsydyn/foldkit-zloz-mermaid';
-import { zlozReviewReader, zlozReviewPacketControls, zlozReviewPacketConsent, zlozReviewPacketDownload, type ZlozReviewPacketViewOptions } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
-const options:ZlozReviewPacketViewOptions<unknown>={showCounts:false,renderStatus:()=>null};
-if([zlozReviewReader,zlozReviewPacketControls,zlozReviewPacketConsent,zlozReviewPacketDownload].some(value=>typeof value!=='function')||options.showCounts!==false)throw new Error('Missing packed view contract');
-const nativeControls=resolveGroupMermaidReviewV3(createGroupMermaidReviewV3('installed'),{scope:'installed',sourceRevision:0,document:captureGroupDocumentV3(${JSON.stringify(groupV3Wire)})});
-const nativeHtml=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:nativeControls}),view:(model,h:HtmlBuilder<ZlozGroupMermaidReviewRequestV3>)=>({title:'Native Mermaid',body:zlozGroupMermaidReviewV3(h,model,r=>r,{id:'installed-review',minimalMode:true})})},{flags:{},isHydratable:false}));
-if(!nativeHtml.html.includes('Download Mermaid bundle')||!nativeHtml.html.includes('authored socket')||!nativeHtml.html.includes('language-mermaid'))throw new Error('Installed native source review SSR failed');
+    expect(existsSync(path.join(directory, 'node_modules/foldkit'))).toBe(false);
+    const viewSource = `import { groupMermaidReviewV3, reviewReader, reviewPacket, reviewPacketConsent, reviewPacketDownload } from '@opsydyn/foldkit-zloz-mermaid/effect-ui';
+import { Effect, Schema } from 'effect';
+import { Html, HtmlServer } from '@effect/ui/html';
+import { captureGroupDocumentV3 } from '@opsydyn/foldkit-zloz';
+import { createGroupMermaidReviewV3, resolveGroupMermaidReviewV3 } from '@opsydyn/foldkit-zloz-mermaid';
+if ([reviewReader, reviewPacket, reviewPacketConsent, reviewPacketDownload].some(value => typeof value !== 'function')) throw new Error('Missing packed view contract');
+const controls = resolveGroupMermaidReviewV3(createGroupMermaidReviewV3('installed'), {
+  scope: 'installed',
+  sourceRevision: 0,
+  document: captureGroupDocumentV3(${JSON.stringify(groupV3Wire)}),
+});
+const Review = Html.component({name: 'PackedReview', model: Schema.Null, message: Schema.Literal('Requested')}).make({
+  init: () => null,
+  update: ($) => $.model,
+  view: (h) => groupMermaidReviewV3<'Requested'>(h, controls, () => 'Requested', {id: 'installed-review', minimalMode: true}),
+});
+const result = await Effect.runPromise(HtmlServer.renderToHtml(Review, {}, {static: true}));
+if (!result.html.includes('Download Mermaid bundle') || !result.html.includes('authored socket') || !result.html.includes('language-mermaid')) throw new Error('Installed native source review SSR failed');
 console.log('mermaid-view-consumer-ok');`;
     const viewFile = path.join(directory, 'view.mts');
     await writeFile(viewFile, viewSource);
@@ -232,6 +255,9 @@ console.log('mermaid-view-consumer-ok');`;
       'utf8',
     );
     expect(packedManifest).not.toMatch(/workspace:|catalog:/);
+    const packed = JSON.parse(packedManifest);
+    expect(packed.exports).not.toHaveProperty('./foldkit');
+    expect(packed.peerDependencies).not.toHaveProperty('foldkit');
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

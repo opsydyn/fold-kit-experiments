@@ -2,22 +2,28 @@ import { rowsOf } from '@opsydyn/foldkit-viz/plot';
 import { Option, Schema } from 'effect';
 import { assert, describe, expect, it } from 'vitest';
 
-import * as PlotPanel from '../../ui/plot-panel';
+import * as PlotPanel from '../../ui/plot-panel/core';
 import { matchingBinIndices, matchingKeys } from '../../ui/shared/inspection';
 import { points } from './data';
-import { Message } from './message';
-import { init } from './model';
 import { Settings } from './settings';
-import { update } from './update';
+import { init, Message, update } from './workbench-state';
 
 const inspectPoint = (id: number, index = 0) =>
-  Message.GotScatterMessage({ id, message: PlotPanel.Message.HoveredTarget({ index }) });
+  Message.ReceivedPanelMessage({
+    kind: 'Scatter',
+    id,
+    message: PlotPanel.Message.HoveredTarget({ index }),
+  });
 const inspectBin = (id: number, index = 0) =>
-  Message.GotHistogramMessage({ id, message: PlotPanel.Message.HoveredTarget({ index }) });
+  Message.ReceivedPanelMessage({
+    kind: 'Histogram',
+    id,
+    message: PlotPanel.Message.HoveredTarget({ index }),
+  });
 
 describe('comparison collection', () => {
   it('initialises the two default panels against the same illustrative dataset', () => {
-    const model = init().model;
+    const model = init();
     expect(model.panels.map(({ id, _tag }) => ({ id, _tag }))).toEqual([
       { id: 1, _tag: 'Scatter' },
       { id: 2, _tag: 'Histogram' },
@@ -46,7 +52,7 @@ describe('comparison collection', () => {
       ],
       nextPanelId: 8,
       linkInspections: false,
-    }).model;
+    });
     expect(model.panels.map(({ id, _tag }) => ({ id, _tag }))).toEqual([
       { id: 7, _tag: 'Histogram' },
       { id: 0, _tag: 'Scatter' },
@@ -56,7 +62,7 @@ describe('comparison collection', () => {
   });
 
   it('adds both kinds up to four then leaves the counter and model untouched', () => {
-    let model = init().model;
+    let model = init();
     model = update(model, Message.ClickedAddPanel({ kind: 'scatter' })).model;
     model = update(model, Message.ClickedAddPanel({ kind: 'histogram' })).model;
     expect(model.panels.map(({ id, _tag }) => ({ id, _tag }))).toEqual([
@@ -73,7 +79,7 @@ describe('comparison collection', () => {
   });
 
   it('retains the allocation counter after removing all panels', () => {
-    let model = init().model;
+    let model = init();
     model = update(model, Message.ClickedRemovePanel({ id: 1 })).model;
     model = update(model, Message.ClickedRemovePanel({ id: 2 })).model;
     expect(model.panels).toEqual([]);
@@ -92,14 +98,14 @@ describe('comparison collection', () => {
           nextPanelId: Number.MAX_SAFE_INTEGER,
           linkInspections: true,
         }),
-      ).model;
+      );
       const first = update(initial, Message.ClickedAddPanel({ kind }));
       const second = update(first.model, Message.ClickedAddPanel({ kind }));
       const third = update(second.model, Message.ClickedAddPanel({ kind }));
       expect(third.model.panels.map(({ id }) => id)).toEqual([]);
       for (const result of [first, second, third]) {
         expect(result.model).toBe(initial);
-        expect(result.commands ?? []).toEqual([]);
+        expect(result.focus).toBeUndefined();
         expect(result.model.nextPanelId).toBe(Number.MAX_SAFE_INTEGER);
       }
     },
@@ -114,7 +120,7 @@ describe('comparison collection', () => {
           nextPanelId: Number.MAX_SAFE_INTEGER - 2,
           linkInspections: true,
         }),
-      ).model;
+      );
       model = update(model, Message.ClickedAddPanel({ kind })).model;
       model = update(model, Message.ClickedAddPanel({ kind })).model;
       expect(model.panels.map(({ id }) => id)).toEqual([9007199254740989, 9007199254740990]);
@@ -123,7 +129,7 @@ describe('comparison collection', () => {
       for (const panel of model.panels) expect(panel.id).toBeLessThan(model.nextPanelId);
       const exhausted = update(model, Message.ClickedAddPanel({ kind }));
       expect(exhausted.model).toBe(model);
-      expect(exhausted.commands ?? []).toEqual([]);
+      expect(exhausted.focus).toBeUndefined();
       model = update(model, Message.ClickedRemovePanel({ id: 9007199254740989 })).model;
       model = update(model, Message.ClickedRemovePanel({ id: 9007199254740990 })).model;
       expect(model.panels).toEqual([]);
@@ -131,22 +137,25 @@ describe('comparison collection', () => {
       for (const nextKind of ['scatter', 'histogram'] as const) {
         const result = update(model, Message.ClickedAddPanel({ kind: nextKind }));
         expect(result.model).toBe(model);
-        expect(result.commands ?? []).toEqual([]);
+        expect(result.focus).toBeUndefined();
       }
       const late =
         kind === 'scatter' ? inspectPoint(9007199254740990) : inspectBin(9007199254740990);
       expect(update(model, late).model).toBe(model);
-      expect(update(model, late).commands ?? []).toEqual([]);
+      expect(update(model, late).focus).toBeUndefined();
     },
   );
 
   it('reorders without replacing child objects or the active inspection', () => {
-    const model = update(init().model, inspectPoint(1, 1)).model;
-    const moved = update(model, Message.ClickedMovePanel({ id: 1, direction: 'later' })).model;
+    const model = update(init(), inspectPoint(1, 1)).model;
+    const moved = update(model, Message.ObservedPanelMove({ id: 1, direction: 'later' })).model;
     expect(moved.panels[0]).toBe(model.panels[1]);
     expect(moved.panels[1]).toBe(model.panels[0]);
     expect(moved.linking).toBe(model.linking);
-    const restored = update(moved, Message.ClickedMovePanel({ id: 1, direction: 'earlier' })).model;
+    const restored = update(
+      moved,
+      Message.ObservedPanelMove({ id: 1, direction: 'earlier' }),
+    ).model;
     expect(restored.panels).toEqual(model.panels);
   });
 
@@ -160,16 +169,16 @@ describe('comparison collection', () => {
     inspectPoint(2),
     inspectBin(1),
   ])('ignores impossible collection or child messages: %j', (message) => {
-    const model = init().model;
+    const model = init();
     const result = update(model, message);
     expect(result.model).toBe(model);
-    expect(result.commands ?? []).toEqual([]);
+    expect(result.focus).toBeUndefined();
   });
 });
 
 describe('parent-owned linking', () => {
   it('retains the newer source when a previous source clears', () => {
-    let model = update(init().model, inspectPoint(1)).model;
+    let model = update(init(), inspectPoint(1)).model;
     expect(model.linking).toEqual({
       _tag: 'Linked',
       inspection: Option.some({ sourceId: 1, value: { _tag: 'Point', key: 'salary-1' } }),
@@ -178,7 +187,11 @@ describe('parent-owned linking', () => {
     const linked = model.linking;
     model = update(
       model,
-      Message.GotScatterMessage({ id: 1, message: PlotPanel.Message.BlurredTarget() }),
+      Message.ReceivedPanelMessage({
+        kind: 'Scatter',
+        id: 1,
+        message: PlotPanel.Message.BlurredTarget(),
+      }),
     ).model;
     expect(model.linking).toBe(linked);
     expect(model.linking).toEqual({
@@ -191,7 +204,7 @@ describe('parent-owned linking', () => {
   });
 
   it('clears shared inspection on source removal without changing sibling local state', () => {
-    let model = update(init().model, inspectPoint(1, 1)).model;
+    let model = update(init(), inspectPoint(1, 1)).model;
     model = update(model, inspectBin(2)).model;
     const sibling = model.panels[0];
     const result = update(model, Message.ClickedRemovePanel({ id: 2 })).model;
@@ -203,7 +216,7 @@ describe('parent-owned linking', () => {
   });
 
   it('clears only the current source and retains the final-bin endpoint policy', () => {
-    const base = init().model;
+    const base = init();
     const histogram = base.panels[1];
     assert(histogram?._tag === 'Histogram');
     const inspected = update(
@@ -219,20 +232,28 @@ describe('parent-owned linking', () => {
     });
     const cleared = update(
       inspected,
-      Message.GotHistogramMessage({ id: 2, message: PlotPanel.Message.BlurredTarget() }),
+      Message.ReceivedPanelMessage({
+        kind: 'Histogram',
+        id: 2,
+        message: PlotPanel.Message.BlurredTarget(),
+      }),
     ).model;
     expect(cleared.linking).toEqual({ _tag: 'Linked', inspection: Option.none() });
     const scatter = update(base, inspectPoint(1)).model;
     expect(
       update(
         scatter,
-        Message.GotScatterMessage({ id: 1, message: PlotPanel.Message.BlurredTarget() }),
+        Message.ReceivedPanelMessage({
+          kind: 'Scatter',
+          id: 1,
+          message: PlotPanel.Message.BlurredTarget(),
+        }),
       ).model.linking,
     ).toEqual({ _tag: 'Linked', inspection: Option.none() });
   });
 
   it('toggles without changing local models and re-enables without choosing a source', () => {
-    let model = update(init().model, inspectPoint(1, 1)).model;
+    let model = update(init(), inspectPoint(1, 1)).model;
     const panels = model.panels;
     model = update(model, Message.ChangedLinkInspections({ enabled: false })).model;
     expect(model.panels).toBe(panels);
@@ -248,7 +269,7 @@ describe('parent-owned linking', () => {
   });
 
   it('gives added siblings the existing derived overlay without mutating local inspection', () => {
-    const source = update(init().model, inspectBin(2)).model;
+    const source = update(init(), inspectBin(2)).model;
     let model = update(source, Message.ClickedAddPanel({ kind: 'scatter' })).model;
     model = update(model, Message.ClickedAddPanel({ kind: 'histogram' })).model;
     expect(model.linking).toBe(source.linking);

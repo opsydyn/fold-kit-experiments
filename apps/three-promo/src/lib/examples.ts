@@ -85,7 +85,7 @@ export const examples = [
     category: 'Editing',
     title: 'Move, turn, scale, undo',
     description:
-      'A transform gizmo on whatever you select: arrows, planes and rings after three’s TransformControls, as a Foldkit submodel. Shift-drag to box several, press an axis in the corner to look along it, try Drei-style pivot controls, measure, inspect, snap, work in local axes, and undo every move, because each one is a Message.',
+      'A transform gizmo on whatever you select: arrows, planes and rings after three’s TransformControls, as a Effect UI submodel. Shift-drag to box several, press an axis in the corner to look along it, try Drei-style pivot controls, measure, inspect, snap, work in local axes, and undo every move, because each one is a Message.',
     alt: 'Arrange: a rounded crate with a red, green and blue transform gizmo on a table with a ball, a cone and a ring.',
   },
   {
@@ -117,7 +117,7 @@ export const examples = [
     category: 'WebXR',
     title: 'Step into the room',
     description:
-      'Furnish a room with ferns, cacti and tulips on the page or let an agent do it through Foldkit DevTools, glide through it in VR, or plant in your own room in AR, where each plant is an anchor and detected planes and meshes are drawn from Messages. Other players presenting the room show as avatars.',
+      'Furnish a room with ferns, cacti and tulips on the page or let an agent do it through typed scene actions, glide through it in VR, or plant in your own room in AR, where each plant is an anchor and detected planes and meshes are drawn from Messages. Other players presenting the room show as avatars.',
     alt: 'XR room: a sofa, table and lamp in a warm room, with potted plants on the rug.',
   },
   {
@@ -125,7 +125,7 @@ export const examples = [
     category: 'Assets',
     title: 'Load it, play it, let it go',
     description:
-      'A glTF robot, a tiled floor texture and two fonts load through Foldkit Commands. Play its clips at any speed under a crisp troika caption, click its parts, and unload it all from the GPU.',
+      'A glTF robot, a tiled floor texture and two fonts load through Effect UI commands. Play its clips at any speed under a crisp troika caption, click its parts, and unload it all from the GPU.',
     alt: 'Workshop: a small blue robot with a coral arm raised, standing on a pale tiled floor.',
   },
   {

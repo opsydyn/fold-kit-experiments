@@ -1,3 +1,7 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
-// oxlint-disable-next-line linteffect/prevent-dynamic-imports -- Literal lazy Astro application entry.
-export default lazyApp(() => import('./main'));
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
+
+import History from './main';
+
+import '@opsydyn/foldkit-zloz/effect-ui.css';
+
+export default astroComponent(History);

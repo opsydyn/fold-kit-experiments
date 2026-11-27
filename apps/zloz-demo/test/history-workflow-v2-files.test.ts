@@ -16,12 +16,12 @@ test('v2 read Commands decode bounded UTF-8 model/archive data and v1 readers re
   const modelText = serializeModelDocumentV2(document);
   const editionsText = serializeEditionsV2(document.editions);
   const loaded = await Effect.runPromise(
-    ReadHistoryFile({ token: 1, kind: 'model', file: new File([modelText], 'v2-model.json') })
+    ReadHistoryFile.make({ token: 1, kind: 'model', file: new File([modelText], 'v2-model.json') })
       .effect,
   );
   expect(loaded._tag).toBe('SucceededModelRead');
   const archive = await Effect.runPromise(
-    ReadHistoryFile({
+    ReadHistoryFile.make({
       token: 2,
       kind: 'archive',
       file: new File([editionsText], 'v2-editions.json'),
@@ -42,7 +42,7 @@ test('file Commands reject excessive size before reading and fail invalid UTF-8/
   }
   const file = new Oversized([' '.repeat(byteLimit + 1)], 'large.json');
   expect(
-    await Effect.runPromise(ReadHistoryFile({ token: 3, kind: 'model', file }).effect),
+    await Effect.runPromise(ReadHistoryFile.make({ token: 3, kind: 'model', file }).effect),
   ).toEqual(Message.FailedRead({ token: 3 }));
   expect(reads).toBe(0);
   for (const bytes of [
@@ -52,7 +52,7 @@ test('file Commands reject excessive size before reading and fail invalid UTF-8/
   ]) {
     expect(
       await Effect.runPromise(
-        ReadHistoryFile({ token: 4, kind: 'model', file: new File([bytes], 'invalid.json') })
+        ReadHistoryFile.make({ token: 4, kind: 'model', file: new File([bytes], 'invalid.json') })
           .effect,
       ),
     ).toEqual(Message.FailedRead({ token: 4 }));

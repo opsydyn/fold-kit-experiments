@@ -1,13 +1,9 @@
 import { expect, test } from 'bun:test';
 
-import { Match } from 'effect';
+import { highlightedTree } from '@opsydyn/dataset-explorer/highlighting-core';
+import { createHighlighter } from '@opsydyn/dataset-explorer/highlighting-engine';
+import { Effect, Match, Schema } from 'effect';
 import { toHtml } from 'hast-util-to-html';
-
-import {
-  highlightedTree,
-  highlightingResources,
-} from '../../../packages/dataset-explorer/src/highlighting';
-import { createHighlighter } from '../../../packages/dataset-explorer/src/highlighting-engine';
 
 const highlighter = await createHighlighter();
 const text = (node: import('hast').Root | import('hast').Element): string =>
@@ -55,14 +51,14 @@ test('native tokens survive Model JSON preservation and refresh only for changed
     { Message },
     { update, currentSource },
     { view },
-    { renderToString },
+    { Html, HtmlServer },
     { Effect, Schema },
   ] = await Promise.all([
     import('../src/examples/line/model'),
     import('../src/examples/line/message'),
     import('../src/examples/line/update'),
     import('../src/examples/line/view'),
-    import('foldkit/experimental/server'),
+    import('@effect/ui/html'),
     import('effect'),
   ]);
   const started = init({
@@ -70,7 +66,7 @@ test('native tokens survive Model JSON preservation and refresh only for changed
     templateUrl: null,
     embeddedEditor: false,
   }).model;
-  const requested = update(started, Message.AcquiredHighlighter());
+  const requested = update(started, Message.MountedLine());
   expect(requested.commands).toHaveLength(1);
   const source = currentSource(requested.model);
   const ready = update(
@@ -88,9 +84,7 @@ test('native tokens survive Model JSON preservation and refresh only for changed
   const restored = Schema.decodeUnknownSync(codec)(Schema.encodeSync(codec)(ready));
   expect(restored.highlightedSource).toEqual(ready.highlightedSource);
   expect(restored.settings).toEqual(ready.settings);
-  const reacquired = update(restored, Message.AcquiredHighlighter());
-  expect(reacquired.model.highlightedSource).toBeUndefined();
-  expect(reacquired.commands).toHaveLength(1);
+  expect(update(restored, Message.MountedLine()).commands).toBeUndefined();
   const changed = update(restored, Message.ChangedDomain({ value: '150' }));
   expect(changed.commands).toHaveLength(1);
   expect(changed.model.requestedSource?.source).toBe(currentSource(changed.model));
@@ -105,12 +99,17 @@ test('native tokens survive Model JSON preservation and refresh only for changed
       },
     }),
   ).model;
-  const rendered = await Effect.runPromise(
-    renderToString(
-      { Flags: Schema.Struct({}), init: () => ({ model: settled }), view },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const Fixture = Html.component({
+    name: 'LineHighlightFixture',
+    model: Model,
+    props: Model,
+    message: Message,
+  }).make({
+    init: ({ props }) => props,
+    view,
+    update: ($) => $.model,
+  });
+  const rendered = await Effect.runPromise(HtmlServer.renderToHtml(Fixture, settled));
   expect(rendered.html).toContain('class="pl-');
   expect(rendered.html).not.toContain('<script>unsafe</script>');
   expect(currentSource(settled)).toBe('const tag = "<script>unsafe</script>";');
@@ -136,8 +135,7 @@ test('stateflow replay frames reuse the selected event tokens', async () => {
     import('../../web/src/apps/stateflow/update'),
     import('../../web/src/apps/stateflow/source'),
   ]);
-  const acquired = update(initModel, Message.AcquiredHighlighter()).model;
-  const stepped = update(acquired, Message.ClickedStep()).model;
+  const stepped = update(initModel, Message.ClickedStep()).model;
   const source = selectedEventSource(stepped);
   const settled = update(
     stepped,
@@ -155,23 +153,19 @@ test('stateflow replay frames reuse the selected event tokens', async () => {
   expect(frame.commands).toBeUndefined();
 });
 
-test('resource lifecycle messages discard opaque engine and error values', async () => {
-  const [{ Message }, { init }, { Schema }] = await Promise.all([
+test('the native highlighting command returns schema-encodable tokens', async () => {
+  const [{ HighlightSource }, { Message }] = await Promise.all([
+    import('../src/examples/line/command'),
     import('../src/examples/line/message'),
-    import('../src/examples/line/model'),
-    import('effect'),
   ]);
-  type Model = ReturnType<typeof init>['model'];
-  const resources = highlightingResources<Model, typeof Message.Type>({
-    acquired: Message.AcquiredHighlighter,
-    failed: Message.FailedHighlighter,
-    released: Message.ReleasedHighlighter,
-  });
-  const entry: import('foldkit/managedResource').ManagedResourceConfig<Model, typeof Message.Type> =
-    resources.sourceHighlighter;
-  expect(entry.onAcquired(highlighter)).toEqual(Message.AcquiredHighlighter());
-  const failed = entry.onAcquireError({ _tag: 'OpaqueEngineFailure', method: () => {} });
-  expect(failed).toEqual(Message.FailedHighlighter());
+  const source = 'const count = 3;';
+  const language = 'view.ts';
+  const result = await Effect.runPromise(HighlightSource.make({ source, language }).effect);
   const codec = Schema.toCodecJson(Message);
-  expect(Schema.decodeUnknownSync(codec)(Schema.encodeSync(codec)(failed))).toEqual(failed);
+  const restored = Schema.decodeUnknownSync(codec)(Schema.encodeSync(codec)(result));
+  expect(restored).toEqual(result);
+  expect(result).toMatchObject({
+    _tag: 'SettledHighlightedSource',
+    highlightedSource: { source, language, tree: { type: 'root' } },
+  });
 });

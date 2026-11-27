@@ -1,9 +1,9 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
 import { Curve } from './model';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   HighlightedSeries: { key: Schema.NullOr(Schema.String) },
   ChoseCurve: { curve: Curve },
 });

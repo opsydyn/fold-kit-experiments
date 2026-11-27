@@ -65,10 +65,23 @@ button:focus-visible {
   max-height: calc(100svh - 145px);
   min-height: 220px;
 }
-.scene-board > *,
-.board-layout {
+.scene-board > * {
   height: 100%;
   min-height: 0;
+}
+.scene-board .zloz-ui-surface {
+  touch-action: none;
+}
+.scene-board .zloz-ui-node.sprite-node {
+  padding: 0;
+  outline: none;
+  background: transparent;
+}
+.scene-board .zloz-ui-node-title.sprite-token {
+  color: #fff5df;
+}
+.scene-board [data-flow-readonly='true'] .zloz-ui-node-title.sprite-token {
+  cursor: pointer;
 }
 .scene-art {
   display: block;

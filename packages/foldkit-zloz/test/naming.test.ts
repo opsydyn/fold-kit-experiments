@@ -1,12 +1,6 @@
 import { expect, test } from 'bun:test';
 
 import {
-  flowView,
-  zlozView,
-  createFlowNodeBodyCache,
-  createZlozNodeBodyCache,
-} from '../src/foldkit';
-import {
   FlowError,
   ZlozError,
   createEditor,
@@ -17,10 +11,8 @@ import {
   type ZlozGraph,
 } from '../src/index';
 
-test('Zloz APIs and deprecated aliases share constructors and view/cache implementations', () => {
+test('Zloz and legacy headless errors share their constructor', () => {
   expect(ZlozError).toBe(FlowError);
-  expect(zlozView).toBe(flowView);
-  expect(createZlozNodeBodyCache).toBe(createFlowNodeBodyCache);
 });
 
 test('legacy version-one models retain architecture and undo through the Zloz contract', async () => {

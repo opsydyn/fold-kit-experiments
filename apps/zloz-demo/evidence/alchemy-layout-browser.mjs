@@ -5,7 +5,7 @@ import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -32,7 +32,12 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const capturePath = (file) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${file}`)
+    : fileURLToPath(new URL(file, import.meta.url));
 
 async function run() {
   const assets = await readdir(resolve(root, '_astro'));
@@ -80,9 +85,11 @@ async function run() {
   await panel.getByRole('button', { name: 'Review bank example', exact: true }).focus();
   await panel.getByRole('button', { name: 'Review bank example', exact: true }).press('Enter');
   await expect(panel.getByRole('status')).toContainText('Read-only descriptor review opened');
-  await expect(page.locator('.alchemy-canvas [data-flow-node]')).toHaveCount(7);
+  await expect(page.locator('.alchemy-canvas [data-flow-node]:not([data-flow-group])')).toHaveCount(
+    7,
+  );
   await expect(page.locator('.alchemy-canvas [data-flow-group]')).toHaveCount(1);
-  await expect(page.locator('.alchemy-canvas [data-flow-ddd-node="read-model"]')).toHaveCount(1);
+  await expect(page.locator('.alchemy-canvas [data-flow-ddd-type="read-model"]')).toHaveCount(1);
   await expect(panel).toContainText('example/bank');
   await expect(panel).toContainText('fixture-v1');
   await expect(panel).toContainText('23 source facts');
@@ -97,8 +104,8 @@ async function run() {
       nodes
         .map((n) => ({
           id: n.getAttribute('data-flow-node'),
-          x: n.getAttribute('data-flow-x'),
-          y: n.getAttribute('data-flow-y'),
+          x: n.style.left,
+          y: n.style.top,
         }))
         .sort((a, b) => a.id.localeCompare(b.id)),
     );
@@ -131,8 +138,8 @@ async function run() {
     { timeout: 30000 },
   );
   await expect(arrange()).toBeFocused();
+  await expect.poll(positions).not.toEqual(originalPositions);
   const elkPositions = await positions();
-  expect(elkPositions).not.toEqual(originalPositions);
   expect(elkPositions.map((n) => n.id)).toEqual(originalPositions.map((n) => n.id));
   await expect(panel).toContainText('23 source facts');
   await expect(panel.getByRole('list', { name: 'Descriptor findings' }).locator('li')).toHaveCount(
@@ -155,7 +162,9 @@ async function run() {
   const surface = page.locator('.alchemy-canvas [data-flow-surface]');
   await surface.focus();
   await surface.press('Delete');
-  await expect(page.locator('.alchemy-canvas [data-flow-node]')).toHaveCount(7);
+  await expect(page.locator('.alchemy-canvas [data-flow-node]:not([data-flow-group])')).toHaveCount(
+    7,
+  );
   await page.getByRole('button', { name: 'Hide controls', exact: true }).click();
   await page.locator('.workbench-rail-fit').click();
   await page.getByRole('button', { name: 'Show controls', exact: true }).click();
@@ -168,7 +177,7 @@ async function run() {
     .getByRole('region', { name: 'Descriptor preview layout', exact: true })
     .scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: fileURLToPath(new URL('alchemy-layout-light.png', import.meta.url)),
+    path: capturePath('alchemy-layout-light.png'),
   });
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('dark');
   await section('Diagnostics');
@@ -194,7 +203,7 @@ async function run() {
   await page.getByRole('button', { name: 'Fit descriptor diagram', exact: true }).click();
   await revealEdge.focus();
   await page.screenshot({
-    path: fileURLToPath(new URL('alchemy-layout-dark.png', import.meta.url)),
+    path: capturePath('alchemy-layout-dark.png'),
   });
   await panel.getByRole('button', { name: 'Restore original preview', exact: true }).click();
   await expect(panel.getByLabel('Preview layout mode', { exact: true })).toHaveText(
@@ -209,9 +218,36 @@ async function run() {
     'ELK preview geometry',
     { timeout: 30000 },
   );
-  expect(await positions()).not.toEqual(elkPositions);
+  await expect.poll(positions).not.toEqual(elkPositions);
   await panel.getByRole('button', { name: 'Restore original preview', exact: true }).click();
   await expect.poll(positions).toEqual(originalPositions);
+  const heading = panel.getByRole('combobox', { name: 'Group heading', exact: true });
+  await heading.selectOption('measured');
+  await panel
+    .getByRole('combobox', { name: 'Heading detail', exact: true })
+    .selectOption('provenance');
+  await expect(panel.getByRole('status', { name: 'Heading measurement status' })).toContainText(
+    'Measure',
+  );
+  await panel.getByRole('button', { name: 'Measure group headings', exact: true }).click();
+  await expect(panel.getByRole('status', { name: 'Heading measurement status' })).toContainText(
+    'Measured 1 group headings',
+  );
+  await heading.selectOption('default');
+  await expect(panel.getByRole('status', { name: 'Heading measurement status' })).toHaveCount(0);
+
+  const sizing = panel.getByRole('combobox', { name: 'Label sizing', exact: true });
+  await sizing.selectOption('measured');
+  await panel.getByRole('combobox', { name: 'Badge detail', exact: true }).selectOption('expanded');
+  await expect(panel.getByRole('status', { name: 'Label measurement status' })).toContainText(
+    'Measure',
+  );
+  await panel.getByRole('button', { name: 'Measure label bounds', exact: true }).click();
+  await expect(panel.getByRole('status', { name: 'Label measurement status' })).toContainText(
+    'Measured 8 rendered labels',
+  );
+  await sizing.selectOption('declared');
+  await expect(panel.getByRole('status', { name: 'Label measurement status' })).toHaveCount(0);
   const sample = await readFile(
     new URL('../src/editor/alchemy-example.json', import.meta.url),
     'utf8',
@@ -221,10 +257,15 @@ async function run() {
   await upload().fill(' '.repeat(1_048_577));
   await expect(panel.getByRole('status')).toContainText('Rejected');
   await expect(upload()).toHaveValue(previousDraft);
-  await upload().fill(sample.replace('"version": 1', '"version": 1, "\\u0076ersion": 1'));
+  const duplicate = sample.replace('"version": 1', '"version": 1, "\\u0076ersion": 1');
+  await upload().fill(duplicate);
+  await expect(panel.getByRole('status')).toContainText('Draft changed');
+  await expect(upload()).toHaveValue(duplicate);
   await panel.getByRole('button', { name: 'Review descriptor', exact: true }).click();
   await expect(panel.getByRole('status')).toContainText('Duplicate decoded JSON property');
-  await expect(page.locator('.alchemy-canvas [data-flow-node]')).toHaveCount(7);
+  await expect(page.locator('.alchemy-canvas [data-flow-node]:not([data-flow-group])')).toHaveCount(
+    7,
+  );
   await revealNode.click();
   await expect(revealNode.locator('..')).toHaveAttribute('data-alchemy-finding-selected', 'true');
   await panel.getByRole('button', { name: 'Review bank example', exact: true }).click();
@@ -235,7 +276,9 @@ async function run() {
     buffer: Buffer.from([0xff]),
   });
   await expect(panel.getByRole('status')).toContainText('Rejected');
-  await expect(page.locator('.alchemy-canvas [data-flow-node]')).toHaveCount(7);
+  await expect(page.locator('.alchemy-canvas [data-flow-node]:not([data-flow-group])')).toHaveCount(
+    7,
+  );
   await panel.getByLabel('Open descriptor file', { exact: true }).setInputFiles({
     name: 'next.json',
     mimeType: 'application/json',

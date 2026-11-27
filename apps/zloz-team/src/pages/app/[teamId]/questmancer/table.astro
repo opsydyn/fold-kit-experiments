@@ -1,7 +1,11 @@
 ---
+import '@opsydyn/foldkit-zloz/effect-ui.css';
+
 import { loginPath } from '../../../../server/continuation';
 import { loadTeam } from '../../../../server/onboarding';
 import { questmancerEnabled, questmancerParticipant, questmancerPath } from '../../../../server/questmancer';
+import { initialScene } from '../../../../questmancer/contracts';
+import Table from '../../../../questmancer/table-app';
 import '../../../../questmancer/scene.css';
 import '../../../../questmancer/live.css';
 
@@ -22,11 +26,10 @@ if (!participant.joined) return Astro.redirect(path, 303);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>The Moonwell Observatory · Questmancer</title>
+    <title>{initialScene.backdrop.title} · Questmancer</title>
   </head>
   <body>
     <a class="questmancer-home" href="/app">Your workspace</a>
-    <div id="questmancer" data-api={path + '/api/'} data-seat={participant.role === 'player' ? participant.seat : undefined}></div>
-    <script>import '../../../../questmancer/main';</script>
+    <Table client:load authoringUrl={path + '/api/'} seat={participant.role === 'player' ? participant.seat : null} />
   </body>
 </html>

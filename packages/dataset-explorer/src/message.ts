@@ -1,18 +1,16 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
 import { DatasetId } from './data';
-import { HighlightedSource } from './highlighting';
-import { DatasetQuery } from './query';
+import { HighlightedSource } from './highlighting-core';
+import { Completion } from './query';
 import { SourceName } from './source';
-import { SourceLine } from './source-lines';
+import { SourceLine } from './source-line-core';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
+  MountedExplorer: {},
   NavigatedSourceLine: SourceLine.fields,
   CompletedSourceLineFocus: {},
-  AcquiredHighlighter: {},
-  FailedHighlighter: {},
-  ReleasedHighlighter: {},
   SettledHighlightedSource: { highlightedSource: HighlightedSource },
   RecordedChartWidth: { width: Schema.Number },
   SelectedSource: { name: SourceName },
@@ -20,6 +18,6 @@ export const Message = defineMessageUnion({
   ClickedRefresh: {},
   ClickedFailedRefresh: {},
   ClickedResponseRace: {},
-  GotDatasetMessage: { message: DatasetQuery.Message },
+  GotDatasetMessage: { message: Completion },
 });
 export type Message = typeof Message.Type;

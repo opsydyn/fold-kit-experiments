@@ -1,0 +1,489 @@
+diff --git a/dist/Renderer.d.ts b/dist/Renderer.d.ts
+index 75f9cac779e5c7889d82bcd363d76bae2bae65c3..71f336db08baea6233bcebe74ca53832fc92334b 100644
+--- a/dist/Renderer.d.ts
++++ b/dist/Renderer.d.ts
+@@ -158,7 +158,7 @@ export interface HostEvents<Node> {
+  * @since 0.1.0
+  */
+ export interface Host<Node> {
+-    createElement(tag: string): Node;
++    createElement(tag: string, parent?: Node): Node;
+     createText(text: string): Node;
+     setText(node: Node, text: string): void;
+     /**
+diff --git a/dist/html/HtmlHydrate.js b/dist/html/HtmlHydrate.js
+index 4e2984e00b9dd67884e832d45173f5ba055d677e..4604e3d03a782839f2ddb8fd3de988656f32d3b6 100644
+--- a/dist/html/HtmlHydrate.js
++++ b/dist/html/HtmlHydrate.js
+@@ -273,10 +273,10 @@ const between = (base, container, start, end, edges, holds, edits) => {
+   };
+   const host = {
+     ...base,
+-    createElement(tag) {
++    createElement(tag, into) {
+       const node = take(tag);
+       if (node === null) {
+-        const element = tag === "form" ? container.ownerDocument.createElement(tag) : base.createElement(tag);
++        const element = tag === "form" ? container.ownerDocument.createElement(tag) : base.createElement(tag, into ?? parent);
+         fresh.add(element);
+         ours.add(element);
+         made = true;
+diff --git a/dist/html/internal/dom.js b/dist/html/internal/dom.js
+index 593aabb07fa29e907dfa0e837162f6cb95ff61d0..c6c7a362ad15e5fa0b5fd827e155028ee67e2d7f 100644
+--- a/dist/html/internal/dom.js
++++ b/dist/html/internal/dom.js
+@@ -486,7 +486,11 @@ export const makeHost = (container, options) => {
+     transition.finished.catch(ignore);
+   };
+   return {
+-    createElement(tag) {
++    createElement(tag, into) {
++      if ((tag === "title" || tag === "desc") && into?.namespaceURI === SVG &&
++        into.localName !== "foreignObject" && into.localName !== "title" && into.localName !== "desc") {
++        return document.createElementNS(SVG, tag);
++      }
+       if (svgTags.has(tag)) return document.createElementNS(SVG, tag);
+       const element = document.createElement(tag);
+       if (tag.length === 4 && tag.toLowerCase() === "form") form(element);
+diff --git a/dist/internal/kernel.js b/dist/internal/kernel.js
+index 20ff6b60631d080ac73941ac57f7598a350cdcf5..1617eb5fa31f4b36f140af54723f3eec99f09e40 100644
+--- a/dist/internal/kernel.js
++++ b/dist/internal/kernel.js
+@@ -133,13 +133,13 @@ const rootFallback = (inst, cause) => {
+   }
+ };
+ /** @internal */
+-export const stand = (inst, cause) => {
++export const stand = (inst, cause, into) => {
+   const parent = inst.parent;
+   const outer = slot;
+   const from = born.length;
+   slot = inst.under;
+   try {
+-    return parent === undefined ? create(inst, rootFallback(inst, cause)) : create(parent, fallbackOf(parent, inst.at.v, cause));
++    return parent === undefined ? create(inst, rootFallback(inst, cause), into) : create(parent, fallbackOf(parent, inst.at.v, cause), into);
+   } catch (error) {
+     orphans(from);
+     inst.tree.report(inst.path, "fallback", Cause.die(error));
+@@ -393,7 +393,7 @@ const viewOf = inst => {
+ };
+ /** @internal */
+ export const authorOf = inst => inst.at !== undefined && inst.at.v.view !== undefined ? inst.parent : inst;
+-const start = inst => {
++const start = (inst, into) => {
+   let first;
+   const component = inst.component;
+   const outer = slot;
+@@ -429,7 +429,7 @@ const start = inst => {
+     let rendered;
+     by.writing++;
+     try {
+-      rendered = create(by, tree);
++      rendered = create(by, tree, into);
+       if (dev && shown !== fallbacks) checkShown(inst.path, [rendered]);
+     } catch (error) {
+       fail(inst, "view", Cause.die(error), undefined, from);
+@@ -575,7 +575,7 @@ export const unplace = (host, parent, rec) => {
+ };
+ const keeperOf = view => view.alive === undefined ? undefined : view.component["~kept"];
+ /** @internal */
+-export const mountChild = (owner, rec, fresh) => {
++export const mountChild = (owner, rec, fresh, into) => {
+   const view = rec.v;
+   let component = view.component;
+   if (!fresh) {
+@@ -593,12 +593,12 @@ export const mountChild = (owner, rec, fresh) => {
+   const lazy = component["~load"] !== undefined;
+   if (lazy) component = component["~load"](owner, rec, at) ?? component;
+   if (lazy && component === view.component) {
+-    held = loadingIn(owner, view, component["~cause"](), fallback => create(owner, fallback));
++    held = loadingIn(owner, view, component["~cause"](), fallback => create(owner, fallback, into));
+   } else if (FeatureId in component) {
+     const ctx = env.ctx;
+     if (ctx === undefined) {
+       if (dev) checkFallback(owner.path, view);
+-      held = inFallback(owner, () => create(owner, fallbackOf(owner, view, env.cause)));
++      held = inFallback(owner, () => create(owner, fallbackOf(owner, view, env.cause), into));
+       if (env.cause === undefined) {
+         env.waiting.push(() => settle(owner, rec, at));
+       }
+@@ -620,7 +620,7 @@ export const mountChild = (owner, rec, fresh) => {
+   const child = rec.inst = held === undefined ? new Instance(owner.tree, component, owner, rec, view.props, env) : owner;
+   owner.live++;
+   born.push(owner, rec);
+-  if (held !== undefined) rec.kids = [held];else if (start(child) === undefined) rec.kids = [stand(child, child.failure)];else if (owner.closed) close(child);
++  if (held !== undefined) rec.kids = [held];else if (start(child, into) === undefined) rec.kids = [stand(child, child.failure, into)];else if (owner.closed) close(child);
+ };
+ /** @internal */
+ export const settle = (owner, rec, at) => {
+@@ -639,7 +639,7 @@ export const settle = (owner, rec, at) => {
+     rec.kids = undefined;
+     owner.live--;
+     try {
+-      mountChild(owner, rec);
++      mountChild(owner, rec, undefined, parentNode);
+     } catch (error) {
+       rec.kids = [old];
+       owner.live++;
+@@ -718,7 +718,7 @@ const setProps = (host, node, props) => {
+   for (const name in props) host.setProp(node, name, props[name]);
+ };
+ /** @internal */
+-export const create = (inst, view) => {
++export const create = (inst, view, into) => {
+   const host = inst.tree.host;
+   switch (view._tag) {
+     case "Text":
+@@ -726,7 +726,7 @@ export const create = (inst, view) => {
+     case "Element":
+       {
+         if (view.owned?.length) view = owned(inst, view, view.owned);
+-        const node = host.createElement(view.tag);
++        const node = host.createElement(view.tag, into);
+         if (view.attrs !== View.noFields) setAttrs(host, node, view.attrs);
+         const views = view.children;
+         let kids;
+@@ -734,7 +734,7 @@ export const create = (inst, view) => {
+         if (views.length > 0) {
+           kids = new Array(views.length);
+           for (let index = 0; index < views.length; index++) {
+-            place(host, node, kids[index] = create(inst, views[index]), null);
++            place(host, node, kids[index] = create(inst, views[index], node), null);
+           }
+         }
+         if (view.props !== View.noFields) setProps(host, node, view.props);
+@@ -750,14 +750,14 @@ export const create = (inst, view) => {
+     case "Child":
+       {
+         const rec = new Rec(view, undefined, undefined, inst);
+-        mountChild(inst, rec);
++        mountChild(inst, rec, undefined, into);
+         return rec;
+       }
+     case "Outlet":
+-      return createOutlet(inst, view);
++      return createOutlet(inst, view, into);
+   }
+ };
+-const createOutlet = (inst, view) => {
++const createOutlet = (inst, view, into) => {
+   if (dev) checkDeclarer(inst, view);
+   const declarer = inst.parent;
+   const content = slotOf(inst, view.name);
+@@ -775,7 +775,7 @@ const createOutlet = (inst, view) => {
+     const views = contentOf(view, content);
+     const kids = rec.kids = new Array(views.length);
+     for (let index = 0; index < views.length; index++) {
+-      kids[index] = create(declarer, views[index]);
++      kids[index] = create(declarer, views[index], into);
+     }
+     if (dev && shown !== fallbacks) checkShown(slot, kids, true);
+   } catch (error) {
+@@ -877,7 +877,7 @@ export const replace = (inst, old, view) => {
+   const host = inst.tree.host;
+   const at = nodeOf(old);
+   const parent = host.parentOf(at);
+-  const next = create(inst, view);
++  const next = create(inst, view, parent);
+   place(host, parent, next, at);
+   remove(inst, parent, old);
+   return next;
+@@ -948,7 +948,7 @@ const patchElement = (inst, rec, prev, view) => {
+     if (views.length > 0) {
+       const kids = new Array(views.length);
+       for (let index = 0; index < views.length; index++) {
+-        place(host, node, kids[index] = create(inst, views[index]), null);
++        place(host, node, kids[index] = create(inst, views[index], node), null);
+       }
+       rec.kids = kids;
+     }
+@@ -1041,7 +1041,7 @@ const patchList = (inst, parent, olds, views, after, whole) => {
+   }
+   for (let index = start; index <= end; index++) {
+     const source = sources === undefined ? 0 : sources[index - start];
+-    out[index] = source === 0 ? create(inst, views[index]) : patch(inst, olds[source - 1], views[index]);
++    out[index] = source === 0 ? create(inst, views[index], parent) : patch(inst, olds[source - 1], views[index]);
+   }
+   if (gone !== undefined) {
+     if (whole && gone.length === olds.length && host.clear !== undefined) {
+@@ -1117,8 +1117,8 @@ export const mount = (component, props, container, host, options) => {
+     waiting: []
+   };
+   const instance = new Instance(tree, component, undefined, undefined, props, env);
+-  if (start(instance) === undefined) {
+-    instance.rendered = stand(instance, instance.failure);
++  if (start(instance, container) === undefined) {
++    instance.rendered = stand(instance, instance.failure, container);
+   }
+   place(host, container, instance.rendered, null);
+   flush(tree);
+diff --git a/dist/internal/runtime.js b/dist/internal/runtime.js
+index 9a8d25dcd0b34befe314fed0e2ee87676d586051..0c67de412861310653d4171af144111689f7cea1 100644
+--- a/dist/internal/runtime.js
++++ b/dist/internal/runtime.js
+@@ -47,8 +47,8 @@ const noHead = {
+ };
+ let sessions = 0;
+ const bridge = (host, step, ownsHead) => ({
+-  createElement: tag => {
+-    const node = host.createElement(tag);
++  createElement: (tag, parent) => {
++    const node = host.createElement(tag, parent);
+     if (tag.length === 4 && node?.nodeName === "FORM") {
+       host.setEvents(node, View.noFields, () => false, View.noFields);
+     }
+diff --git a/src/Renderer.ts b/src/Renderer.ts
+index f198639d891eb5fa621bb4050264d8747b00d703..fabddab6c9b8a18b8009d3ae4f91157c3ef071ca 100644
+--- a/src/Renderer.ts
++++ b/src/Renderer.ts
+@@ -176,7 +176,7 @@ export interface HostEvents<Node> {
+  * @since 0.1.0
+  */
+ export interface Host<Node> {
+-  createElement(tag: string): Node
++  createElement(tag: string, parent?: Node): Node
+   createText(text: string): Node
+   setText(node: Node, text: string): void
+   /**
+diff --git a/src/html/HtmlHydrate.ts b/src/html/HtmlHydrate.ts
+index ba22212d994cacaa43b18ce0649d3f27c4b6b7ef..43ddefacfd56a85e57fe0f592ff5d9a5c1314323 100644
+--- a/src/html/HtmlHydrate.ts
++++ b/src/html/HtmlHydrate.ts
+@@ -390,12 +390,12 @@ const between = (
+ 
+   const host: Kernel.Host<Node> = {
+     ...base,
+-    createElement(tag) {
++    createElement(tag, into) {
+       const node = take(tag)
+       if (node === null) {
+         const element = tag === "form"
+           ? container.ownerDocument!.createElement(tag)
+-          : base.createElement(tag)
++          : base.createElement(tag, into ?? parent)
+         fresh.add(element)
+         ours.add(element)
+         made = true
+diff --git a/src/html/internal/dom.ts b/src/html/internal/dom.ts
+index 194f1a231a244c87c4d460cfda9e58ea8593c851..83c0aedecfea7dbd0e4840c196be6576eb315feb 100644
+--- a/src/html/internal/dom.ts
++++ b/src/html/internal/dom.ts
+@@ -672,7 +672,11 @@ export const makeHost = (
+   }
+ 
+   return {
+-    createElement(tag) {
++    createElement(tag, into) {
++      if ((tag === "title" || tag === "desc") && (into as globalThis.Element | undefined)?.namespaceURI === SVG &&
++        (into as globalThis.Element).localName !== "foreignObject" && (into as globalThis.Element).localName !== "title" && (into as globalThis.Element).localName !== "desc") {
++        return document.createElementNS(SVG, tag)
++      }
+       if (svgTags.has(tag)) return document.createElementNS(SVG, tag)
+       const element = document.createElement(tag)
+       if (tag.length === 4 && tag.toLowerCase() === "form") form(element)
+diff --git a/src/internal/kernel.ts b/src/internal/kernel.ts
+index accc75670e5e9a486a060ea8745d3ccd10b01bc2..43576f173479d70debabb3d69a49510542c419ba 100644
+--- a/src/internal/kernel.ts
++++ b/src/internal/kernel.ts
+@@ -22,7 +22,7 @@ export interface Host<N = any> {
+   readonly hold?:
+     | ((owner: Instance, rec: Rec, slot: string | undefined) => boolean)
+     | undefined
+-  readonly createElement: (tag: string) => N
++  readonly createElement: (tag: string, parent?: N) => N
+   readonly createText: (text: string) => N
+   readonly setText: (node: N, text: string) => void
+   readonly setAttr: (
+@@ -445,17 +445,18 @@ const rootFallback = (
+ }
+ 
+ /** @internal */
+-export const stand = (inst: Instance, cause: Cause.Cause<unknown>): Rec => {
++export const stand = (inst: Instance, cause: Cause.Cause<unknown>, into?: unknown): Rec => {
+   const parent = inst.parent
+   const outer = slot
+   const from = born.length
+   slot = inst.under
+   try {
+     return parent === undefined
+-      ? create(inst, rootFallback(inst, cause))
++      ? create(inst, rootFallback(inst, cause), into)
+       : create(
+         parent,
+-        fallbackOf(parent, inst.at!.v as View.Child<any, any>, cause)
++        fallbackOf(parent, inst.at!.v as View.Child<any, any>, cause),
++        into
+       )
+   } catch (error) {
+     orphans(from)
+@@ -779,7 +780,7 @@ export const authorOf = (inst: Instance): Instance =>
+     ? inst.parent!
+     : inst
+ 
+-const start = (inst: Instance): Rec | undefined => {
++const start = (inst: Instance, into?: unknown): Rec | undefined => {
+   let first: Next
+   const component = inst.component
+   const outer = slot
+@@ -815,7 +816,7 @@ const start = (inst: Instance): Rec | undefined => {
+     let rendered: Rec
+     by.writing++
+     try {
+-      rendered = create(by, tree)
++      rendered = create(by, tree, into)
+       if (dev && shown !== fallbacks) checkShown(inst.path, [rendered])
+     } catch (error) {
+       fail(inst, "view", Cause.die(error), undefined, from)
+@@ -986,7 +987,8 @@ const keeperOf = (view: View.Child<any, any>): Keeper | undefined =>
+ export const mountChild = (
+   owner: Instance,
+   rec: Rec,
+-  fresh?: boolean
++  fresh?: boolean,
++  into?: unknown
+ ): void => {
+   const view = rec.v as View.Child<any, any>
+   let component = view.component as any
+@@ -1009,7 +1011,7 @@ export const mountChild = (
+       owner,
+       view,
+       component["~cause"](),
+-      (fallback) => create(owner, fallback)
++      (fallback) => create(owner, fallback, into)
+     )
+   } else if (FeatureId in component) {
+     const ctx = env.ctx
+@@ -1017,7 +1019,7 @@ export const mountChild = (
+       if (dev) checkFallback(owner.path, view)
+       held = inFallback(
+         owner,
+-        () => create(owner, fallbackOf(owner, view, env.cause))
++        () => create(owner, fallbackOf(owner, view, env.cause), into)
+       )
+       if (env.cause === undefined) {
+         env.waiting.push(() => settle(owner, rec, at))
+@@ -1043,7 +1045,7 @@ export const mountChild = (
+   owner.live++
+   born.push(owner, rec)
+   if (held !== undefined) rec.kids = [held]
+-  else if (start(child) === undefined) rec.kids = [stand(child, child.failure!)]
++  else if (start(child, into) === undefined) rec.kids = [stand(child, child.failure!, into)]
+   else if (owner.closed) close(child)
+ }
+ 
+@@ -1079,7 +1081,7 @@ export const settle = (
+     rec.kids = undefined
+     owner.live--
+     try {
+-      mountChild(owner, rec)
++      mountChild(owner, rec, undefined, parentNode)
+     } catch (error) {
+       rec.kids = [old]
+       owner.live++
+@@ -1185,14 +1187,14 @@ const setProps = (
+ }
+ 
+ /** @internal */
+-export const create = (inst: Instance, view: View.Node<any, any>): Rec => {
++export const create = (inst: Instance, view: View.Node<any, any>, into?: unknown): Rec => {
+   const host = inst.tree.host
+   switch (view._tag) {
+     case "Text":
+       return new Rec(view, host.createText(view.text), undefined, inst)
+     case "Element": {
+       if (view.owned?.length) view = owned(inst, view, view.owned)
+-      const node = host.createElement(view.tag)
++      const node = host.createElement(view.tag, into)
+       if (view.attrs !== View.noFields) setAttrs(host, node, view.attrs)
+       const views = view.children
+       let kids: Array<Rec> | undefined
+@@ -1200,7 +1202,7 @@ export const create = (inst: Instance, view: View.Node<any, any>): Rec => {
+       if (views.length > 0) {
+         kids = new Array(views.length)
+         for (let index = 0; index < views.length; index++) {
+-          place(host, node, kids[index] = create(inst, views[index]!), null)
++          place(host, node, kids[index] = create(inst, views[index]!, node), null)
+         }
+       }
+       if (view.props !== View.noFields) setProps(host, node, view.props)
+@@ -1217,15 +1219,15 @@ export const create = (inst: Instance, view: View.Node<any, any>): Rec => {
+     }
+     case "Child": {
+       const rec = new Rec(view, undefined, undefined, inst)
+-      mountChild(inst, rec)
++      mountChild(inst, rec, undefined, into)
+       return rec
+     }
+     case "Outlet":
+-      return createOutlet(inst, view)
++      return createOutlet(inst, view, into)
+   }
+ }
+ 
+-const createOutlet = (inst: Instance, view: View.Outlet): Rec => {
++const createOutlet = (inst: Instance, view: View.Outlet, into?: unknown): Rec => {
+   if (dev) checkDeclarer(inst, view)
+   const declarer = inst.parent!
+   const content = slotOf(inst, view.name)
+@@ -1240,7 +1242,7 @@ const createOutlet = (inst: Instance, view: View.Outlet): Rec => {
+     const views = contentOf(view, content)
+     const kids: Array<Rec> = rec.kids = new Array(views.length)
+     for (let index = 0; index < views.length; index++) {
+-      kids[index] = create(declarer, views[index]!)
++      kids[index] = create(declarer, views[index]!, into)
+     }
+     if (dev && shown !== fallbacks) checkShown(slot, kids, true)
+   } catch (error) {
+@@ -1375,7 +1377,7 @@ export const replace = (
+   const host = inst.tree.host
+   const at = nodeOf(old)
+   const parent = host.parentOf(at)
+-  const next = create(inst, view)
++  const next = create(inst, view, parent)
+   place(host, parent, next, at)
+   remove(inst, parent, old)
+   return next
+@@ -1476,7 +1478,7 @@ const patchElement = (
+     if (views.length > 0) {
+       const kids: Array<Rec> = new Array(views.length)
+       for (let index = 0; index < views.length; index++) {
+-        place(host, node, kids[index] = create(inst, views[index]!), null)
++        place(host, node, kids[index] = create(inst, views[index]!, node), null)
+       }
+       rec.kids = kids
+     }
+@@ -1611,7 +1613,7 @@ const patchList = (
+   for (let index = start; index <= end; index++) {
+     const source = sources === undefined ? 0 : sources[index - start]!
+     out[index] = source === 0
+-      ? create(inst, views[index]!)
++      ? create(inst, views[index]!, parent)
+       : patch(inst, olds[source - 1]!, views[index]!)
+   }
+   if (gone !== undefined) {
+@@ -1727,8 +1729,8 @@ export const mount = (
+     props,
+     env
+   )
+-  if (start(instance) === undefined) {
+-    instance.rendered = stand(instance, instance.failure!)
++  if (start(instance, container) === undefined) {
++    instance.rendered = stand(instance, instance.failure!, container)
+   }
+   place(host, container, instance.rendered!, null)
+   flush(tree)
+diff --git a/src/internal/runtime.ts b/src/internal/runtime.ts
+index 26a8fbba556dc65f1271f8e05db3b127da0b14e7..3e2a2a058be45b803c1ccc33670ef5bc19f55121 100644
+--- a/src/internal/runtime.ts
++++ b/src/internal/runtime.ts
+@@ -126,8 +126,8 @@ const bridge = (
+   step: Recorder.Recording["step"],
+   ownsHead: boolean
+ ): Kernel.Host => ({
+-  createElement: (tag) => {
+-    const node = host.createElement(tag)
++  createElement: (tag, parent) => {
++    const node = host.createElement(tag, parent)
+     if (tag.length === 4 && node?.nodeName === "FORM") {
+       host.setEvents(node, View.noFields, () => false, View.noFields)
+     }

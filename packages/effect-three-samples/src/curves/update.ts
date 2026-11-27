@@ -1,12 +1,10 @@
 import { pointOnPlane } from '@opsydyn/effect-three';
-import { Option } from 'effect';
-import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { Match, Option, Struct } from 'effect';
 
-import { Message } from './message';
+import type { Message } from './message';
 import { type Model, startControls, type Vec3 } from './model';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = { readonly model: Model };
 
 /** The plane the handles move in: z = 0, facing the camera. */
 const stage = { normal: [0, 0, 1], constant: 0 } as const;
@@ -35,7 +33,7 @@ const drag = (model: Model, origin: Vec3, direction: Vec3): Model =>
     {
       onNone: () => model,
       onSome: ([held, point]) =>
-        modifyFields(model, {
+        Struct.evolve(model, {
           controls: (controls) =>
             controls.map((control, index) => (index === held ? clamp(point) : control)),
         }),
@@ -43,12 +41,15 @@ const drag = (model: Model, origin: Vec3, direction: Vec3): Model =>
   );
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    PressedHandle: ({ key }) => ({ model: modifyFields(model, { held: () => indexOf(key) }) }),
-    DraggedHandle: ({ origin, direction }) => ({ model: drag(model, origin, direction) }),
-    DroppedHandle: () => ({ model: modifyFields(model, { held: () => Option.none() }) }),
-    ClickedDashes: () => ({ model: modifyFields(model, { dashed: (dashed) => !dashed }) }),
-    ClickedGlitter: () => ({ model: modifyFields(model, { glitter: (glitter) => !glitter }) }),
-    ClickedReset: () => ({ model: modifyFields(model, { controls: () => startControls }) }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      PressedHandle: ({ key }) => ({ model: Struct.evolve(model, { held: () => indexOf(key) }) }),
+      DraggedHandle: ({ origin, direction }) => ({ model: drag(model, origin, direction) }),
+      DroppedHandle: () => ({ model: Struct.evolve(model, { held: () => Option.none() }) }),
+      ClickedDashes: () => ({ model: Struct.evolve(model, { dashed: (dashed) => !dashed }) }),
+      ClickedGlitter: () => ({ model: Struct.evolve(model, { glitter: (glitter) => !glitter }) }),
+      ClickedReset: () => ({ model: Struct.evolve(model, { controls: () => startControls }) }),
+      ReceivedSceneLifecycle: () => ({ model }),
+    }),
+  );

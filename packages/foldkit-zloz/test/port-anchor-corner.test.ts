@@ -1,18 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozPortAnchorHandle, zlozView } from '../src/foldkit';
-import {
-  createEditor,
-  resolvePortAnchorSnap,
-  updateEditor,
-  type EditorEvent,
-  type ZlozGraph,
-} from '../src/index';
+import type { EditorEvent } from '../src/index';
+import { createEditor, resolvePortAnchorSnap, updateEditor, type ZlozGraph } from '../src/index';
+import { renderCanvas } from './render-effect-ui';
 
 const options = { size: { width: 200, height: 100 }, zoom: 1, distance: 0, cornerDistance: 12 };
 const graph: ZlozGraph = {
@@ -210,34 +202,17 @@ test('custom handles receive corner feedback and compose native binding and desc
     selectedNodes: ['n'],
   };
   const preview = move(updateEditor(initial, start), 6, 8);
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: preview }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Corners',
-          body: zlozView(h, model, {
-            id: 'corners',
-            label: 'Corners',
-            onEvent: (event) => event,
-            portAnchorHandles: true,
-            renderPortAnchorHandle: (context, builder) => {
-              expect(context.snappedCorner).toBe('top-left');
-              expect(context.snappedSide).toBeNull();
-              return zlozPortAnchorHandle(
-                builder,
-                context,
-                [builder.Class('custom-corner')],
-                [`Pinned ${context.snappedCorner}`],
-              );
-            },
-          }),
-        }),
+  const result = await renderCanvas(preview, {
+    id: 'corners',
+    label: 'Corners',
+    portAnchors: {
+      renderHandle: (context) => {
+        expect(context.snappedCorner).toBe('top-left');
+        expect(context.snappedSide).toBeNull();
+        return { className: 'custom-corner', content: `Pinned ${context.snappedCorner}` };
       },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+    },
+  });
   const window = new Window();
   window.document.body.innerHTML = result.html;
   const handle = window.document.querySelector('.custom-corner');
@@ -245,5 +220,5 @@ test('custom handles receive corner feedback and compose native binding and desc
   expect(handle?.getAttribute('data-flow-anchor-snapped')).toBeNull();
   expect(handle?.getAttribute('title')).toContain('Snapped to top-left corner. Hold Alt');
   expect(handle?.textContent).toBe('Pinned top-left');
-  expect(handle?.getAttribute('style')).toContain('touch-action');
+  expect(handle?.classList.contains('zloz-ui-anchor-handle')).toBe(true);
 });

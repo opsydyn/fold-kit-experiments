@@ -1,7 +1,7 @@
 {
   "name": "@opsydyn/effect-three-foldkit",
   "version": "0.6.4",
-  "description": "Thin Foldkit adapter for @opsydyn/effect-three.",
+  "description": "Effect UI adapter for @opsydyn/effect-three.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -26,6 +26,11 @@
       "bun": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "bun": "./src/browser.ts",
+      "default": "./dist/browser.js"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -37,14 +42,15 @@
     "check": "bun run lint",
     "test": "bun test --pass-with-no-tests ./src ./test",
     "test:e2e": "bun test ./e2e",
-    "build": "tsc -b && bun build ./src/index.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked",
+    "build": "tsc -b && bun build ./src/index.ts ./src/browser.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked",
     "api:report": "api-extractor run --local",
     "api:check": "api-extractor run",
     "pack:check": "bun run build && publint && rm -rf dist/pack && bun pm pack --destination dist/pack && attw dist/pack/*.tgz --profile esm-only"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
-    "@effect/platform-browser": "4.1.0",
+    "@effect/platform-browser": "4.1.6",
+    "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
     "@fontsource/inter": "5.3.0",
     "@microsoft/api-extractor": "7.59.4",
     "@opsydyn/effect-three": "workspace:*",
@@ -53,8 +59,7 @@
     "@types/bun": "1.4.3",
     "@types/pngjs": "6.0.5",
     "@types/three": "0.186.0",
-    "effect": "4.1.0",
-    "foldkit": "0.171.0",
+    "effect": "4.1.6",
     "iwer": "2.5.0",
     "oxlint": "1.88.0",
     "oxlint-tsgolint": "7.0.2004",
@@ -66,9 +71,9 @@
     "typescript": "7.0.2"
   },
   "peerDependencies": {
+    "@effect/ui": "0.0.0",
     "@opsydyn/effect-three": "0.6.4",
     "effect": "^4.0.0",
-    "foldkit": ">=0.167.0 <0.172.0",
     "three": ">=0.186.0 <0.187.0"
   }
 }

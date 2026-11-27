@@ -1,20 +1,12 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
-import { Window } from 'happy-dom';
-
-import { zlozReviewReader, type ZlozReviewReaderViewOptions } from '../src/foldkit';
-import {
-  createReviewReader,
-  updateReviewReader,
-  type ZlozReviewReaderOptions,
-  type ZlozReviewReaderRequest,
-} from '../src/index';
+import { reviewReader, type ReviewReaderOptions } from '../src/effect-ui';
+import { createReviewReader, updateReviewReader, type ZlozReviewReaderOptions } from '../src/index';
 import literal from './fixtures/review-packet-v1.json';
+import { observedRequest, render as renderView, type Request } from './render-effect-ui';
+
 async function render(
-  options: ZlozReviewReaderViewOptions<ZlozReviewReaderRequest> = {},
+  options: ReviewReaderOptions<Request> = {},
   policy: ZlozReviewReaderOptions = {},
 ) {
   const scope = 'reader/1';
@@ -29,29 +21,16 @@ async function render(
     run: 1,
     text: JSON.stringify(literal),
   }).state;
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<ZlozReviewReaderRequest>) => ({
-          title: 'Reader',
-          body: zlozReviewReader(
-            h,
-            model,
-            (r) => r,
-            (): ZlozReviewReaderRequest => ({ scope, type: 'ReadFailed', run: 1 }),
-            policy,
-            options,
-          ),
-        }),
-      },
-      { flags: {}, isHydratable: false },
+  return renderView((h) =>
+    reviewReader(
+      h,
+      state,
+      () => observedRequest,
+      () => observedRequest,
+      policy,
+      options,
     ),
   );
-  const window = new Window();
-  window.document.body.innerHTML = result.html;
-  return window.document;
 }
 test('native reader exposes independent opening and side protection, selected state and functional findings', async () => {
   const dom = await render(
@@ -74,9 +53,9 @@ test('minimal controls keep findings and actions; null slots omit and custom lay
   );
   const custom = await render({
     renderSummary: () => null,
-    renderFinding: (f, h) => h.li([], [`Custom: ${f.code}`]),
+    renderFinding: (f, h) => h.li.children(`Custom: ${f.code}`),
     renderLayout: (parts, h) => [
-      h.strong([], ['Custom reader']),
+      h.strong.children('Custom reader'),
       ...[parts.summary, parts.findings, parts.close].flatMap((p) => (p === null ? [] : [p])),
     ],
   });

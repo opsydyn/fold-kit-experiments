@@ -23,18 +23,18 @@ export const transitions = `const cubeNode = (model: Model, cube: Cube, index: n
     material: sharedMaterial(cube.paint),
   });`;
 
-export const installation = `npm install @opsydyn/effect-three @opsydyn/effect-three-foldkit three effect foldkit
+export const installation = `npm install @opsydyn/effect-three @opsydyn/effect-three-foldkit three effect https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92
 # when a scene needs physics or labels
 npm install @opsydyn/effect-three-rapier @opsydyn/effect-three-troika`;
 
 export const entry = `// entry.ts: once per application
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import * as EffectThreeUi from '@opsydyn/effect-three-foldkit';
 
-export const environment = EffectThreeFoldkit.makeEnvironment(window);
-export const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);`;
+export const environment = EffectThreeUi.makeEnvironment(window);
+export const sceneMount = EffectThreeUi.makeSceneMount(environment);`;
 
 export const view = `// view.ts
-EffectThreeFoldkit.view(
+EffectThreeUi.view(
   {
     scene: sceneFor(model),
     mount: sceneMount,
@@ -148,30 +148,24 @@ export const xrSnippet = `scene({
   ],
 });`;
 
-export const agentSnippet = `// main.ts: hand DevTools the Message schema, and in development an agent can send
-// Messages through the Foldkit DevTools MCP server, decoded like any other.
-export const devTools = { Message, excludeFromHistory: ['MadeGesture'] };
-
-// message.ts: what an agent (or a script, or a test) sends to arrange the room.
-PlacedPlant: { at: Vec3, kind: PlantKind },  // PlantKind: 'fern' | 'cactus' | 'tulip'
-
-// An agent's tool call; a kind the schema does not know is rejected before update.
-foldkit_dispatch_messages({ messages: [
-  { _tag: 'ClickedClear' },
-  { _tag: 'PlacedPlant', at: [1.2, 0, 0.4], kind: 'tulip' },
-] })`;
+export const agentSnippet = `// Validate an external action before sending it to the component.
+const Message = UiSchema.TaggedEnum({
+  PlacedPlant: { at: Vec3, kind: Schema.Literals(['fern', 'cactus', 'tulip']) },
+});
+const action = Schema.decodeUnknownSync(Message)(input);
+root.send(action);`;
 
 export const lending = `// Application-owned assets, shown but never disposed by the scene.
 store.lend('car', gltf.scene);            // borrowed({ key: 'car', id: 'car' })
 store.lendTexture('bricks', texture);     // standard({ map: 'bricks' })
 store.lendGeometry('terrain', geometry);  // mesh({ geometry: lentGeometry('terrain') })`;
 
-export const renderers = `import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+export const renderers = `import * as EffectThreeUi from '@opsydyn/effect-three-foldkit';
 // Draws labels with either renderer: node materials (TSL) under WebGPU.
 import { troikaLabels } from '@opsydyn/effect-three-troika/webgpu';
 
 // WebGPU where the browser has it, its WebGL 2 backend otherwise.
-const environment = EffectThreeFoldkit.makeEnvironment(window, {
-  renderer: EffectThreeFoldkit.webgpuRendererFactory, // one per canvas
+const environment = EffectThreeUi.makeEnvironment(window, {
+  renderer: EffectThreeUi.webgpuRendererFactory, // one per canvas
   labels: troikaLabels(),
 });`;

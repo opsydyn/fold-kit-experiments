@@ -1,8 +1,7 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import {
@@ -13,11 +12,11 @@ import {
   type ZlozHistoryPresentationOptionsV2,
 } from '../src';
 import {
-  zlozHistoryComparisonPresentationV2,
-  zlozHistoryGhostsV2,
+  historyComparisonV2,
+  historyGhostsV2,
   type ZlozHistoryPresentationViewOptionsV2,
   type ZlozHistoryGhostOptionsV2,
-} from '../src/foldkit';
+} from '../src/effect-ui';
 import looseWire from './fixtures/connection-v2-loose.json';
 import modelWire from './fixtures/model-v2-modes.json';
 
@@ -44,30 +43,22 @@ const moved: ZlozEditionV2 = {
 async function render(
   selected = strict,
   options: ZlozHistoryPresentationOptionsV2 = {},
-  view: ZlozHistoryPresentationViewOptionsV2<never> = {},
-  ghosts: ZlozHistoryGhostOptionsV2<never> = {},
+  view: ZlozHistoryPresentationViewOptionsV2<string> = {},
+  ghosts: ZlozHistoryGhostOptionsV2<string> = {},
   baseline = before,
 ) {
   const context = resolveHistoryComparisonPresentationV2(baseline, selected, options);
-  const output = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: context }),
-        view: (model, h: HtmlBuilder<never>) => ({
-          title: 'V2 comparison',
-          body: h.div(
-            [],
-            [
-              zlozHistoryComparisonPresentationV2(h, model, view),
-              zlozHistoryGhostsV2(h, model, ghosts) ?? h.span([], []),
-            ],
-          ),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const TestView = Html.component({
+    name: 'HistoryPresentation',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) =>
+      h.div(historyComparisonV2(h, context, view), historyGhostsV2<string>(context, ghosts)),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(TestView, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = output.html;
   return { document: window.document, context, html: output.html };
@@ -104,7 +95,7 @@ test('unchanged modes are explicit and graph layout is described separately', as
     'true',
   );
   expect(document.querySelector('[data-zloz-history-ghosts]')?.getAttribute('style')).toContain(
-    'pointer-events: none',
+    'pointer-events:none',
   );
   expect(
     document.querySelectorAll('button, input, [tabindex], [data-flow-port], [data-flow-node]'),
@@ -148,12 +139,13 @@ test('text, parts, layout and inert mark customization compose without overrides
     },
     {
       label: 'Custom review',
-      renderSummary: (_context, h) => h.strong([], ['Summary badge']),
-      renderMode: (_context, h) => h.em([], ['Mode badge']),
+      renderSummary: (_context, h) => h.strong('Summary badge'),
+      renderMode: (_context, h) => h.em('Mode badge'),
       renderLayout: (parts) => [parts.mode!, parts.summary!],
     },
     {
-      renderNode: (change, h) => h.circle([h.DataAttribute('custom-ghost', change.id)], []),
+      renderNode: (change) =>
+        new Html.Element<string>('circle').attr('data-custom-ghost', change.id),
       renderEdge: () => null,
       renderMovement: () => null,
     },

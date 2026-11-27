@@ -1,20 +1,18 @@
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
-import { dotPattern, hatchPattern, linearGradient } from '@opsydyn/foldkit-viz/foldkit/paint';
-import { Stream } from 'effect';
-import { Mount } from 'foldkit';
-import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import { widthChanges } from '../shared/measurement';
 import { barAccessors } from './data';
 import { Message } from './message';
-import type { Model } from './model';
-const MeasureBars = Mount.defineStream('MeasureBars', {
-  messages: [Message.RecordedWidth],
-  execute: ({ element }) =>
-    widthChanges(element).pipe(Stream.map((width) => Message.RecordedWidth({ width }))),
-});
+import { Mode, Orientation, Paint, type Model } from './model';
+import { paintDefinitions } from './paint';
+
+const MeasureBars = Mount.makeStream('MeasureBars', { args: {} }, widthChanges);
 const palette = ['var(--blue)', 'var(--coral)', 'var(--mint)'];
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+const colourAt = (index: number) => palette[index % palette.length] ?? 'currentColor';
+
+export const view = (h: Html.H<Message>, model: Model) => {
   const geometry = barGeometry(model.data, barAccessors, {
     frame: {
       width: model.width,
@@ -24,229 +22,165 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
     mode: model.mode,
     orientation: model.orientation,
   });
-  const active = model.data.find((d) => d.id === model.activeKey);
+  const active = model.data.find((datum) => datum.id === model.activeKey);
   const source = `import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';\n\nconst geometry = barGeometry(data, {\n  key: d => d.id, category: d => d.month,\n  series: d => d.series, value: d => d.value,\n}, {\n  frame, mode: '${model.mode}',\n  orientation: '${model.orientation}',\n});\n// Render geometry.bars as SVG rectangles.\n// Choose each series' paint in your view.\n`;
-  return {
-    title: 'Grouped and stacked bars — Foldkit Viz',
-    body: h.div(
-      [h.Class('primitive-demo')],
-      [
-        h.div(
-          [h.Class('primitive-controls')],
-          [
-            h.fieldset(
-              [],
-              [
-                h.legend([], ['Composition']),
-                ...(['grouped', 'stacked'] as const).map((mode) =>
-                  h.button(
-                    [
-                      h.Type('button'),
-                      h.AriaPressed(String(model.mode === mode)),
-                      h.OnClick(Message.SelectedMode({ mode })),
-                    ],
-                    [mode],
-                  ),
-                ),
-              ],
-            ),
-            h.fieldset(
-              [],
-              [
-                h.legend([], ['Orientation']),
-                ...(['vertical', 'horizontal'] as const).map((orientation) =>
-                  h.button(
-                    [
-                      h.Type('button'),
-                      h.AriaPressed(String(model.orientation === orientation)),
-                      h.OnClick(Message.SelectedOrientation({ orientation })),
-                    ],
-                    [orientation],
-                  ),
-                ),
-              ],
-            ),
-            h.fieldset(
-              [],
-              [
-                h.legend([], ['Paint']),
-                ...(['solid', 'dots', 'hatch', 'gradient'] as const).map((paint) =>
-                  h.button(
-                    [
-                      h.Type('button'),
-                      h.AriaPressed(String(model.paint === paint)),
-                      h.OnClick(Message.SelectedPaint({ paint })),
-                    ],
-                    [paint],
-                  ),
-                ),
-              ],
-            ),
-            h.button([h.Type('button'), h.OnClick(Message.ClickedReset())], ['Reset']),
-          ],
+  const control = (label: string, selected: boolean, message: Message) =>
+    h.button
+      .attr('type', 'button')
+      .attr('aria-pressed', String(selected))
+      .on('click', message)
+      .children(label);
+
+  return h.div.class('primitive-demo').children(
+    h.div
+      .class('primitive-controls')
+      .children(
+        h.fieldset(
+          h.legend('Composition'),
+          ...Mode.literals.map((mode) =>
+            control(mode, model.mode === mode, Message.SelectedMode({ mode })),
+          ),
         ),
-        h.div(
-          [h.Class('primitive-plot'), h.OnMount(MeasureBars())],
-          [
-            h.svg(
-              [
-                h.ViewBox(`0 0 ${model.width} 350`),
-                h.Role('group'),
-                h.AriaLabel('Illustrative monthly activity by series'),
-              ],
-              [
-                h.defs(
-                  [],
-                  geometry.series.flatMap((_series, i) => {
-                    const colour = palette[i % palette.length] ?? 'currentColor';
-                    return [
-                      dotPattern(h, { id: `bars-dots-${i}`, colour, spacing: 7, radius: 1.6 }),
-                      hatchPattern(h, {
-                        id: `bars-hatch-${i}`,
-                        colour,
-                        spacing: 6,
-                        strokeWidth: 2,
-                      }),
-                      linearGradient(h, {
-                        id: `bars-gradient-${i}`,
-                        stops: [
-                          { offset: 0, colour, opacity: 0.35 },
-                          { offset: 1, colour },
-                        ],
-                      }),
-                    ];
-                  }),
-                ),
-                ...geometry.ticks.flatMap((t) =>
-                  model.orientation === 'vertical'
-                    ? [
-                        h.line(
-                          [
-                            h.X1(String(geometry.plot.left)),
-                            h.X2(String(geometry.plot.right)),
-                            h.Y1(String(t.position)),
-                            h.Y2(String(t.position)),
-                            h.Stroke('var(--border)'),
-                          ],
-                          [],
-                        ),
-                        h.text(
-                          [h.X('38'), h.Y(String(t.position + 4)), h.TextAnchor('end')],
-                          [String(t.value)],
-                        ),
-                      ]
-                    : [
-                        h.line(
-                          [
-                            h.X1(String(t.position)),
-                            h.X2(String(t.position)),
-                            h.Y1(String(geometry.plot.top)),
-                            h.Y2(String(geometry.plot.bottom)),
-                            h.Stroke('var(--border)'),
-                          ],
-                          [],
-                        ),
-                        h.text(
-                          [h.X(String(t.position)), h.Y('333'), h.TextAnchor('middle')],
-                          [String(t.value)],
-                        ),
-                      ],
-                ),
-                ...geometry.bars.map((b) => {
-                  const i = geometry.series.indexOf(b.series);
-                  const fill =
-                    model.paint === 'solid'
-                      ? (palette[i % palette.length] ?? 'currentColor')
-                      : `url(#bars-${model.paint}-${i})`;
-                  return h.rect(
-                    [
-                      h.Key(b.key),
-                      h.X(String(b.x)),
-                      h.Y(String(b.y)),
-                      h.Width(String(b.width)),
-                      h.Height(String(b.height)),
-                      h.Fill(fill),
-                      h.Stroke(b.key === model.activeKey ? 'var(--text)' : 'none'),
-                      h.StrokeWidth('2'),
-                      h.Tabindex(0),
-                      h.Role('img'),
-                      h.AriaLabel(`${b.category}, ${b.series}: ${b.value}`),
-                      h.OnFocus(Message.InspectedBar({ key: b.key })),
-                      h.OnMouseEnter(Message.InspectedBar({ key: b.key })),
-                    ],
-                    [h.title([], [`${b.category}, ${b.series}: ${b.value}`])],
-                  );
-                }),
-                ...geometry.categories.map((c) =>
-                  model.orientation === 'vertical'
-                    ? h.text([h.X(String(c.position)), h.Y('333'), h.TextAnchor('middle')], [c.key])
-                    : h.text(
-                        [h.X('38'), h.Y(String(c.position + 4)), h.TextAnchor('end')],
-                        [c.key],
-                      ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        h.p(
-          [h.Class('primitive-status'), h.AriaLive('polite')],
-          [active ? `${active.month} · ${active.series}: ${active.value}` : 'No bar selected.'],
-        ),
-        h.ul(
-          [h.Class('primitive-legend'), h.AriaLabel('Series')],
-          geometry.series.map((s, i) =>
-            h.li(
-              [],
-              [
-                h.span(
-                  [
-                    h.Class('primitive-series-swatch'),
-                    h.AriaHidden(true),
-                    h.Style({ backgroundColor: palette[i % palette.length] ?? 'currentColor' }),
-                  ],
-                  [],
-                ),
-                s,
-              ],
+        h.fieldset(
+          h.legend('Orientation'),
+          ...Orientation.literals.map((orientation) =>
+            control(
+              orientation,
+              model.orientation === orientation,
+              Message.SelectedOrientation({ orientation }),
             ),
           ),
         ),
-        h.details(
-          [],
-          [h.summary([], ['Read the geometry code']), h.pre([], [h.code([], [source])])],
+        h.fieldset(
+          h.legend('Paint'),
+          ...Paint.literals.map((paint) =>
+            control(paint, model.paint === paint, Message.SelectedPaint({ paint })),
+          ),
         ),
-        h.details(
-          [],
-          [
-            h.summary([], ['View all data']),
-            h.table(
-              [],
-              [
-                h.caption([], ['Illustrative monthly activity']),
-                h.thead(
-                  [],
-                  [
-                    h.tr(
-                      [],
-                      ['Month', 'Series', 'Value'].map((s) => h.th([h.Scope('col')], [s])),
-                    ),
-                  ],
+        h.button.attr('type', 'button').on('click', Message.ClickedReset()).children('Reset'),
+      ),
+    h.div
+      .class('primitive-plot')
+      .onMount(Mount.map(MeasureBars(), (width) => Message.RecordedWidth({ width })))
+      .children(
+        h
+          .el('svg')
+          .attrs({
+            viewBox: `0 0 ${model.width} 350`,
+            role: 'group',
+            'aria-label': 'Illustrative monthly activity by series',
+          })
+          .children(
+            h
+              .el('defs')
+              .children(
+                ...geometry.series.flatMap((_series, index) =>
+                  paintDefinitions(h, index, colourAt(index)),
                 ),
-                h.tbody(
-                  [],
-                  model.data.map((d) =>
-                    h.tr(
-                      [],
-                      [h.td([], [d.month]), h.td([], [d.series]), h.td([], [String(d.value)])],
-                    ),
-                  ),
-                ),
-              ],
+              ),
+            ...geometry.ticks.map(({ value, position }) => {
+              const coordinate = String(position);
+              const vertical = model.orientation === 'vertical';
+              const line = vertical
+                ? {
+                    x1: String(geometry.plot.left),
+                    x2: String(geometry.plot.right),
+                    y1: coordinate,
+                    y2: coordinate,
+                  }
+                : {
+                    x1: coordinate,
+                    x2: coordinate,
+                    y1: String(geometry.plot.top),
+                    y2: String(geometry.plot.bottom),
+                  };
+              const label = vertical
+                ? { x: '38', y: String(position + 4), 'text-anchor': 'end' }
+                : { x: coordinate, y: '333', 'text-anchor': 'middle' };
+              return h
+                .el('g')
+                .children(
+                  h.el('line').attrs(line).attr('stroke', 'var(--border)').children(),
+                  h.el('text').attrs(label).children(String(value)),
+                );
+            }),
+            ...geometry.bars.map(({ key, series, category, value, x, y, width, height }) => {
+              const index = geometry.series.indexOf(series);
+              const label = `${category}, ${series}: ${value}`;
+              const inspected = Message.InspectedBar({ key });
+              return h
+                .el('rect')
+                .key(key)
+                .attrs({
+                  x: String(x),
+                  y: String(y),
+                  width: String(width),
+                  height: String(height),
+                  fill:
+                    model.paint === 'solid'
+                      ? colourAt(index)
+                      : `url(#bars-${model.paint}-${index})`,
+                  stroke: key === model.activeKey ? 'var(--text)' : 'none',
+                  'stroke-width': '2',
+                  tabindex: '0',
+                  role: 'img',
+                  'aria-label': label,
+                })
+                .on('focus', inspected)
+                .on('mouseenter', inspected)
+                .children(h.el('title').children(label));
+            }),
+            ...geometry.categories.map(({ key, position }) =>
+              h
+                .el('text')
+                .attrs(
+                  model.orientation === 'vertical'
+                    ? { x: String(position), y: '333', 'text-anchor': 'middle' }
+                    : { x: '38', y: String(position + 4), 'text-anchor': 'end' },
+                )
+                .children(key),
             ),
-          ],
+          ),
+      ),
+    h.p
+      .class('primitive-status')
+      .attr('aria-live', 'polite')
+      .children(
+        active ? `${active.month} · ${active.series}: ${active.value}` : 'No bar selected.',
+      ),
+    h.ul
+      .class('primitive-legend')
+      .attr('aria-label', 'Series')
+      .children(
+        ...geometry.series.map((series, index) =>
+          h.li(
+            h.span
+              .class('primitive-series-swatch')
+              .attr('aria-hidden', 'true')
+              .style({ backgroundColor: colourAt(index) })
+              .children(),
+            series,
+          ),
         ),
-      ],
+      ),
+    h.details(h.summary('Read the geometry code'), h.pre(h.code(source))),
+    h.details(
+      h.summary('View all data'),
+      h.table(
+        h.caption('Illustrative monthly activity'),
+        h.thead(
+          h.tr(
+            ...['Month', 'Series', 'Value'].map((label) =>
+              h.th.attr('scope', 'col').children(label),
+            ),
+          ),
+        ),
+        h.tbody(
+          ...model.data.map(({ month, series, value }) =>
+            h.tr(h.td(month), h.td(series), h.td(String(value))),
+          ),
+        ),
+      ),
     ),
-  };
+  );
 };

@@ -9,8 +9,8 @@
  */
 import type { StateFlowGuard } from '@opsydyn/foldkit-viz/stateflow';
 import { Option, Schema } from 'effect';
-import type { Machine } from 'foldkit/experimental';
 
+import type { EdgeGuard, EdgeSummary, ReplayMachine, TransitionResult } from './machine-contract';
 import type { TransitionFact } from './model';
 
 type Tagged = Readonly<{ _tag: string }>;
@@ -57,10 +57,10 @@ export type Specimen = Readonly<{
   accepts: (event: string) => boolean;
 }>;
 
-const guardOf = (guard: Machine.EdgeGuard): StateFlowGuard =>
+const guardOf = (guard: EdgeGuard): StateFlowGuard =>
   (({ Unguarded: 'unguarded', When: 'when', Otherwise: 'otherwise' }) as const)[guard._tag];
 
-const edgeId = (edge: Machine.EdgeSummary<Tagged, Tagged>): string =>
+const edgeId = (edge: EdgeSummary): string =>
   [
     edge.from,
     edge.messageTag,
@@ -75,10 +75,14 @@ export const tripleOf = (
 ): string => [edge.from, edge.messageTag, edge.target ?? ''].join('→');
 
 /** The last step of a run of messages from the machine's initial state: what a test asserts. */
-export const lastStep = <State extends Tagged, Message extends Tagged, R>(
-  machine: Machine.Machine<State, Message, R>,
+export const lastStep = <
+  State extends Tagged,
+  Message extends Tagged,
+  Command extends { readonly name: string },
+>(
+  machine: ReplayMachine<State, Message, Command>,
   messages: ReadonlyArray<Message>,
-): Machine.TransitionResult<State, Message, R> => {
+): TransitionResult<State, Command> => {
   const before = messages
     .slice(0, -1)
     .reduce((state, message) => machine.step(state, message).state, machine.initial);
@@ -97,8 +101,12 @@ type Visit<State> = Readonly<{ state: State; steps: ReadonlyArray<string> }>;
  * value, not just their tag, so a guard that reads the state (a cancel for a reload, or for
  * leaving the page) finds both of its branches.
  */
-const explore = <State extends Tagged, Message extends Tagged, R>(
-  machine: Machine.Machine<State, Message, R>,
+const explore = <
+  State extends Tagged,
+  Message extends Tagged,
+  Command extends { readonly name: string },
+>(
+  machine: ReplayMachine<State, Message, Command>,
   examples: Readonly<Record<string, Message>>,
 ): ReadonlyMap<string, ReadonlyArray<string>> => {
   const found = new Map<string, ReadonlyArray<string>>();
@@ -126,14 +134,18 @@ const explore = <State extends Tagged, Message extends Tagged, R>(
   return found;
 };
 
-export type SpecimenConfig<State extends Tagged, Message extends Tagged, R> = Readonly<{
+export type SpecimenConfig<
+  State extends Tagged,
+  Message extends Tagged,
+  Command extends { readonly name: string },
+> = Readonly<{
   id: string;
   label: string;
   summary: string;
   livePath?: string;
   machineName: string;
   examplesName: string;
-  machine: Machine.Machine<State, Message, R>;
+  machine: ReplayMachine<State, Message, Command>;
   message: Schema.Codec<Message, unknown>;
   errorStates?: ReadonlyArray<string>;
   transientStates?: ReadonlyArray<string>;
@@ -144,8 +156,12 @@ export type SpecimenConfig<State extends Tagged, Message extends Tagged, R> = Re
 }>;
 
 /** A machine, its message schema and its examples, erased to a specimen. */
-export const defineSpecimen = <State extends Tagged, Message extends Tagged, R>(
-  config: SpecimenConfig<State, Message, R>,
+export const defineSpecimen = <
+  State extends Tagged,
+  Message extends Tagged,
+  Command extends { readonly name: string },
+>(
+  config: SpecimenConfig<State, Message, Command>,
 ): Specimen => {
   const { machine } = config;
   const json = Schema.fromJsonString(config.message);

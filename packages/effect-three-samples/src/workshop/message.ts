@@ -1,10 +1,10 @@
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
+import { SceneStart } from '../effect-ui-scene';
 import { Clip } from './model';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   // What the scene heard about the assets it asks for.
   // A level of detail shown: `final` once it is the finest.
   LoadedAsset: {
@@ -19,6 +19,6 @@ export const Message = defineMessageUnion({
   ClickedPart: { part: Schema.String },
   ClickedUnload: {},
   ClickedReload: {},
-  ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  ReceivedSceneLifecycle: { lifecycle: SceneStart },
 });
 export type Message = typeof Message.Type;

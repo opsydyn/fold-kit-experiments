@@ -1,18 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozView } from '../src/foldkit';
-import {
-  createEditor,
-  updateEditor,
-  resolvePortAnchorSnap,
-  type EditorEvent,
-  type ZlozGraph,
-} from '../src/index';
+import type { EditorEvent } from '../src/index';
+import { createEditor, updateEditor, resolvePortAnchorSnap, type ZlozGraph } from '../src/index';
+import { renderCanvas } from './render-effect-ui';
 
 const graph: ZlozGraph = {
   nodes: [
@@ -141,34 +133,22 @@ test('renderers and native handles expose active edge feedback without adding do
     pointer: 1,
     point: { x: -95, y: 0 },
   });
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: preview }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Snapping',
-          body: zlozView(h, model, {
-            id: 'snap',
-            label: 'Snap',
-            onEvent: (event) => event,
-            portAnchorHandles: true,
-            renderPortAnchorHandle: (context) => {
-              expect(context.active).toBe(true);
-              expect(context.snappedSide).toBe('left');
-              return undefined;
-            },
-          }),
-        }),
+  const result = await renderCanvas(preview, {
+    id: 'snap',
+    label: 'Snap',
+    portAnchors: {
+      renderHandle: (context) => {
+        expect(context.active).toBe(true);
+        expect(context.snappedSide).toBe('left');
+        return undefined;
       },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+    },
+  });
   const window = new Window();
   window.document.body.innerHTML = result.html;
   const handle = window.document.querySelector('[data-flow-anchor-port]');
   expect(handle?.getAttribute('data-flow-anchor-snapped')).toBe('left');
   expect(handle?.getAttribute('title')).toContain('Snapped to left edge');
-  expect(handle?.getAttribute('style')).toContain('2px solid');
+  expect(handle?.classList.contains('zloz-ui-anchor-handle')).toBe(true);
   expect(preview.past).toHaveLength(0);
 });

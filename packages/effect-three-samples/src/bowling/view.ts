@@ -1,6 +1,7 @@
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 
+import { EffectThreeStage } from '../effect-ui-scene';
 import { sceneMount } from './environment';
 import { Message } from './message';
 import { limits, type Model } from './model';
@@ -8,34 +9,32 @@ import { encode, verdict } from './replay';
 import { sceneFor } from './scene';
 import { frames, score } from './score';
 
-const button = (h: HtmlBuilder<Message>, label: string, message: Message, disabled = false): Html =>
-  h.button(
-    [h.Class('e3-button'), h.Type('button'), h.Disabled(disabled), h.OnClick(message)],
-    [label],
-  );
+const button = (h: Html.H<Message>, label: string, message: Message, disabled = false) =>
+  h.button
+    .class('e3-button')
+    .attr('type', 'button')
+    .disabled(disabled)
+    .on('click', message)
+    .children(label);
 
 const slider = (
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   name: string,
   value: number,
   range: { readonly min: number; readonly max: number },
   step: number,
   toMessage: (value: number) => Message,
-): Html =>
-  h.label(
-    [h.Class('e3-note')],
-    [
-      `${name} `,
-      h.input([
-        h.Class('e3-range'),
-        h.Type('range'),
-        h.Min(String(range.min)),
-        h.Max(String(range.max)),
-        h.Step(String(step)),
-        h.Value(String(value)),
-        h.OnInput((raw) => toMessage(Number.parseFloat(raw) || 0)),
-      ]),
-    ],
+) =>
+  h.label.class('e3-note').children(
+    `${name} `,
+    h.input
+      .class('e3-range')
+      .attr('type', 'range')
+      .attr('min', String(range.min))
+      .attr('max', String(range.max))
+      .attr('step', String(step))
+      .value(String(value))
+      .on('input', ({ value }) => toMessage(Number.parseFloat(value) || 0)),
   );
 
 const status = (model: Model): string => {
@@ -70,71 +69,65 @@ const replaying = (model: Model): boolean =>
   model.replay !== null && model.replay.rolled < model.replay.shots.length;
 
 /** A link that replays this game: its rolls' inputs and outcomes, in the address. */
-const shareLink = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+const shareLink = (model: Model, h: Html.H<Message>) =>
   model.shots.length === 0 || model.rolls.length === 0
-    ? []
-    : [
-        h.a(
-          [
-            h.Class('e3-button'),
-            h.Href(encode({ shots: model.shots.slice(0, model.rolls.length), rolls: model.rolls })),
-          ],
-          ['Link to this game'],
-        ),
-      ];
+    ? null
+    : h.a
+        .class('e3-button')
+        .attr(
+          'href',
+          encode({
+            shots: model.shots.slice(0, model.rolls.length),
+            rolls: model.rolls,
+          }),
+        )
+        .children('Link to this game');
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'Bowling — effect-three',
-  body: h.div(
-    [h.Class('e3-sample')],
-    [
-      EffectThreeFoldkit.view(
-        {
-          scene: sceneFor(model),
-          mount: sceneMount,
-          className: 'e3-stage e3-stage-tall',
-          onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-          onCollision: (collision) => Message.Collided({ collision }),
-          onContactForce: ({ totalForceMagnitude }) =>
-            Message.Struck({ force: totalForceMagnitude }),
-          onLabelMeasured: (measured) => Message.MeasuredScoreboard({ measured }),
-          onGesture: (gesture) => Message.MadeGesture({ gesture }),
-        },
-        h,
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.div.class('e3-sample').children(
+    EffectThreeStage(h)
+      .class('e3-stage', 'e3-stage-tall')
+      .on('scene-collision', (collision) => Message.Collided({ collision }))
+      .on('scene-contact-force', ({ totalForceMagnitude }) =>
+        Message.Struck({ force: totalForceMagnitude }),
+      )
+      .on('scene-label-measured', (measured) => Message.MeasuredScoreboard({ measured }))
+      .on('scene-gesture', ({ gesture }) => Message.MadeGesture({ gesture }))
+      .onMount(
+        Mount.map(sceneMount({ scene: sceneFor(model) }), (lifecycle) =>
+          Message.ReceivedSceneLifecycle({ lifecycle }),
+        ),
+      )
+      .children(),
+    model.sceneStatus?._tag !== 'FailedScene'
+      ? null
+      : h.p
+          .attr('role', 'status')
+          .children(`Could not start the bowling lane (${model.sceneStatus.reason}).`),
+    h.p.class('e3-readout').attr('aria-live', 'polite').children(status(model)),
+    h.div.class('e3-controls').children(
+      slider(h, 'Start', model.aim, limits.aim, 0.02, (aim) => Message.ChangedAim({ aim })),
+      slider(h, 'Line', model.angle, limits.angle, 0.1, (angle) => Message.ChangedAngle({ angle })),
+      slider(h, 'Speed', model.speed, limits.speed, 0.25, (speed) =>
+        Message.ChangedSpeed({ speed }),
       ),
-      h.p([h.Class('e3-readout'), h.AriaLive('polite')], [status(model)]),
-      h.div(
-        [h.Class('e3-controls')],
-        [
-          slider(h, 'Start', model.aim, limits.aim, 0.02, (aim) => Message.ChangedAim({ aim })),
-          slider(h, 'Line', model.angle, limits.angle, 0.1, (angle) =>
-            Message.ChangedAngle({ angle }),
-          ),
-          slider(h, 'Speed', model.speed, limits.speed, 0.25, (speed) =>
-            Message.ChangedSpeed({ speed }),
-          ),
-        ],
+    ),
+    h.div
+      .class('e3-controls')
+      .children(
+        button(h, 'Roll', Message.ClickedRoll(), model.phase !== 'aiming' || replaying(model)),
+        button(h, 'New game', Message.ClickedNewGame(), model.sceneStatus?._tag !== 'StartedScene'),
+        button(h, 'Replay this game', Message.ClickedReplay(), model.shots.length === 0),
+        shareLink(model, h),
       ),
-      h.div(
-        [h.Class('e3-controls')],
-        [
-          button(h, 'Roll', Message.ClickedRoll(), model.phase !== 'aiming' || replaying(model)),
-          button(h, 'New game', Message.ClickedNewGame()),
-          button(h, 'Replay this game', Message.ClickedReplay(), model.shots.length === 0),
-          ...shareLink(model, h),
-        ],
+    h.p
+      .class('e3-note')
+      .children(
+        'The ball and pins are Rapier bodies. Each pin’s spot is a sensor collider named for it, ',
+        'so a pin’s head leaving its spot says that pin is down; a sensor in the pit says the ball ',
+        'has gone through, and a Command gives the pins a moment to settle before they are counted. ',
+        'The scoreboard is a troika label, its panel sized from its measured layout. Each roll ',
+        'records only what you did; a replay rolls those inputs again from a resting rack, ',
+        'and the simulation knocks down the same pins (the replay checks it, roll by roll).',
       ),
-      h.p(
-        [h.Class('e3-note')],
-        [
-          'The ball and pins are Rapier bodies. Each pin’s spot is a sensor collider named for it, ',
-          'so a pin’s head leaving its spot says that pin is down; a sensor in the pit says the ball ',
-          'has gone through, and a Command gives the pins a moment to settle before they are counted. ',
-          'The scoreboard is a troika label, its panel sized from its measured layout. Each roll ',
-          'records only what you did; a replay rolls those inputs again from a resting rack, ',
-          'and the simulation knocks down the same pins (the replay checks it, roll by roll).',
-        ],
-      ),
-    ],
-  ),
-});
+  );

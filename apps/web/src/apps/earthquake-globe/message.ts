@@ -1,7 +1,7 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ClickedZoomIn: {},
   ClickedZoomOut: {},
   ClickedReset: {},
@@ -17,6 +17,5 @@ export const Message = defineMessageUnion({
   },
   MovedGlobePointer: { pointerId: Schema.Number, clientX: Schema.Number, clientY: Schema.Number },
   EndedGlobePointer: { pointerId: Schema.Number },
-  CompletedGlobePointerMount: {},
 });
 export type Message = typeof Message.Type;

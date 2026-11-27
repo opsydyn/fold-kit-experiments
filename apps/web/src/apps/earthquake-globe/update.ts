@@ -1,5 +1,4 @@
 import { Match, Option } from 'effect';
-import type { Return } from 'foldkit/update';
 
 import type { Earthquake } from './data';
 import { Message } from './message';
@@ -131,8 +130,8 @@ function marker(model: Model, id: string, keyboard: boolean): Model {
     Match.orElse(() => select(model, id, false)),
   );
 }
-export function update(model: Model, message: Message): Return<Model, Message> {
-  const next = Message.match<Model>(message, {
+export function update(model: Model, message: Message) {
+  const next: Model = Message.match(message, {
     ClickedZoomIn: () => zoom(model, 1.25),
     ClickedZoomOut: () => zoom(model, 1 / 1.25),
     ClickedReset: () => initModel(model.data),
@@ -143,7 +142,6 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     StartedGlobePointer: (fact) => start(model, fact),
     MovedGlobePointer: (fact) => move(model, fact),
     EndedGlobePointer: ({ pointerId }) => end(model, pointerId),
-    CompletedGlobePointerMount: () => model,
   });
   return { model: next };
 }

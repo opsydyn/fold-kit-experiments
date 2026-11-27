@@ -984,3 +984,48 @@ test.each(['button held', 'pointercancel', 'blur', 'new press', 'no release'] as
     expect(drag.outcomes()).toEqual([{ type: 'GestureCancelled' }]);
   },
 );
+
+test('a context panel hands focus to late-mounted controls without reclaiming outside focus', async () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  document.body.innerHTML = '<div data-flow-surface tabindex="0"></div><button>Outside</button>';
+  const surface = document.querySelector<HTMLElement>('[data-flow-surface]')!;
+  const outside = document.querySelector('button')!;
+  using input = { [Symbol.dispose]: bindInput(surface, () => {}) };
+  const panel = document.createElement('div');
+  panel.dataset.flowContextPanel = '';
+  panel.tabIndex = -1;
+  surface.append(panel);
+  await window.happyDOM.waitUntilComplete();
+  expect(document.activeElement).toBe(panel);
+
+  panel.innerHTML = '<button disabled>Unavailable</button><button>Duplicate</button>';
+  await window.happyDOM.waitUntilComplete();
+  expect(document.activeElement).toBe(panel.querySelector('button:not([disabled])')!);
+
+  outside.focus();
+  panel.append(document.createElement('span'));
+  await window.happyDOM.waitUntilComplete();
+  expect(document.activeElement).toBe(outside);
+});
+
+test('a focused edge toolbar transfers focus when its controls mount', async () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  document.body.innerHTML =
+    '<div data-flow-surface><div data-flow-edge-toolbar tabindex="-1"></div></div><button>Outside</button>';
+  const surface = document.querySelector<HTMLElement>('[data-flow-surface]')!;
+  const toolbar = surface.querySelector<HTMLElement>('[data-flow-edge-toolbar]')!;
+  using input = { [Symbol.dispose]: bindInput(surface, () => {}) };
+  toolbar.focus();
+  toolbar.innerHTML =
+    '<button disabled>Unavailable</button><select><option>Automatic</option></select>';
+  await window.happyDOM.waitUntilComplete();
+  expect(document.activeElement).toBe(toolbar.querySelector('select')!);
+
+  const outside = document.querySelector<HTMLButtonElement>('body > button')!;
+  outside.focus();
+  toolbar.append(document.createElement('button'));
+  await window.happyDOM.waitUntilComplete();
+  expect(document.activeElement).toBe(outside);
+});

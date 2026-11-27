@@ -4,11 +4,10 @@ import Layout from '../layouts/Layout.astro';
 import * as layoutStyles from '../layouts/layout.css';
 ---
 
-<Layout title="Health — Astro + FoldKit">
+<Layout title="Health — Astro + Effect UI">
   <h1 class={layoutStyles.heading}>Health</h1>
   <p>
-    This island fetches the Astro API route with a Foldkit command backed by
-    <code>foldkit/http</code>.
+    This island fetches the Astro API route with a command backed by Effect’s HTTP client.
   </p>
   <HealthApp client:load />
 </Layout>

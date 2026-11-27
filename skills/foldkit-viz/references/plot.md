@@ -16,7 +16,7 @@ whose export map has no `./plot`, use the geometry layers in
   for a bespoke chart the grammar cannot express.
 
 `compilePlot(spec)` is pure and framework-free. It returns geometry, which
-`foldkit/plot` (`plotChart`, `plotCanvas`) renders in a FoldKit view, and
+`effect-ui/plot` (`plotChart`, `plotCanvas`) renders in an Effect UI view, and
 `canvas/plot` (`paintCanvas`) paints on a canvas with no FoldKit at all.
 Where the installed export map has them (`0.19.0` and newer), `svg/plot`
 returns markup strings with no framework: `plotSvg` a standalone SVG file with
@@ -95,7 +95,7 @@ no listeners.
   without recompiling. A linked brush is one chart's selection written into
   another chart's spec.
 - Keyboard: `chartCommandOf` and `targetAfter` (`interaction/keyboard`), and
-  `chartKeyDown` (`foldkit/keyboard`) for FoldKit views.
+  `chartKeyDown` (`effect-ui/keyboard`) for Effect UI views.
 - Every chart should carry `plotChart(h, geometry, { summary: true, table: plotTable(spec) })`:
   a plain-language description and the data as a table.
 

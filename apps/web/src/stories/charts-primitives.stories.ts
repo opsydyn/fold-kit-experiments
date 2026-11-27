@@ -2,7 +2,7 @@ import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
 import type { Meta, StoryObj } from '@storybook/html';
 
 import { specApp } from '../apps/spec-app';
-import { mountFoldkit } from './mount';
+import { mountStaticChart } from './mount-effect-ui';
 
 export default {
   title: 'Charts/Primitives',
@@ -137,7 +137,7 @@ export const Bar: StoryObj<BarArgs> = {
     },
   },
   render: (args) =>
-    mountFoldkit(
+    mountStaticChart(
       specApp({
         width: 480,
         height: 300,
@@ -184,7 +184,7 @@ export const Line: StoryObj<LineArgs> = {
       description: 'Y-axis tick count',
     },
   },
-  render: (args) => mountFoldkit(specApp(lineSpec(SAMPLE_LINE, 'Visitors', args))),
+  render: (args) => mountStaticChart(specApp(lineSpec(SAMPLE_LINE, 'Visitors', args))),
   parameters: {
     docs: {
       description: {
@@ -221,7 +221,7 @@ export const Area: StoryObj<AreaArgs> = {
       description: 'Y-axis tick count',
     },
   },
-  render: (args) => mountFoldkit(specApp(areaSpec(SAMPLE_AREA, 'Revenue', args))),
+  render: (args) => mountStaticChart(specApp(areaSpec(SAMPLE_AREA, 'Revenue', args))),
   parameters: {
     docs: {
       description: {
@@ -258,7 +258,7 @@ export const Scatter: StoryObj<ScatterArgs> = {
     yLabel: { control: 'text', description: 'Y-axis label' },
   },
   render: (args) =>
-    mountFoldkit(
+    mountStaticChart(
       specApp({
         width: 480,
         height: 300,

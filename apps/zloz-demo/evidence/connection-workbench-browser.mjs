@@ -1,7 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
-import { extname } from 'node:path';
+import { extname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Browser tooling belongs to the web workspace; this probe adds no production dependency.
 const { chromium, expect } = createRequire(new URL('../../web/package.json', import.meta.url))(
@@ -9,6 +10,9 @@ const { chromium, expect } = createRequire(new URL('../../web/package.json', imp
 );
 
 const root = new URL('../dist/', import.meta.url);
+const directory = process.env.ZLOZ_CONNECTION_EVIDENCE_DIR;
+const output = (name) =>
+  directory ? join(directory, name) : fileURLToPath(new URL(name, import.meta.url));
 const server = createServer(async (request, response) => {
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
   const file = new URL('.' + pathname + (pathname.endsWith('/') ? 'index.html' : ''), root);
@@ -55,7 +59,9 @@ try {
     await page.mouse.move(b.x + b.width / 2 + offset, b.y + b.height / 2, { steps: 12 });
     await page.mouse.up();
   };
-  await page.goto('http://127.0.0.1:' + server.address().port + '/connections/');
+  const response = await page.goto('http://127.0.0.1:' + server.address().port + '/connections/');
+  expect(await response?.text()).toContain('data-effect-ui-state');
+  evidence.checks.push('Astro prerenders an Effect UI snapshot');
   await expect(select('Session')).toBeVisible();
   await expect(port('orders', 'out')).toBeVisible();
   await expect(port('orders', 'in')).toHaveAttribute('aria-label', 'Connect to Orders: Input');
@@ -69,6 +75,42 @@ try {
   await button('Redo').click();
   await expect(link('orders:out → billing:in')).toBeVisible();
   evidence.checks.push('native strict keyboard creation and one Undo/Redo');
+  await link('orders:out → billing:in').click();
+  await button('Rename').click();
+  const name = page.getByRole('textbox', { name: 'Edge label for orders:out → billing:in' });
+  await name.fill('Send order');
+  await name.press('Enter');
+  await expect(link('Send order')).toBeVisible();
+  await expect(
+    page.locator('[data-flow-surface]').getByText('Send order', { exact: true }),
+  ).toBeVisible();
+  await button('Undo').click();
+  await expect(link('orders:out → billing:in')).toBeVisible();
+  await link('orders:out → billing:in').click();
+  const path = page.locator('[data-flow-edge]').first();
+  const previousGeometry = await path.getAttribute('d');
+  await select('Path style').selectOption('smooth');
+  await expect(path).not.toHaveAttribute('d', previousGeometry);
+  await button('Undo').click();
+  await expect(path).toHaveAttribute('d', previousGeometry);
+  await link('orders:out → billing:in').click();
+  await button('Delete edge').click();
+  await expect(path).toHaveCount(0);
+  await button('Undo').click();
+  await expect(path).toHaveAttribute('d', previousGeometry);
+  evidence.checks.push('rename, path style and deletion each create one reversible edit');
+  const strict = await page.getByRole('region', { name: 'Strict connection canvas' }).boundingBox();
+  if (!strict) throw new Error('Missing strict canvas');
+  await page.mouse.move(strict.x + 12, strict.y + 12);
+  await page.keyboard.down('Shift');
+  await page.mouse.down();
+  await page.mouse.move(strict.x + strict.width - 12, strict.y + strict.height - 12, { steps: 8 });
+  await expect(page.locator('[data-flow-selection-box]')).toBeVisible();
+  await page.mouse.up();
+  await page.keyboard.up('Shift');
+  await expect(button('Select Orders')).toHaveAttribute('aria-pressed', 'true');
+  await expect(button('Select Audit')).toHaveAttribute('aria-pressed', 'true');
+  evidence.checks.push('shift drag previews and selects multiple nodes');
   await select('Session').selectOption('loose');
   await expect(port('orders', 'in')).toHaveAttribute('aria-label', 'Connect from Orders: Input');
   await expect(link('orders:out → billing:in')).toHaveCount(0);
@@ -88,8 +130,9 @@ try {
     'native loose keyboard input-to-output creation, authored kinds, visible protection',
   );
   const capture = async (name) => {
-    const path = new URL(name, import.meta.url);
-    await page.screenshot({ path: path.pathname });
+    const header = await page.getByRole('banner').boundingBox();
+    expect(header?.y).toBe(0);
+    await page.screenshot({ path: output(name) });
     evidence.screenshots.push(name);
   };
   await capture('connection-workbench-light.png');
@@ -170,7 +213,7 @@ try {
   evidence.result = 'passed';
 } finally {
   await writeFile(
-    new URL('connection-workbench-browser.json', import.meta.url),
+    output('connection-workbench-browser.json'),
     JSON.stringify(evidence, null, 2) + '\n',
   );
   await browser.close();

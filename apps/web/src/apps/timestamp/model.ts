@@ -6,13 +6,15 @@ export type Iso8601 = typeof Iso8601.Type;
 export const Model = Schema.Struct({
   startedAt: Iso8601,
   elapsedMs: Schema.Number,
+  localStart: Schema.NullOr(Schema.String),
 });
 export type Model = typeof Model.Type;
 
-const InitPropsSchema = Schema.Struct({ startedAt: Iso8601 });
-export type InitProps = typeof InitPropsSchema.Type;
+export const Props = Schema.Struct({ startedAt: Iso8601 });
+export type InitProps = typeof Props.Type;
 
-export const init = (props: InitProps) => {
-  const { startedAt } = Schema.decodeUnknownSync(InitPropsSchema)(props);
-  return { model: { startedAt, elapsedMs: 0 } };
-};
+export const init = ({ startedAt }: InitProps): Model => ({
+  startedAt,
+  elapsedMs: 0,
+  localStart: null,
+});

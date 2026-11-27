@@ -5,7 +5,7 @@ import {
   PivotControls,
   TransformGizmo,
   ViewportGizmo,
-} from '@opsydyn/effect-three-foldkit';
+} from '@opsydyn/effect-three/browser';
 import { Option, Schema } from 'effect';
 
 import { paintColour } from '../palette';

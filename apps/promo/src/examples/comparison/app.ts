@@ -1,8 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-import type { Props } from './model';
+import { PromoComparison } from './main';
 
-import '../../../../web/src/apps/comparison/comparison.css';
-import './comparison-host.css';
-
-export default lazyApp<Props & { readonly noMeta?: boolean }>(() => import('./main'));
+export default astroComponent(PromoComparison);

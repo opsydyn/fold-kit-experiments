@@ -8,88 +8,14 @@ surface, and review the diff.
 
 ```ts
 // exported as default
-function foldkit(options?: FoldkitIntegrationOptions): AstroIntegration;
-type FoldkitIntegrationOptions = Readonly<{
-  server?: Readonly<{
-    buildId: string;
-  }>;
-}>;
-type InteractionOptions = Readonly<{
-  hover?: boolean;
-}>;
-type NavigationConfig<Value> = {
-  readonly port: string;
-  readonly map: (event: NavigationEvent) => Value;
-};
-type NavigationEvent = {
-  readonly phase: NavigationPhase;
-  readonly path: string;
-  readonly previousPath: string | null;
-};
-type NavigationPhase = 'coldLoad' | 'entered' | 'exited' | 'stayed';
+const effectUi: typeof standalone;
+const effectUi: typeof standalone;
+type EffectUiOptions = { readonly interaction?: boolean };
 ```
 
-## ./define-app
+## ./component
 
 ```ts
-type AppConfig<Props extends object = EmptyProps, Model = unknown, Message extends TaggedMessage = TaggedMessage> = {
-  readonly Model: unknown;
-  readonly init: (props: Props) => AppReturn<Model>;
-  readonly update: Runtime.ApplicationConfig<Model, Message>['update'];
-  readonly view: Runtime.ApplicationConfig<Model, Message>['view'];
-};
-function defineApp<Props extends object = EmptyProps, Config extends AppConfigContract<Props> = AppConfigContract<Props>>(load: () => Promise<Config>, options?: DefineAppOptions): FoldkitApp<Props, Config>;
-type DefineAppOptions = {
-  readonly prerender?: boolean;
-};
-type FoldkitApp<Props extends object = EmptyProps, Config extends AppConfigContract<Props> = AppConfigContract<Props>> = {
-  (props?: Props): void;
-  readonly __foldkit: true;
-  readonly load: () => Promise<Config>;
-  readonly prerender?: boolean;
-};
-const lazyApp: typeof defineApp;
-```
-
-## ./define-page
-
-```ts
-function definePage<Props extends object = EmptyProps, Flags extends object = EmptyProps, Config extends PageConfigContract<Flags> = PageConfigContract<Flags>>(load: () => Promise<Config>, options: DefinePageOptions<Props, Flags>): FoldkitPage<Props, Flags, Config>;
-type DefinePageOptions<Props extends object = EmptyProps, Flags extends object = EmptyProps> = {
-  readonly flags: (context: PageFlagsContext<Props>) => Flags;
-};
-type FoldkitPage<Props extends object = EmptyProps, Flags extends object = EmptyProps, Config extends PageConfigContract<Flags> = PageConfigContract<Flags>> = {
-  (props?: Props): void;
-  readonly __foldkitPage: true;
-  readonly load: () => Promise<Config>;
-  readonly flags: (context: PageFlagsContext<Props>) => Flags;
-};
-type PageConfig<Flags extends object = EmptyProps, Model = unknown, Message extends TaggedMessage = TaggedMessage> = AppConfig<Flags, Model, Message> & {
-  readonly Flags: PageFlagsSchema<Flags>;
-};
-type PageConfigContract<Flags extends object = EmptyProps> = AppConfigContract<Flags> & {
-  readonly Flags: PageFlagsSchema<Flags>;
-};
-type PageContext<Props extends object = EmptyProps> = PageFlagsContext<Props>;
-type PageFlagsContext<Props extends object = EmptyProps> = {
-  readonly request: Request;
-  readonly url: URL;
-  readonly params: PageParams;
-  readonly props: Props;
-};
-type PageFlagsSchema<Flags extends object> = Schema.Codec<Flags, any, never, never>;
-type PageParams = Readonly<Record<string, string | undefined>>;
-```
-
-## ./server
-
-```ts
-type ResolvedPageDocument = {
-  readonly title: string;
-  readonly lang?: string;
-  readonly dir?: 'ltr' | 'rtl' | 'auto';
-  readonly canonical?: string;
-  readonly ogUrl?: string;
-};
-function resolvePageDocument<Props extends object = object, Flags extends object = object>(page: FoldkitPage<Props, Flags>, context: PageContext<Props>): Promise<ResolvedPageDocument>;
+const astroComponent: typeof astroComponent$1;
+type IslandProps = object;
 ```

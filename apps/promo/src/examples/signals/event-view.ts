@@ -1,7 +1,8 @@
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import type { CartesianLayout } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
 import { symbolPath } from '@opsydyn/foldkit-viz/shape/symbol';
-import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { exampleTheme } from '#example/frame';
 
@@ -39,281 +40,243 @@ export function eventGuideLayers(
   model: ReadyModel,
   role: ChartRole,
   layout: CartesianLayout,
-  h: HtmlBuilder<Message>,
-): ReadonlyArray<Html> {
+  h: Html.H<Message>,
+): ReadonlyArray<View.Content<Message>> {
   const event = selectedEvent(model),
     guide = selectedEventGuide(model, role, layout);
   if (event === null || guide === null) return [];
   const style = styleFor(event);
   return [
-    h.line(
-      [
-        h.Class('signal-event-guide'),
-        h.DataAttribute('event-guide', event.id),
-        h.AriaLabel(`Selected event: ${event.id} / ${utc(event.time)} / ${event.label}`),
-        h.X1(String(guide.x)),
-        h.X2(String(guide.x)),
-        h.Y1(String(guide.top)),
-        h.Y2(String(guide.bottom)),
-        h.Stroke(style.stroke),
-        h.StrokeWidth('1.5'),
-        h.StrokeDasharray(style.dashPattern || '6 2 1 2'),
-      ],
-      [],
-    ),
+    h
+      .el('line')
+      .attr('class', 'signal-event-guide')
+      .attr('data-event-guide', event.id)
+      .attr('aria-label', `Selected event: ${event.id} / ${utc(event.time)} / ${event.label}`)
+      .attr('x1', String(guide.x))
+      .attr('x2', String(guide.x))
+      .attr('y1', String(guide.top))
+      .attr('y2', String(guide.bottom))
+      .attr('stroke', style.stroke)
+      .attr('stroke-width', '1.5')
+      .attr('stroke-dasharray', style.dashPattern || '6 2 1 2')
+      .children(),
   ];
 }
 export function eventPanel(
   model: ReadyModel,
   layout: CartesianLayout,
-  h: HtmlBuilder<Message>,
-): Html {
+  h: Html.H<Message>,
+): View.Content<Message> {
   const selected = selectedEvent(model),
     groups = visibleEventGroups(model, layout);
-  const detail = (event: SignalEvent): Html => {
+  const detail = (event: SignalEvent): View.Content<Message> => {
     const position = eventPosition(model, event);
     const observation = model.records.find((record) => record.time === event.time);
-    return h.article(
-      [h.Key('selected-event'), h.Class('signal-event-selected')],
-      [
-        h.h3([], ['Selected event']),
-        h.p([h.Class('signal-event-identity')], [`${event.id} / ${utc(event.time)}`]),
-        h.p([], [`${event.kind} · ${event.label}`]),
-        h.p([h.Class('signal-reading-detail')], [positionText[position]]),
-        h.dl(
-          [],
-          [
-            h.div(
-              [],
-              [
-                h.dt([], ['Description']),
-                h.dd([], [event.description ?? 'Description unspecified']),
-              ],
-            ),
-            h.div(
-              [],
-              [
-                h.dt([], ['Source reference']),
-                h.dd([], [event.sourceRef ?? 'Source reference unspecified']),
-              ],
-            ),
-          ],
+    return h.article
+      .key('selected-event')
+      .attr('class', 'signal-event-selected')
+      .children(
+        h.h3.children('Selected event'),
+        h.p.attr('class', 'signal-event-identity').children(`${event.id} / ${utc(event.time)}`),
+        h.p.children(`${event.kind} · ${event.label}`),
+        h.p.attr('class', 'signal-reading-detail').children(positionText[position]),
+        h.dl.children(
+          h.div.children(
+            h.dt.children('Description'),
+            h.dd.children(event.description ?? 'Description unspecified'),
+          ),
+          h.div.children(
+            h.dt.children('Source reference'),
+            h.dd.children(event.sourceRef ?? 'Source reference unspecified'),
+          ),
         ),
-        h.p(
-          [h.Class('signal-reading-detail')],
-          [
+        h.p
+          .attr('class', 'signal-reading-detail')
+          .children(
             observation
               ? `Exact observation: ${observation.id}`
               : 'No observation at this exact timestamp',
-          ],
-        ),
-        h.p(
-          [h.Class('signal-reading-detail')],
-          [
+          ),
+        h.p
+          .attr('class', 'signal-reading-detail')
+          .children(
             'Selected-event guide = exact selected event time. Temporal proximity is context, not proof of causation.',
-          ],
+          ),
+        h.div.attr('class', 'signal-controls').children(
+          h.button
+            .attr('type', 'button')
+            .on('click', Message.ClickedCentreEvent())
+            .disabled(position === 'OutsideBounds')
+            .children('Centre event'),
+          h.button
+            .attr('type', 'button')
+            .on('click', Message.ClickedClearEvent())
+            .children('Clear event'),
         ),
-        h.div(
-          [h.Class('signal-controls')],
-          [
-            h.button(
-              [
-                h.Type('button'),
-                h.OnClick(Message.ClickedCentreEvent()),
-                h.Disabled(position === 'OutsideBounds'),
-              ],
-              ['Centre event'],
-            ),
-            h.button([h.Type('button'), h.OnClick(Message.ClickedClearEvent())], ['Clear event']),
-          ],
-        ),
-      ],
-    );
+      );
   };
-  return h.section(
-    [h.Class('signal-events')],
-    [
-      h.h2([h.Key('heading')], ['Events']),
-      ...EventFeed.match(model.events, {
-        NotSupplied: () => [h.p([h.Class('signal-reading-detail')], ['No event feed supplied'])],
-        Invalid: ({ error }) => [
-          h.p([], ['Event feed unavailable']),
-          h.p([h.Class('signal-reading-detail')], [error]),
-        ],
-        Ready: ({ records, snapshot }) => [
-          h.p(
-            [h.Key('count'), h.Class('signal-event-count')],
-            [
-              `${groups.reduce((count, group) => count + group.members.length, 0)} in view / ${records.length} recorded`,
-            ],
+  return h.section.attr('class', 'signal-events').children(
+    h.h2.key('heading').children('Events'),
+    ...EventFeed.match(model.events, {
+      NotSupplied: () => [
+        h.p.attr('class', 'signal-reading-detail').children('No event feed supplied'),
+      ],
+      Invalid: ({ error }) => [
+        h.p.children('Event feed unavailable'),
+        h.p.attr('class', 'signal-reading-detail').children(error),
+      ],
+      Ready: ({ records, snapshot }) => [
+        h.p
+          .key('count')
+          .attr('class', 'signal-event-count')
+          .children(
+            `${groups.reduce((count, group) => count + group.members.length, 0)} in view / ${records.length} recorded`,
           ),
-          h.p(
-            [h.Key('viewport'), h.Class('signal-reading-detail')],
-            [`View: ${utc(model.viewport[0])} → ${utc(model.viewport[1])}`],
-          ),
-          h.svg(
-            [
-              h.Key('lane'),
-              h.Class('signal-event-lane'),
-              h.ViewBox(`0 0 ${layout.frame.width} 52`),
-              h.Width(String(layout.frame.width)),
-              h.Height('52'),
-              h.AriaHidden(true),
-            ],
-            [
-              h.line(
-                [
-                  h.X1(String(layout.plot.left)),
-                  h.X2(String(layout.plot.right)),
-                  h.Y1('26'),
-                  h.Y2('26'),
-                  h.Stroke(exampleTheme.axis),
-                  h.StrokeDasharray('1 4'),
-                ],
-                [],
-              ),
-              ...groups.map((group) => {
-                const first = group.members[0];
-                if (!first) return null;
-                const style = styleFor(first),
-                  bundled = group.members.length > 1;
-                return h.g(
-                  [
-                    h.Key(group.key),
-                    h.Class(bundled ? 'signal-event-bundle' : 'signal-event-mark'),
-                    h.Transform(`translate(${group.x} 26)`),
-                    h.DataAttribute('event-group', group.key),
-                  ],
-                  [
-                    ...(bundled
-                      ? [
-                          h.path(
-                            [
-                              h.D(symbolPath('square', 64)),
-                              h.Transform('translate(-2 -2)'),
-                              h.Fill(exampleTheme.background),
-                              h.Stroke(exampleTheme.text),
-                              h.StrokeWidth('1.5'),
-                            ],
-                            [],
-                          ),
-                          h.path(
-                            [
-                              h.D(symbolPath('square', 64)),
-                              h.Transform('translate(2 2)'),
-                              h.Fill(exampleTheme.background),
-                              h.Stroke(exampleTheme.text),
-                              h.StrokeWidth('1.5'),
-                            ],
-                            [],
-                          ),
-                        ]
-                      : [
-                          h.path(
-                            [
-                              h.D(symbolPath(style.symbol, 64)),
-                              h.Fill(style.fill),
-                              h.Stroke(style.stroke),
-                              h.StrokeWidth('1.5'),
-                              h.StrokeDasharray(style.dashPattern),
-                            ],
-                            [],
-                          ),
-                        ]),
-                  ],
+        h.p
+          .key('viewport')
+          .attr('class', 'signal-reading-detail')
+          .children(`View: ${utc(model.viewport[0])} → ${utc(model.viewport[1])}`),
+        h
+          .el('svg')
+          .key('lane')
+          .attr('class', 'signal-event-lane')
+          .attr('viewBox', `0 0 ${layout.frame.width} 52`)
+          .attr('width', String(layout.frame.width))
+          .attr('height', '52')
+          .attr('aria-hidden', 'true')
+          .children(
+            h
+              .el('line')
+              .attr('x1', String(layout.plot.left))
+              .attr('x2', String(layout.plot.right))
+              .attr('y1', '26')
+              .attr('y2', '26')
+              .attr('stroke', exampleTheme.axis)
+              .attr('stroke-dasharray', '1 4')
+              .children(),
+            ...groups.map((group) => {
+              const first = group.members[0];
+              if (!first) return null;
+              const style = styleFor(first),
+                bundled = group.members.length > 1;
+              return h
+                .el('g')
+                .key(group.key)
+                .attr('class', bundled ? 'signal-event-bundle' : 'signal-event-mark')
+                .attr('transform', `translate(${group.x} 26)`)
+                .attr('data-event-group', group.key)
+                .children(
+                  ...(bundled
+                    ? [
+                        h
+                          .el('path')
+                          .attr('d', symbolPath('square', 64))
+                          .attr('transform', 'translate(-2 -2)')
+                          .attr('fill', exampleTheme.background)
+                          .attr('stroke', exampleTheme.text)
+                          .attr('stroke-width', '1.5')
+                          .children(),
+                        h
+                          .el('path')
+                          .attr('d', symbolPath('square', 64))
+                          .attr('transform', 'translate(2 2)')
+                          .attr('fill', exampleTheme.background)
+                          .attr('stroke', exampleTheme.text)
+                          .attr('stroke-width', '1.5')
+                          .children(),
+                      ]
+                    : [
+                        h
+                          .el('path')
+                          .attr('d', symbolPath(style.symbol, 64))
+                          .attr('fill', style.fill)
+                          .attr('stroke', style.stroke)
+                          .attr('stroke-width', '1.5')
+                          .attr('stroke-dasharray', style.dashPattern)
+                          .children(),
+                      ]),
                 );
-              }),
-            ],
+            }),
           ),
-          ...(records.length === 0
-            ? [h.p([h.Key('empty-range')], ['No events recorded'])]
-            : groups.length === 0
-              ? [h.p([h.Key('empty-range')], ['No events in this time range'])]
-              : []),
-          h.p(
-            [h.Key('bundle-legend'), h.Class('signal-reading-detail')],
-            [
-              'Overlapping squares = nearby events bundled for display. Each exact record remains individually selectable below.',
-            ],
+        ...(records.length === 0
+          ? [h.p.key('empty-range').children('No events recorded')]
+          : groups.length === 0
+            ? [h.p.key('empty-range').children('No events in this time range')]
+            : []),
+        h.p
+          .key('bundle-legend')
+          .attr('class', 'signal-reading-detail')
+          .children(
+            'Overlapping squares = nearby events bundled for display. Each exact record remains individually selectable below.',
           ),
-          h.p(
-            [h.Key('source'), h.Class('signal-reading-detail')],
-            [
-              `Event source: ${sourceFreshness(snapshot)} · ${snapshot.revision} · as of ${utc(snapshot.asOf)} · updated ${utc(snapshot.updatedAt)} · stale after ${snapshot.staleAfterMs} ms`,
-            ],
+        h.p
+          .key('source')
+          .attr('class', 'signal-reading-detail')
+          .children(
+            `Event source: ${sourceFreshness(snapshot)} · ${snapshot.revision} · as of ${utc(snapshot.asOf)} · updated ${utc(snapshot.updatedAt)} · stale after ${snapshot.staleAfterMs} ms`,
           ),
-          h.p(
-            [
-              h.Key('announcement'),
-              h.Class('signal-event-announcement'),
-              h.AriaLive('polite'),
-              h.Attribute('aria-atomic', 'true'),
-            ],
-            [
-              selected
-                ? `${selected.id} / ${utc(selected.time)} / ${selected.label}`
-                : 'No event selected',
-            ],
+        h.p
+          .key('announcement')
+          .attr('class', 'signal-event-announcement')
+          .attr('aria-live', 'polite')
+          .attr('aria-atomic', 'true')
+          .children(
+            selected
+              ? `${selected.id} / ${utc(selected.time)} / ${selected.label}`
+              : 'No event selected',
           ),
-          ...(selected ? [detail(selected)] : []),
-          h.details(
-            [h.Key('browser'), h.Class('signal-event-browser')],
-            [
-              h.summary([], [`Browse events (${records.length})`]),
-              h.ul(
-                [h.Class('signal-event-groups'), h.AriaLabel('Visible event bundles')],
+        ...(selected ? [detail(selected)] : []),
+        h.details
+          .key('browser')
+          .attr('class', 'signal-event-browser')
+          .children(
+            h.summary.children(`Browse events (${records.length})`),
+            h.ul
+              .attr('class', 'signal-event-groups')
+              .attr('aria-label', 'Visible event bundles')
+              .children(
                 groups
                   .filter((group) => group.members.length > 1)
                   .map((group) => {
                     const first = group.members[0],
                       last = group.members.at(-1);
                     if (!first || !last) return null;
-                    return h.li(
-                      [h.Key(group.key)],
-                      [`${group.members.length} events · ${utc(first.time)} → ${utc(last.time)}`],
-                    );
+                    return h.li
+                      .key(group.key)
+                      .children(
+                        `${group.members.length} events · ${utc(first.time)} → ${utc(last.time)}`,
+                      );
                   }),
               ),
-              h.ol(
-                [h.Class('signal-event-list')],
-                records.map((event) =>
-                  h.li(
-                    [h.Key(event.id)],
-                    [
-                      h.div(
-                        [h.Class('signal-event-list-copy')],
-                        [
-                          h.p(
-                            [h.Class('signal-event-identity')],
-                            [`${utc(event.time)} / ${event.id}`],
-                          ),
-                          h.p([], [`${event.kind} · ${event.label}`]),
-                          h.p(
-                            [h.Class('signal-reading-detail')],
-                            [positionText[eventPosition(model, event)]],
-                          ),
-                        ],
-                      ),
-                      h.button(
-                        [
-                          h.Type('button'),
-                          h.DataAttribute('event-select', event.id),
-                          h.OnClick(Message.ClickedEvent({ key: event.id })),
-                          h.Attribute('aria-pressed', String(selected?.id === event.id)),
-                          h.AriaLabel(
-                            `Select event ${event.id}: ${event.label} / ${event.kind} / ${utc(event.time)}`,
-                          ),
-                        ],
-                        [selected?.id === event.id ? 'Selected event' : 'Select event'],
-                      ),
-                    ],
-                  ),
+            h.ol.attr('class', 'signal-event-list').children(
+              records.map((event) =>
+                h.li.key(event.id).children(
+                  h.div
+                    .attr('class', 'signal-event-list-copy')
+                    .children(
+                      h.p
+                        .attr('class', 'signal-event-identity')
+                        .children(`${utc(event.time)} / ${event.id}`),
+                      h.p.children(`${event.kind} · ${event.label}`),
+                      h.p
+                        .attr('class', 'signal-reading-detail')
+                        .children(positionText[eventPosition(model, event)]),
+                    ),
+                  h.button
+                    .attr('type', 'button')
+                    .attr('data-event-select', event.id)
+                    .on('click', Message.ClickedEvent({ key: event.id }))
+                    .attr('aria-pressed', String(selected?.id === event.id))
+                    .attr(
+                      'aria-label',
+                      `Select event ${event.id}: ${event.label} / ${event.kind} / ${utc(event.time)}`,
+                    )
+                    .children(selected?.id === event.id ? 'Selected event' : 'Select event'),
                 ),
               ),
-            ],
+            ),
           ),
-        ],
-      }),
-    ],
+      ],
+    }),
   );
 }

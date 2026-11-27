@@ -60,16 +60,16 @@ test('collector still finds maintained sources after the server bundler relocate
   }
 });
 
-test('collector includes unchanged transitive maintained sources and CSS, not loaders or tests', async () => {
+test('collector includes the native workbench and its maintained source and CSS dependencies', async () => {
   const sources = await collectComparisonSources();
   const names = sources.map(({ name }) => name);
   for (const name of [
     'promo/src/examples/comparison/main.ts',
-    'web/src/apps/comparison/main.ts',
+    'web/src/apps/comparison/workbench-state.ts',
     'web/src/apps/comparison/settings.ts',
     'web/src/apps/comparison/initial-settings.ts',
     'web/src/apps/comparison/comparison.css',
-    'web/src/ui/plot-panel/index.ts',
+    'web/src/ui/plot-panel/effect-ui.ts',
     'web/src/ui/shared/inspection.ts',
   ]) {
     expect(names).toContain(name);

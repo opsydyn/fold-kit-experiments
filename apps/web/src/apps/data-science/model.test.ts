@@ -19,16 +19,16 @@ describe('data science datasets', () => {
 });
 
 describe('data science update', () => {
-  const { model } = init({});
+  const model = init;
 
   it('starts on M4 and a straight-line fit', () => {
     expect(model).toEqual({ downsampler: 'm4', fit: 'linear' });
   });
 
   it('switches the downsampler and the fit', () => {
-    expect(update(model, Message.ChoseDownsampler({ downsampler: 'lttb' })).model.downsampler).toBe(
+    expect(update(model, Message.ChoseDownsampler({ downsampler: 'lttb' })).downsampler).toBe(
       'lttb',
     );
-    expect(update(model, Message.ChoseFit({ fit: 'loess' })).model.fit).toBe('loess');
+    expect(update(model, Message.ChoseFit({ fit: 'loess' })).fit).toBe('loess');
   });
 });

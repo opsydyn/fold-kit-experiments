@@ -4,18 +4,21 @@ Agent guidance for this monorepo. Read this before writing any code.
 
 ## Repo at a glance
 
-Bun workspace monorepo. Five active workspaces:
+Bun workspace monorepo. The [README](README.md) lists the package families and apps.
+
+Common entry points:
 
 | Workspace                   | Path                         | Purpose                                 |
 | --------------------------- | ---------------------------- | --------------------------------------- |
-| `@opsydyn/astro-foldkit`    | `packages/astro-foldkit/`    | Astro integration for Foldkit           |
+| `@opsydyn/astro-effect-ui`  | `packages/astro-effect-ui/`  | Standalone Astro renderer and hydration |
+| `@opsydyn/astro-foldkit`    | `packages/astro-foldkit/`    | Astro integration forwarding package    |
 | `@opsydyn/foldkit-viz`      | `packages/foldkit-viz/`      | Chart primitives (no D3 dependency)     |
 | `@opsydyn/web`              | `apps/web/`                  | Chart demos and reference workbenches   |
-| `@opsydyn/dataset-explorer` | `packages/dataset-explorer/` | Private shared FoldKit example          |
-| `@opsydyn/promo`            | `apps/promo/`                | Static Astro promo site for Foldkit Viz |
+| `@opsydyn/dataset-explorer` | `packages/dataset-explorer/` | Private shared dataset example          |
+| `@opsydyn/promo`            | `apps/promo/`                | Static Astro promo site for Viz         |
 | `@opsydyn/foldkit-viz-py`   | `packages/foldkit-viz-py/`   | Python anywidget for plot specs (uv)    |
 
-**Stack:** FoldKit 0.169.0 · Effect 4.0.0 · Astro 7.4.0 · TypeScript · bun · oxlint · oxfmt
+**Stack:** Pinned Effect UI snapshot · Effect 4.1.6 · Astro 7.4.11 · TypeScript · bun · oxlint · oxfmt
 
 **Python:** `packages/foldkit-viz-py` is a Python package as well as a workspace.
 Its `test` script runs pytest through `uv run --frozen`, so `ci:check` and the
@@ -25,7 +28,7 @@ locked environment itself.
 **Dependencies:** shared versions are declared once, in the root `package.json`
 catalogs. Private workspaces use `"catalog:"` (or `"catalog:strict"` for the
 effect-three packages' TypeScript 7 and oxlint); the npm-published packages
-(`astro-foldkit`, `foldkit-viz`, and `effect-three`, `-foldkit`, `-rapier`, `-troika`)
+(`astro-foldkit`, `foldkit-viz`, and the effect-three and ZLOZ families)
 keep literal versions equal to the catalog's. `bun run check` enforces
 this with `tools/check-catalog.ts`.
 
@@ -34,16 +37,16 @@ this with `tools/check-catalog.ts`.
 For consumer-facing package work, read the relevant independent skill:
 `skills/astro-foldkit/SKILL.md` for Astro integration,
 `skills/foldkit-viz/SKILL.md` for chart geometry and rendering, or
-`skills/effect-three/SKILL.md` for 3D scenes (core, FoldKit adapter, Rapier,
+`skills/effect-three/SKILL.md` for 3D scenes (core, Effect UI adapter, Rapier,
 troika). Load more than one only when the task uses those packages together. Their bundled examples work outside this repo.
 For the tech radar's content, editions or deploys, read `skills/tech-radar/SKILL.md`.
 
 1. Run `bun typecheck` — understand baseline errors before touching anything
 2. Run `bun run check` — understand baseline lint/format state
 3. Read the exemplar files for the area you're working in:
-   - New chart app: look at `apps/web/src/apps/carousel/` (AsyncData + Update.combine pattern)
+   - New chart app: look at `apps/web/src/apps/carousel/` (typed component, update and scoped input)
    - New chart primitive: look at `packages/foldkit-viz/src/` and match D3 source at `d3-main/`
-   - Astro integration: look at `packages/astro-foldkit/src/client.ts`
+   - Astro integration: look at `packages/astro-effect-ui/src/client.ts`
 
 ## Commands
 
@@ -71,177 +74,35 @@ NODE_OPTIONS="--experimental-strip-types" bunx oxlint .
 
 Prefer `bun run check` — the flag is already included. Never add `biome` commands; Biome was removed.
 
-## Foldkit module imports — critical
+## Effect UI components
 
-Foldkit exports functions as **named exports**, not namespace objects. Getting this wrong produces confusing TS errors.
+Astro owns request data, page metadata and hydration. An Effect UI component
+owns its model, message schema, view and update. Wrap it with `astroComponent`
+at the Astro boundary and pass only public, schema-typed props.
 
-### foldkit/update
+Follow the [Carousel component](apps/web/src/apps/carousel/main.ts) for
+`Html.component`, [its update](apps/web/src/apps/carousel/update.ts) for pure
+state transitions and command descriptions, and [its subscriptions](apps/web/src/apps/carousel/subscription.ts)
+for scoped browser input. Component messages use `UiSchema.TaggedEnum`. Keep
+commands and mounts owned by the component, and scope listeners and resources
+to the mounted lifetime. Use the current examples when choosing lifecycle APIs.
 
-```typescript
-// ✅
-import { combine, foldChild, refresh, withOutMessage } from 'foldkit/update';
-import type { Return, ReturnWithOutMessage, Step, Refreshable } from 'foldkit/update';
-
-// ❌ — Update is not a namespace
-import { Update } from 'foldkit/update';
-```
-
-### foldkit/asyncData
-
-```typescript
-// ✅
-import { settle, revalidateOrLoad, matchData, fromOptionOrIdle } from 'foldkit/asyncData';
-import type { AsyncData } from 'foldkit/asyncData';
-
-// ❌ — AsyncData is a type export only, not a value namespace
-import { AsyncData } from 'foldkit/asyncData';
-```
-
-### foldkit/html
-
-```typescript
-import type { Document, Html } from 'foldkit/html'; // Html, not Html<Message>, not Node
-import { html } from 'foldkit/html';
-```
-
-## Lifted child lifecycle (FoldKit 0.166+)
-
-`Subscription.lift` uses `read` returning an `Option`:
-
-```typescript
-import { Option } from 'effect';
-
-Subscription.lift(Child.subscriptions)<Model, Message>({
-  read: (model) => Option.some(model.child),
-  toParentMessage: (message) => Message.GotChildMessage({ message }),
-});
-```
-
-For an optional child, return `Option.none()` when absent so the runtime stops
-its subscriptions. `ManagedResource.lift` also names its existing Option lens
-`read`. Keep `when` for additional business conditions, not child presence.
-
-## AsyncData pattern
-
-Six states: `Idle | Loading | Refreshing(data) | Failure(error) | Stale(error,data) | Success(data)`
-
-```typescript
-// Model field
-slides: { _tag: 'Idle' } as AsyncData<ReadonlyArray<Slide>, string>
-
-// View
-matchData(model.slides, {
-  onEmpty: () => spinner(),          // Idle + Loading
-  onFailure: error => errorView(),   // Failure (no data)
-  onData: slides => listView(slides),// Success + Refreshing + Stale (all have data)
-});
-
-// Update — settle from a Command result
-SettledSlides: ({ result: raw }) => {
-  const result = raw as Result.Result<ReadonlyArray<Slide>, string>;
-  return combine(model, [
-    (m) => ({ model: { ...m, slides: settle(m.slides, result) } }),
-  ]);
-}
-```
-
-FoldKit 0.151+ `init` and `update` functions return records. Omit `commands`
-when no commands are statically produced; retain computed command collections
-even when they are empty. Use `ReturnWithOutMessage` for a submodel that
-reports a typed event to its parent, and use `foldChild` so child models,
-commands, and out messages are composed explicitly. When initializing multiple
-named sibling submodels, use `foldChildInits` with one message fold per child
-and a `toParentModel` function instead of assembling the child records by hand.
-
-### foldkit/schema unions
-
-```typescript
-import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
-import { defineTaggedUnion } from 'foldkit/schema';
-
-export const Message = defineMessageUnion({ ClickedReset: {} });
-export const Status = defineTaggedUnion({ Idle: {}, Ready: { value: Schema.String } });
-
-Message.ClickedReset();
-Status.Ready({ value: 'ok' });
-```
-
-Use a union's own `.match` for exhaustive handling. Effect `Match` remains for
-partial matches and non-FoldKit unions.
-
-### foldkit/mount
-
-```typescript
-Mount.define('Chart', {
-  messages: [Message.RecordedBounds],
-  execute: ({ element }) => Effect.sync(() => Message.RecordedBounds({ element })),
-});
-```
-
-### Subscription entries and browser streams
-
-Use `Subscription.persistentEntry`, `Subscription.animationFrameEntry`, and
-`Port.subscriptionEntry` inside `Subscription.make`. Browser Stream constructors
-live in `foldkit/dom`: `streamFromEvent`, `streamFromMediaQuery`, and
-`streamFromKeyBindings`. `Subscription.lift` and `ManagedResource.lift` take an
-Option-returning `read`; use `Option.some(model.child)` for an always-present child.
-
-## Update.combine + Update.refresh pattern
-
-```typescript
-// compose multiple steps — data-first (run now)
-combine(model, [stepA, stepB(someArg), stepC])
-
-// refresh — builds a revalidation Step from a Refreshable descriptor
-const loadOnEntry: Step<Model, Message> = refresh<Model, Message, Data, Err>({
-  read: (model) => Option.some(model.data),   // wrap in Option.some for single fields
-  revalidate: revalidateOrLoad,               // cold-start semantics
-  write: (model, next) => ({ ...model, data: next }),
-  load: LoadData(),
-});
-
-// Use the same Step in both init and navigation:
-// main.ts
-export const init = (_props: unknown) => loadOnEntry(initModel);
-// update.ts ChangedUrl handler
-ChangedUrl: ({ url }) => combine(model, [loadOnEntry, ...]);
-```
-
-## Schema.Unknown + type override pattern
-
-Use when a message field has a type that can't be expressed in Schema (e.g. `Result`, a child `Message` type):
-
-```typescript
-// message.ts
-export const SettledFoo = m('SettledFoo', { result: Schema.Unknown });
-export type SettledFoo = Omit<typeof SettledFoo.Type, 'result'> & {
-  readonly result: Result.Result<FooData, string>;
-};
-```
-
-Always cast inside the update handler — the union type carries the Schema type, not the override:
-
-```typescript
-SettledFoo: ({ result: raw }) => {
-  const result = raw as Result.Result<FooData, string>;
-  // ...
-};
-```
+See the [Effect UI migration guide](docs/assessments/2026-11-26-effect-ui-1.0-migration.md)
+for previous package and import mappings.
 
 ## Message naming
 
-| Prefix                   | When                              | Example              |
-| ------------------------ | --------------------------------- | -------------------- |
-| `Clicked*`               | User interaction                  | `ClickedNext`        |
-| `Got*`                   | Submodel result                   | `GotCarouselMessage` |
-| `Settled*`               | AsyncData result (Result-wrapped) | `SettledSlides`      |
-| `Succeeded*` / `Failed*` | Two-branch Command result         | `SucceededFetch`     |
-| `Completed*`             | Fire-and-forget                   | `CompletedNavigate`  |
+| Prefix                   | When                                 | Example              |
+| ------------------------ | ------------------------------------ | -------------------- |
+| `Clicked*`               | User interaction                     | `ClickedNext`        |
+| `Got*`                   | Submodel result                      | `GotCarouselMessage` |
+| `Settled*`               | Asynchronous result (Result-wrapped) | `SettledSlides`      |
+| `Succeeded*` / `Failed*` | Two-branch Command result            | `SucceededFetch`     |
+| `Completed*`             | Fire-and-forget                      | `CompletedNavigate`  |
 
 Messages are **past-tense facts** about what happened. Never imperative.
 
-## Foldkit architecture rules
+## Effect UI architecture rules
 
 Never violate these — push back if asked to:
 

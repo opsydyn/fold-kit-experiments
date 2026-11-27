@@ -109,7 +109,7 @@ test('captured and current provenance remain distinct after scenario and inspect
       ?.id,
   ).toBe('signal-040');
   const source = currentSignalSource(stale);
-  expect(source).toContain('const baseline = {"_tag":"Captured"');
+  expect(source).toMatch(/const baseline = \{[^\n]*"_tag":"Captured"/);
   expect(source).toContain('const baselineFreshnessAtCapture = "Fresh"');
   expect(source).toContain('const freshness = "Stale"');
 });

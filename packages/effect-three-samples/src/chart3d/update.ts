@@ -1,15 +1,16 @@
 import { orbit } from '@opsydyn/effect-three';
-import type { Return } from 'foldkit/update';
+import { Match, Struct } from 'effect';
 
-import { Message } from './message';
-import { homeCamera } from './model';
-import type { Model } from './model';
+import type { Message } from './message';
+import { homeCamera, type Model } from './model';
 
-export const update = (model: Model, message: Message): Return<Model, Message> =>
-  Message.match<Return<Model, Message>>(message, {
-    ClickedChart: ({ chart }) => ({ model: { ...model, chart } }),
-    ClickedResetView: () => ({ model: { ...model, camera: homeCamera() } }),
-    MadeGesture: ({ gesture }) => ({ model: { ...model, camera: orbit(model.camera, gesture) } }),
-    ChangedTheme: ({ theme }) => ({ model: { ...model, theme } }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+export const update = (model: Model, message: Message): Model =>
+  Match.value(message).pipe(
+    Match.tagsExhaustive({
+      ClickedChart: ({ chart }) => Struct.assign(model, { chart }),
+      ClickedResetView: () => Struct.assign(model, { camera: homeCamera() }),
+      MadeGesture: ({ gesture }) => Struct.assign(model, { camera: orbit(model.camera, gesture) }),
+      ChangedTheme: ({ theme }) => Struct.assign(model, { theme }),
+      ReceivedSceneLifecycle: ({ lifecycle }) => Struct.assign(model, { lifecycle }),
+    }),
+  );

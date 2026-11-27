@@ -1,5 +1,8 @@
 # Foldkit DevTools MCP: notes from the agent-driven room
 
+This historical record describes the original FoldKit implementation. See the
+[repository guidance](../../CLAUDE.md#dev-commands) for the current Effect UI inspector.
+
 Notes from connecting an agent to the XR room sample through the Foldkit DevTools MCP
 server on 2026-10-19. They cover what works, three problems with steps to reproduce,
 and the workarounds we use. Nothing has been reported upstream yet; this note is for

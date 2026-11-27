@@ -2,6 +2,14 @@
 /* oxlint-disable linteffect/no-return-in-arrow */
 import { expect, test, type Page } from '@playwright/test';
 
+async function expectHydrated(page: Page) {
+  const island = page
+    .locator('astro-island')
+    .filter({ has: page.locator('[data-effect-ui-root] svg') });
+  await expect(island).toHaveCount(1);
+  await expect(island).not.toHaveAttribute('ssr');
+}
+
 function watchErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -22,6 +30,7 @@ test('recorded globe renders, rotates, inspects, resets and re-enters in both th
       outside.push(request.url());
   });
   await page.goto('/earthquake-globe');
+  await expectHydrated(page);
   const globe = page.getByRole('group', { name: 'Earthquake globe', exact: true });
   await expect(globe).toHaveAttribute('data-longitude', '-180');
   await expect(page.locator('tbody tr')).toHaveCount(377);
@@ -108,6 +117,7 @@ test('recorded globe renders, rotates, inspects, resets and re-enters in both th
   expect(layout.scroll).toBeLessThanOrEqual(layout.width);
   await page.goto('/charts');
   await page.getByRole('link', { name: 'Earthquake Globe', exact: true }).click();
+  await expectHydrated(page);
   await expect(globe).toHaveAttribute('data-longitude', '-180');
   await expect(globe).toHaveAttribute('data-zoom', '1');
   await expect(page.getByRole('region', { name: 'Selected earthquake' })).toContainText(
@@ -122,6 +132,7 @@ test('selected event feedback stays visible near the globe without moving keyboa
 }, info) => {
   const errors = watchErrors(page);
   await page.goto('/earthquake-globe');
+  await expectHydrated(page);
   const globe = page.getByRole('group', { name: 'Earthquake globe', exact: true });
   await expect(globe).toHaveAttribute('data-longitude', '-180');
   const marker = globe.getByRole('button', {
@@ -149,7 +160,7 @@ test('selected event feedback stays visible near the globe without moving keyboa
   const globeBox = await globe.boundingBox();
   if (detailsBox === null || provenanceBox === null || globeBox === null)
     throw new Error('Missing feedback layout bounds');
-  if (info.project.name === 'mobile') {
+  if (info.project.name.endsWith('mobile')) {
     expect(detailsBox.y).toBeLessThan(provenanceBox.y);
   } else {
     expect(detailsBox.x).toBeGreaterThan(globeBox.x + globeBox.width);
@@ -165,6 +176,7 @@ test('selected event feedback stays visible near the globe without moving keyboa
 test('foreign browser pointer events cannot replace the active drag', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/earthquake-globe');
+  await expectHydrated(page);
   const globe = page.getByRole('group', { name: 'Earthquake globe', exact: true });
   await expect(globe).toHaveAttribute('data-longitude', '-180');
   await globe.evaluate((element) => {
@@ -189,6 +201,7 @@ test('mobile emulated touch rotates through real browser pointer events', async 
   test.skip(info.project.name !== 'mobile', 'Touch qualification belongs to the mobile viewport');
   const errors = watchErrors(page);
   await page.goto('/earthquake-globe');
+  await expectHydrated(page);
   const globe = page.getByRole('group', { name: 'Earthquake globe', exact: true });
   await expect(globe).toHaveAttribute('data-longitude', '-180');
   await globe.scrollIntoViewIfNeeded();

@@ -1,6 +1,6 @@
-import { HighlightedSource, Highlighting, SourceKey } from '@opsydyn/dataset-explorer/highlighting';
+import { UiSchema } from '@effect/ui';
+import { HighlightedSource, SourceKey } from '@opsydyn/dataset-explorer/highlighting-core';
 import { Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
 
 import { initialSettings } from './settings';
 import { Source, SourceName } from './source';
@@ -10,7 +10,7 @@ export { SourceName } from './source';
 export const Dataset = Schema.Literals(['spread', 'clustered']);
 export const Settings = Schema.Struct({ dataset: Dataset, binCount: Schema.Number });
 export const Action = Schema.Literals(['copy', 'download', 'playground']);
-export const ActionStatus = defineTaggedUnion({
+export const ActionStatus = UiSchema.TaggedEnum({
   Ready: {},
   Pending: { action: Action },
   Succeeded: { action: Action },
@@ -21,7 +21,6 @@ export const Props = Schema.Struct({
   templateUrl: Schema.NullOr(Schema.String),
 });
 export const Model = Schema.Struct({
-  highlighting: Highlighting,
   requestedSource: Schema.optional(SourceKey),
   highlightedSource: Schema.optional(HighlightedSource),
   chartWidth: Schema.Number,

@@ -8,12 +8,10 @@ import {
   pointOnPlane,
   type Vec3,
 } from '@opsydyn/effect-three';
-import { Option } from 'effect';
-import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { Option, Match, Struct } from 'effect';
 
 import { homeCamera, studioOrbit, viewKey } from './cameras';
-import { Message } from './message';
+import type { Message } from './message';
 import {
   finishes,
   type Grab,
@@ -28,7 +26,7 @@ import {
   type Tone,
 } from './model';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = { readonly model: Model };
 
 const floor = { normal: [0, 1, 0], constant: 0 } as const;
 
@@ -190,50 +188,59 @@ const nextLens = (model: Model): Model => {
 };
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    HoveredPiece: ({ key }) =>
-      withPiece(key, model, (piece) => modifyFields(model, { hovered: () => Option.some(piece) })),
-    LeftPiece: ({ key }) =>
-      withPiece(key, model, (piece) =>
-        modifyFields(model, {
-          hovered: (hovered) => Option.filter(hovered, (current) => current !== piece),
-        }),
-      ),
-    ClickedPiece: ({ key }) =>
-      withPiece(key, model, (piece) => modifyFields(model, { selected: () => Option.some(piece) })),
-    DoubleClickedPiece: ({ key }) =>
-      withPiece(key, model, (piece) =>
-        withPlacements(model, placeAt(piece, home[piece].x, home[piece].z)),
-      ),
-    OpenedPieceMenu: ({ key }) =>
-      withPiece(key, model, (piece) => withPlacements(model, onPiece(piece, nextFinish))),
-    PressedPiece: ({ key, origin, direction }) =>
-      withPiece(key, model, (piece) =>
-        press(modifyFields(model, { grab: () => Option.none() }), piece, origin, direction),
-      ),
-    DraggedPiece: ({ key, origin, direction }) =>
-      withPiece(key, model, (piece) => drag(model, piece, origin, direction)),
-    DroppedPiece: () => ({ model: modifyFields(model, { grab: () => Option.none() }) }),
-    ClickedEmptySpace: () => ({ model: modifyFields(model, { selected: () => Option.none() }) }),
-    ClickedShadows: () => ({
-      model: modifyFields(model, { shadows: (shadows) => otherShadows[shadows] }),
-    }),
-    ClickedToneMapping: () => ({ model: modifyFields(model, { tone: (tone) => otherTone[tone] }) }),
-    ClickedLens: () => ({ model: nextLens(model) }),
-    MadeGesture: ({ gesture }) => ({ model: orbitBy(withStage(model, gesture), gesture) }),
-    PressedArrow: ({ key, turning }) => ({
-      model: {
-        ...model,
-        camera: orbitKey(
-          model.camera,
-          key,
-          { ...noModifiers, shift: turning },
-          model.stage,
-          studioOrbit,
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      HoveredPiece: ({ key }) =>
+        withPiece(key, model, (piece) =>
+          Struct.evolve(model, { hovered: () => Option.some(piece) }),
         ),
-      },
+      LeftPiece: ({ key }) =>
+        withPiece(key, model, (piece) =>
+          Struct.evolve(model, {
+            hovered: (hovered) => Option.filter(hovered, (current) => current !== piece),
+          }),
+        ),
+      ClickedPiece: ({ key }) =>
+        withPiece(key, model, (piece) =>
+          Struct.evolve(model, { selected: () => Option.some(piece) }),
+        ),
+      DoubleClickedPiece: ({ key }) =>
+        withPiece(key, model, (piece) =>
+          withPlacements(model, placeAt(piece, home[piece].x, home[piece].z)),
+        ),
+      OpenedPieceMenu: ({ key }) =>
+        withPiece(key, model, (piece) => withPlacements(model, onPiece(piece, nextFinish))),
+      PressedPiece: ({ key, origin, direction }) =>
+        withPiece(key, model, (piece) =>
+          press(Struct.evolve(model, { grab: () => Option.none() }), piece, origin, direction),
+        ),
+      DraggedPiece: ({ key, origin, direction }) =>
+        withPiece(key, model, (piece) => drag(model, piece, origin, direction)),
+      DroppedPiece: () => ({ model: Struct.evolve(model, { grab: () => Option.none() }) }),
+      ClickedEmptySpace: () => ({ model: Struct.evolve(model, { selected: () => Option.none() }) }),
+      ClickedShadows: () => ({
+        model: Struct.evolve(model, { shadows: (shadows) => otherShadows[shadows] }),
+      }),
+      ClickedToneMapping: () => ({
+        model: Struct.evolve(model, { tone: (tone) => otherTone[tone] }),
+      }),
+      ClickedLens: () => ({ model: nextLens(model) }),
+      MadeGesture: ({ gesture }) => ({ model: orbitBy(withStage(model, gesture), gesture) }),
+      PressedArrow: ({ key, turning }) => ({
+        model: {
+          ...model,
+          camera: orbitKey(
+            model.camera,
+            key,
+            { ...noModifiers, shift: turning },
+            model.stage,
+            studioOrbit,
+          ),
+        },
+      }),
+      MeasuredPiece: ({ key, min, max }) => ({ model: measured(model, key, min, max) }),
+      ClickedFrame: () => ({ model: framed(model) }),
+      ReceivedSceneLifecycle: () => ({ model }),
     }),
-    MeasuredPiece: ({ key, min, max }) => ({ model: measured(model, key, min, max) }),
-    ClickedFrame: () => ({ model: framed(model) }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  );

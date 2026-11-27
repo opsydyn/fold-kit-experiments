@@ -123,3 +123,19 @@ export function bindBoxMeasurement(
     );
   return release;
 }
+
+export const labelMeasurementTarget = {
+  attribute: 'data-zloz-measured-label',
+  scope: 'data-zloz-label-measurement-scope',
+  noun: 'label',
+  plural: 'labels',
+  title: 'Label',
+} satisfies BoxMeasurementTarget;
+
+export const groupHeaderMeasurementTarget = {
+  attribute: 'data-zloz-group-header',
+  scope: 'data-zloz-group-header-measurement-scope',
+  noun: 'group heading',
+  plural: 'group headings',
+  title: 'Group heading',
+} satisfies BoxMeasurementTarget;

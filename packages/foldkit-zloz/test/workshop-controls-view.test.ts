@@ -1,25 +1,16 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import {
-  zlozEventStormingWorkshopControls,
-  zlozWorkshopSelect,
-  type ZlozWorkshopViewOptions,
-} from '../src/foldkit';
+import { workshopControls, workshopSelect, type ZlozWorkshopViewOptions } from '../src/effect-ui';
 import {
   createEditor,
   createEventStormingWorkshopPattern,
   resolveEventStormingWorkshopControls,
-  type ZlozWorkshopRequest,
 } from '../src/index';
-async function render(
-  options: ZlozWorkshopViewOptions<ZlozWorkshopRequest> = {},
-  protectedEdit = false,
-) {
+async function render(options: ZlozWorkshopViewOptions<string> = {}, protectedEdit = false) {
   const editor = {
     ...createEditor(createEventStormingWorkshopPattern()),
     selectedNodes: ['retry-question'],
@@ -29,21 +20,18 @@ async function render(
     'retry-question',
     protectedEdit ? { policy: { canChangeNodeArchitecture: () => 'Facilitator protection' } } : {},
   );
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: context }),
-        view: (model, h: HtmlBuilder<ZlozWorkshopRequest>) => ({
-          title: 'Workshop',
-          body: zlozEventStormingWorkshopControls(h, model, (r) => r, options),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const TestView = Html.component({
+    name: 'SemanticControls',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) => workshopControls(h, context, (request) => request.type, options),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(TestView, {}, { static: true }));
   const dom = new Window().document;
-  dom.body.innerHTML = result.html;
+  dom.body.innerHTML = output.html;
   return dom;
 }
 test('native workshop controls have labels, selected values and visible policy/kind restrictions', async () => {
@@ -67,7 +55,7 @@ test('custom fields, omitted parts and layout retain native selector semantics',
     renderRole: () => null,
     renderMeaning: () => null,
     renderReasons: () => null,
-    renderStatus: (c, h, r) => h.div([], [zlozWorkshopSelect(h, c, 'status', r)!]),
+    renderStatus: (c, h, r) => h.div(workshopSelect(h, c, 'status', r)),
     renderLayout: (parts) => (parts.status ? [parts.status] : []),
   });
   expect(dom.querySelectorAll('select')).toHaveLength(1);

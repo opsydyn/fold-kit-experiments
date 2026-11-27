@@ -4,12 +4,16 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 import { parseModelDocumentV3 } from '@opsydyn/foldkit-zloz';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
 const base = process.env.ZLOZ_EVIDENCE_URL ?? 'http://127.0.0.1:4388';
-const directory = new URL('./v3-core/', import.meta.url);
+const evidenceRoot = process.env.ZLOZ_GROUP_EVIDENCE_DIR;
+const directory = evidenceRoot
+  ? pathToFileURL(evidenceRoot + '/core/')
+  : new URL('./v3-core/', import.meta.url);
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({
   viewport: { width: 1440, height: 960 },
@@ -33,6 +37,8 @@ const screenshot = (name) =>
 try {
   const response = await page.goto(`${base}/groups/`);
   assert.equal(response?.status(), 200);
+  assert.match((await response?.text()) ?? '', /data-effect-ui-state/);
+  await page.locator('astro-island:not([ssr])').waitFor({ state: 'attached' });
   await page.locator('[data-flow-surface]').waitFor();
   await button('Fit view').click();
   await button('Select or move Orders boundary').click();

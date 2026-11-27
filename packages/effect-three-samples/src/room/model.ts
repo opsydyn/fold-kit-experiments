@@ -23,6 +23,7 @@ export type Plant = typeof Plant.Type;
 
 export const Model = Schema.Struct({
   assetBase: Schema.String,
+  sceneFailure: Schema.NullOr(Schema.String),
   vr: Support,
   ar: Support,
   session: Session,
@@ -56,6 +57,7 @@ export const homeCamera = perspectiveCamera({
 
 export const initialModel = (assetBase: string): Model => ({
   assetBase,
+  sceneFailure: null,
   vr: 'checking',
   ar: 'checking',
   session: 'none',

@@ -1,10 +1,10 @@
+import type { Html } from '@effect/ui/html';
 import {
   eventStormingParticipantRole,
   resolveEventStormingRelationship,
   type ZlozGraph,
   type ZlozNode,
 } from '@opsydyn/foldkit-zloz';
-import type { HtmlBuilder } from 'foldkit/html';
 
 import { journeyOverview } from './journey-overview';
 
@@ -58,7 +58,7 @@ export const journeyTriggerId = (edgeId?: string) =>
   edgeId === undefined ? 'journey-back' : 'journey-follow-' + edgeId;
 
 export function journeyView<M>(
-  h: HtmlBuilder<M>,
+  h: Html.H<M>,
   path: ReturnType<typeof journey>,
   actions: {
     start: (id: string) => M;
@@ -70,102 +70,85 @@ export function journeyView<M>(
   const last = path.steps.at(-1);
 
   const reveal = (type: 'node' | 'edge', id: string, label: string, current = false) =>
-    h.button(
-      [
-        ...(current ? [h.Id('journey-current-note')] : []),
-        h.Type('button'),
-        h.AriaLabel('Reveal ' + label),
-        h.OnClick(actions.reveal(type, id)),
-      ],
-      [label],
-    );
-  return h.section(
-    [h.Class('workshop-journey')],
-    [
-      h.h2([h.Class('rail-heading')], ['Workshop journey']),
-      h.label(
-        [],
-        [
-          'Starting note',
-          h.select(
-            [h.Value(path.start?.id ?? ''), h.OnChange(actions.start)],
-            [
-              h.option([h.Value('')], ['Choose a note']),
-              ...path.notes.map((node) =>
-                h.option([h.Key(node.id), h.Value(node.id)], [node.label]),
-              ),
-            ],
+    h.button
+      .attr('id', current ? 'journey-current-note' : undefined)
+      .attr('type', 'button')
+      .attr('aria-label', 'Reveal ' + label)
+      .on('click', actions.reveal(type, id))
+      .children(label);
+  return h.section.class('workshop-journey').children(
+    h.h2.class('rail-heading').children('Workshop journey'),
+    h.label.children(
+      'Starting note',
+      h.select
+        .value(path.start?.id ?? '')
+        .on('change', ({ value }) => actions.start(value))
+        .children(
+          h.option.attr('value', '').children('Choose a note'),
+          ...path.notes.map((node) =>
+            h.option.key(node.id).attr('value', node.id).children(node.label),
           ),
-        ],
-      ),
-      ...(path.changed
-        ? [h.p([h.Role('status')], ['The board changed. Review the remaining path.'])]
-        : []),
-      ...(path.start
-        ? [
-            journeyOverview(h, path.start, path.steps, path.outgoing),
-            h.div(
-              [h.Class('journey-trail'), h.Role('region'), h.AriaLabel('Journey trail')],
-              [
-                h.ol(
-                  [],
-                  [
-                    h.li([], [reveal('node', path.start.id, path.start.label, !last)]),
-                    ...path.steps.map((step, index) =>
-                      h.li(
-                        [h.Key(`${index}:${step.id}`)],
-                        [
-                          reveal('edge', step.id, step.label),
-                          ' → ',
-                          reveal(
-                            'node',
-                            step.target.id,
-                            step.firstSeenAt === undefined
-                              ? step.target.label
-                              : `${step.target.label} · Revisited · first seen at step ${step.firstSeenAt}`,
-                            step === last,
-                          ),
-                        ],
+        ),
+    ),
+    ...(path.changed
+      ? [h.p.attr('role', 'status').children('The board changed. Review the remaining path.')]
+      : []),
+    ...(path.start
+      ? [
+          journeyOverview(h, path.start, path.steps, path.outgoing),
+          h.div
+            .class('journey-trail')
+            .attr('role', 'region')
+            .attr('aria-label', 'Journey trail')
+            .children(
+              h.ol.children(
+                h.li.children(reveal('node', path.start.id, path.start.label, !last)),
+                ...path.steps.map((step, index) =>
+                  h.li
+                    .key(`${index}:${step.id}`)
+                    .children(
+                      reveal('edge', step.id, step.label),
+                      ' → ',
+                      reveal(
+                        'node',
+                        step.target.id,
+                        step.firstSeenAt === undefined
+                          ? step.target.label
+                          : `${step.target.label} · Revisited · first seen at step ${step.firstSeenAt}`,
+                        step === last,
                       ),
                     ),
-                  ],
                 ),
-                ...(path.choices.length
-                  ? path.choices.map((step) =>
-                      h.button(
-                        [
-                          h.Key(step.id),
-                          h.Id(journeyTriggerId(step.id)),
-                          h.Type('button'),
-                          h.OnClick(actions.follow(step.id)),
-                        ],
-                        ['Follow ' + step.label + ' → ' + step.target.label],
+              ),
+              ...(path.choices.length
+                ? path.choices.map((step) =>
+                    h.button
+                      .key(step.id)
+                      .id(journeyTriggerId(step.id))
+                      .attr('type', 'button')
+                      .on('click', actions.follow(step.id))
+                      .children('Follow ' + step.label + ' → ' + step.target.label),
+                  )
+                : [
+                    h.p
+                      .attr('role', 'status')
+                      .children(
+                        'End of this path · No outgoing Produces, Activates or Triggers link.',
                       ),
-                    )
-                  : [
-                      h.p(
-                        [h.Role('status')],
-                        ['End of this path · No outgoing Produces, Activates or Triggers link.'],
-                      ),
-                    ]),
-              ],
+                  ]),
             ),
-            ...(last
-              ? [
-                  h.button(
-                    [
-                      h.Id(journeyTriggerId()),
-                      h.Type('button'),
-                      h.OnClick(actions.back(last.id, path.steps.length)),
-                    ],
-                    ['Back one step'],
-                  ),
-                ]
-              : []),
-          ]
-        : path.notes.length
-          ? []
-          : [h.p([], ['This board has no command, domain event or policy to follow.'])]),
-    ],
+          ...(last
+            ? [
+                h.button
+                  .id(journeyTriggerId())
+                  .attr('type', 'button')
+                  .on('click', actions.back(last.id, path.steps.length))
+                  .children('Back one step'),
+              ]
+            : []),
+        ]
+      : path.notes.length
+        ? []
+        : [h.p.children('This board has no command, domain event or policy to follow.')]),
   );
 }

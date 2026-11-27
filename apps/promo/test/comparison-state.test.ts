@@ -1,17 +1,16 @@
 // Restore browser boundary spies even when assertions fail.
 /* oxlint-disable linteffect/no-try-catch */
 import { expect, test, spyOn } from 'bun:test';
+import assert from 'node:assert/strict';
 
-import type { HighlightingService } from '@opsydyn/dataset-explorer/highlighting';
+import { Component, type Command } from '@effect/ui';
+import { HtmlServer } from '@effect/ui/html';
 import sdk from '@stackblitz/sdk';
-import { Effect, Option, Schema } from 'effect';
-import { Command } from 'foldkit';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Effect, Option } from 'effect';
 
-import * as Comparison from '../../web/src/apps/comparison/main';
-import * as PlotPanel from '../../web/src/ui/plot-panel';
-import { init, Message, update, view } from '../src/examples/comparison/main';
+import * as Comparison from '../../web/src/apps/comparison/workbench-state';
+import * as PlotPanel from '../../web/src/ui/plot-panel/core';
+import { init, Message, PromoComparison, update } from '../src/examples/comparison/main';
 import { captureSettings } from '../src/examples/comparison/project';
 import { settingsSource } from '../src/examples/comparison/project';
 import { currentSource } from '../src/examples/comparison/update';
@@ -20,19 +19,14 @@ const props = {
   sources: [{ name: 'web/src/apps/comparison/initial-settings.ts', content: 'original' }],
   templateUrl: '/downloads/comparison-template.json',
 };
-const child = (message: Comparison.Message) => Message.GotWorkbenchMessage({ message });
+const child = (message: Comparison.Message) => Message.ReceivedWorkbenchMessage({ message });
 
-// These tests execute existing delivery/child Commands, which do not read the highlighter.
-// The update return type unions all service requirements; verify identity before narrowing.
-const independentCommand = (
-  command: Command.Command<Message, never, HighlightingService> | undefined,
-): Command.Command<Message> => {
-  expect(command).toBeDefined();
-  const selected = Option.getOrThrow(Option.fromNullishOr(command));
-  expect(['CopySource', 'ExportProject', 'Probe']).toContain(selected.name);
-  // SAFETY: the checked delivery/Probe definitions have no managed-resource requirements.
-  return selected as Command.Command<Message>;
-};
+async function runAction(command: Command.Command<Message | Component.Noop> | undefined) {
+  assert(command?._tag === 'Effect', 'Expected an Effect command');
+  const message = await Effect.runPromise(command.effect);
+  assert(!Component.isNoop(message), 'Expected an action completion');
+  return message;
+}
 
 test('delayed template fetch exports the original snapshot and completion keeps later edits', async () => {
   const response = Promise.withResolvers<Response>();
@@ -41,7 +35,7 @@ test('delayed template fetch exports the original snapshot and completion keeps 
   try {
     const base = init(props).model;
     const started = update(base, Message.ClickedPlayground());
-    const completion = Effect.runPromise(independentCommand(started.commands?.[0]).effect);
+    const completion = runAction(started.commands?.[0]);
     const edited = update(
       started.model,
       child(Comparison.Message.ClickedAddPanel({ kind: 'scatter' })),
@@ -80,11 +74,11 @@ test('copy Command delivers the selected maintained source to the clipboard', as
   });
   try {
     const sources = [
-      { name: 'web/src/apps/comparison/view.ts', content: 'maintained view source' },
+      { name: 'web/src/apps/comparison/workbench-view.ts', content: 'maintained view source' },
     ];
     const model = init({ ...props, sources }).model;
     const started = update(model, Message.ClickedCopy());
-    const completion = await Effect.runPromise(independentCommand(started.commands?.[0]).effect);
+    const completion = await runAction(started.commands?.[0]);
     expect(copied).toEqual(['maintained view source']);
     expect(completion).toEqual(Message.SucceededAction({ action: 'copy' }));
   } finally {
@@ -106,7 +100,7 @@ test('export captures settings at Command creation while edits, source changes a
   ).model;
   const moved = update(
     edited,
-    child(Comparison.Message.ClickedMovePanel({ id: 1, direction: 'later' })),
+    child(Comparison.Message.ObservedPanelMove({ id: 1, direction: 'later' })),
   ).model;
   const selected = update(
     moved,
@@ -144,7 +138,7 @@ test('failed export permits retry and does not disable workbench editing', async
   const fetcher = spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 500 }));
   try {
     const started = update(init(props).model, Message.ClickedPlayground());
-    const completion = await Effect.runPromise(independentCommand(started.commands?.[0]).effect);
+    const completion = await runAction(started.commands?.[0]);
     expect(completion._tag).toBe('FailedAction');
     const failed = update(started.model, completion).model;
     const edited = update(failed, child(Comparison.Message.ClickedRemovePanel({ id: 1 }))).model;
@@ -155,43 +149,31 @@ test('failed export permits retry and does not disable workbench editing', async
   }
 });
 
-test('wrapper forwards delayed panel-keyed child Commands without recreating removed panels', async () => {
-  const Probe = Command.define('Probe', {
-    messages: [Comparison.Message.GotScatterMessage],
-    execute: Effect.succeed(
-      Comparison.Message.GotScatterMessage({ id: 1, message: PlotPanel.Message.BlurredTarget() }),
-    ),
-  });
-  const original = Comparison.update;
-  const updater = spyOn(Comparison, 'update').mockImplementation((model, message) => ({
-    ...original(model, message),
-    commands: [Probe()],
-  }));
-  const result = update(
-    init(props).model,
-    child(
-      Comparison.Message.GotScatterMessage({
-        id: 1,
-        message: PlotPanel.Message.HoveredTarget({ index: 0 }),
-      }),
-    ),
+test('panel messages and observed moves arriving after removal leave the workbench intact', () => {
+  const base = init(props).model;
+  const moving = update(
+    base,
+    child(Comparison.Message.ClickedMovePanel({ id: 1, direction: 'later' })),
   );
-  updater.mockRestore();
-  expect(result.commands).toHaveLength(1);
+  expect(moving.model.workbench).toBe(base.workbench);
+  expect(moving.commands?.[0]).toMatchObject({
+    name: 'MoveComparisonPanel',
+    args: { id: 1, direction: 'later' },
+  });
   const removed = update(
-    result.model,
+    moving.model,
     child(Comparison.Message.ClickedRemovePanel({ id: 1 })),
   ).model;
-  const completion = await Effect.runPromise(independentCommand(result.commands?.[0]).effect);
-  expect(completion).toEqual(
-    child(
-      Comparison.Message.GotScatterMessage({ id: 1, message: PlotPanel.Message.BlurredTarget() }),
-    ),
+  const received = child(
+    Comparison.Message.ReceivedPanelMessage({
+      id: 1,
+      kind: 'Scatter',
+      message: PlotPanel.Message.HoveredTarget({ index: 0 }),
+    }),
   );
-  const late = update(removed, completion);
-  expect(late.model.workbench).toBe(removed.workbench);
-  expect(late.commands ?? []).toEqual([]);
-  expect(late.model.workbench.panels.map(({ id }) => id)).toEqual([2]);
+  const observed = child(Comparison.Message.ObservedPanelMove({ id: 1, direction: 'later' }));
+  for (const pending of [received, observed])
+    expect(update(removed, pending)).toEqual({ model: removed });
 });
 
 test('standalone view renders shared workbench first with no recursive export actions', async () => {
@@ -199,14 +181,7 @@ test('standalone view renders shared workbench first with no recursive export ac
   expect(update(model, Message.ClickedDownload())).toEqual({ model });
   expect(update(model, Message.ClickedPlayground())).toEqual({ model });
   const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model }),
-        view: (state: typeof model, h: HtmlBuilder<Message>) => view(state, h),
-      },
-      { flags: {}, isHydratable: false },
-    ),
+    HtmlServer.renderToHtml(PromoComparison, { ...props, templateUrl: null }),
   );
   expect(result.html).toContain('Scatter 1');
   expect(result.html).toContain('Histogram 2');

@@ -1,58 +1,36 @@
-import { Option, Schema } from 'effect';
-import { Runtime } from 'foldkit';
-import { describe, expect, onTestFinished, test, vi } from 'vitest';
+import { BrowserHost } from '@effect/ui/html';
+import { Effect, Exit, Schema, Scope } from 'effect';
+import { expect, onTestFinished, test, vi } from 'vitest';
 
-import { Flags, Locale, Model, Name, init } from './model';
-import { update } from './update';
-import { view } from './view';
+import { Greeting } from './main';
+import { Props } from './model';
 
-const BrowserDirection = Schema.Literals(['ltr', 'rtl']);
-const englishLanguage = Schema.decodeSync(Locale)('en');
-const arabicLanguage = Schema.decodeSync(Locale)('ar');
-const leftToRight = Schema.decodeSync(BrowserDirection)('ltr');
-const rightToLeft = Schema.decodeSync(BrowserDirection)('rtl');
-
-describe('greeting document metadata', () => {
-  test('applies locale changes to the browser document root', async () => {
-    const previousLang = document.documentElement.lang;
-    const previousDir = document.documentElement.getAttribute('dir');
-    const host = document.createElement('div');
-    const container = document.createElement('div');
-    container.id = 'greeting-runtime-test';
-    host.appendChild(container);
-    document.body.appendChild(host);
-    const name = Schema.decodeSync(Name)('astronaut');
-    const handle = Runtime.embed(
-      Runtime.makeApplication({
-        Model,
-        init: () => init(Flags.make({ name, locale: 'en' })),
-        update,
-        view,
-        container,
-      }),
-    );
-    onTestFinished(() => {
-      handle.dispose();
-      host.remove();
-      document.documentElement.lang = previousLang;
-      Option.fromNullishOr(previousDir).pipe(
-        Option.match({
-          onNone: () => document.documentElement.removeAttribute('dir'),
-          onSome: (dir) => document.documentElement.setAttribute('dir', dir),
-        }),
-      );
-    });
-
-    await vi.waitFor(() => {
-      expect(document.documentElement.lang).toBe(englishLanguage);
-      expect(document.documentElement.dir).toBe(leftToRight);
-    });
-    const arabicButton = host.querySelector<HTMLButtonElement>('button[aria-pressed="false"]');
-    expect(arabicButton).toBeDefined();
-    arabicButton?.click();
-    await vi.waitFor(() => {
-      expect(document.documentElement.lang).toBe(arabicLanguage);
-      expect(document.documentElement.dir).toBe(rightToLeft);
-    });
+test('updates document metadata through the native Greeting component', async () => {
+  const previousLang = document.documentElement.lang;
+  const previousDir = document.documentElement.getAttribute('dir');
+  const previousTitle = document.title;
+  const host = document.createElement('div');
+  document.body.append(host);
+  const scope = Scope.makeUnsafe();
+  onTestFinished(async () => {
+    await Effect.runPromise(Scope.close(scope, Exit.void));
+    host.remove();
+    document.title = previousTitle;
+    document.documentElement.lang = previousLang;
+    if (previousDir === null) document.documentElement.removeAttribute('dir');
+    else document.documentElement.dir = previousDir;
+  });
+  const props = Schema.decodeSync(Props)({ name: 'astronaut', locale: 'en' });
+  const mount = BrowserHost.mountEffect(Greeting, props, host, { head: false });
+  await Effect.runPromise(Scope.provide(mount, scope));
+  const arabic = host.querySelector<HTMLButtonElement>('button[aria-pressed="false"]');
+  expect(arabic?.textContent).toBe('Arabic');
+  arabic?.click();
+  await vi.waitFor(() => {
+    expect(host.textContent).toContain('مرحبا، astronaut!');
+    expect(arabic?.getAttribute('aria-pressed')).toBe('true');
+    expect(document.documentElement.lang).toBe('ar');
+    expect(document.documentElement.dir).toBe('rtl');
+    expect(document.title).toBe('مرحبا، astronaut! — Astro + Effect UI');
   });
 });

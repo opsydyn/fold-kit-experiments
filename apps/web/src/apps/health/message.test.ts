@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { Message } from './message';
 
 describe('health Message namespace', () => {
-  test('constructs and matches every message through the FoldKit union', () => {
+  test('constructs and matches every message through the Effect UI union', () => {
     const message = Message.FetchedHealth({
       status: 'ok',
       uptimeSeconds: 12.5,

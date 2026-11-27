@@ -1,7 +1,7 @@
 /**
  * The scene MCP server's tools (`scripts/sceneTools.ts`): a scene described, checked,
  * previewed and diffed from a file, from text, or from a running app's Model, with a
- * stand-in for the Foldkit DevTools MCP server answering as it does.
+ * stand-in for the Effect UI DevTools HTTP MCP protocol.
  */
 import { expect, test } from 'bun:test';
 
@@ -34,19 +34,31 @@ const ball = mesh({
 const camera = perspectiveCamera({ position: [0, 3, 6], lookAt: [0, 0.5, 0] });
 const room = scene({ camera, children: [ambientLight({ key: 'sky' }), crate, ball] });
 
-/** What the DevTools server says for a Model path, as `foldkit_get_model` answers. */
-const runningApp =
-  (model: ReadonlyMap<string, string>): DevTools =>
-  async (tool, args) => {
-    if (tool === 'foldkit_list_runtimes')
-      return '{"_tag":"ResponseRuntimes","runtimes":[{"connectionId":"r-1","title":"Editor"}]}';
-    const value = model.get(String(args['path']));
-    return value === undefined
-      ? `Error: no value at ${String(args['path'])}`
-      : `{"_tag":"ResponseModel","value":${value}}`;
+function runningApp(
+  model: Readonly<Record<string, typeof room.children | typeof camera>>,
+): DevTools {
+  return async (tool, args) => {
+    if (tool === 'list_sessions') {
+      return '{"result":[{"session":"r-1","app":"Editor","connected":true,"last":17}]}';
+    }
+    if (tool === 'list_instances') {
+      expect(args).toEqual({ session: 'r-1' });
+      return '{"result":[{"instance":3,"path":"Editor/Child","mounted":2},{"instance":2,"path":"Editor","mounted":1}]}';
+    }
+    expect(tool).toBe('get_state');
+    expect(args['session']).toBe('r-1');
+    expect(args['instance']).toBe(2);
+    const path = args['path'];
+    if (JSON.stringify(path) === '["at"]') return '{"result":17}';
+    const field = Array.isArray(path) && path[0] === 'model' ? String(path[1]) : '';
+    if (field === 'nodes' || field === 'camera') expect(args['at']).toBe(17);
+    return field in model
+      ? JSON.stringify({ result: model[field] })
+      : `Error: No value at ${JSON.stringify(path)}`;
   };
+}
 
-const noApp: DevTools = async () => 'Error: Not connected to a Foldkit dev server.';
+const noApp: DevTools = async () => 'Error: Not connected to Effect UI DevTools.';
 
 test('the tools are listed with their inputs', () => {
   expect(tools.map((tool) => tool.name)).toEqual([
@@ -71,12 +83,7 @@ test('a scene is described from a saved file, its text, or a bare description', 
 });
 
 test('a running app’s scene is read at its Model path and described, camera and all', async () => {
-  const app = runningApp(
-    new Map([
-      ['root.nodes', JSON.stringify(room.children)],
-      ['root.camera', JSON.stringify(camera)],
-    ]),
-  );
+  const app = runningApp({ nodes: room.children, camera });
   expect(await callTool(app, 'scene_runtimes', {})).toContain('r-1');
   const described = await callTool(app, 'scene_describe', {
     runtime_id: 'r-1',
@@ -89,7 +96,7 @@ test('a running app’s scene is read at its Model path and described, camera an
     runtime_id: 'r-1',
     nodes_path: 'root.x',
   });
-  expect(missing).toContain('no value at root.x');
+  expect(missing).toContain('No value at ["model","x"]');
 });
 
 test('a check finds what the schemas refuse, what the scene’s rules refuse, and names behaviours', async () => {

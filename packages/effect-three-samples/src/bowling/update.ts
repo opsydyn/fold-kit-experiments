@@ -1,6 +1,6 @@
+import type { Command } from '@effect/ui';
 import { type BodyCollision, type Gesture, orbit, orbitOptions } from '@opsydyn/effect-three';
-import { Option } from 'effect';
-import type { Return } from 'foldkit/update';
+import { Match, Option, Struct } from 'effect';
 
 import { RackRest, ReadFragment, SettleAfter } from './command';
 import { Message } from './message';
@@ -8,7 +8,10 @@ import { initialModel, limits, type Model, pinIds } from './model';
 import { decode, type Record } from './replay';
 import { finished, freshRack } from './score';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Command<Message>>;
+};
 
 export const pinKey = (model: Model, id: string): string => `pin:${model.rack}:${id}`;
 /** The rolled ball: a fresh body, made with its impulse, so its roll has no history. */
@@ -50,7 +53,7 @@ const pitted = (model: Model, collision: BodyCollision): AppReturn => {
   if (!inPit || model.phase !== 'rolling') return { model };
   return {
     model: { ...model, phase: 'settling' },
-    commands: [SettleAfter({ shot: model.shot, seconds: 2.5 })],
+    commands: [SettleAfter.make({ shot: model.shot, seconds: 2.5 })],
   };
 };
 
@@ -75,7 +78,7 @@ const counted = (model: Model): AppReturn => {
     before: fresh ? [...pinIds] : model.standing.filter((id) => model.before.includes(id)),
     phase: over ? 'over' : 'racking',
   };
-  return over ? { model: next } : { model: next, commands: [RackRest({ shot: next.shot })] };
+  return over ? { model: next } : { model: next, commands: [RackRest.make({ shot: next.shot })] };
 };
 
 /** A replay still has shots to roll. */
@@ -94,7 +97,7 @@ const rolled = (model: Model): AppReturn => {
       shots: [...model.shots, shot],
     },
     // If the ball never reaches the pit (it can stop in a gutter), count anyway.
-    commands: [SettleAfter({ shot: model.shot, seconds: 7 })],
+    commands: [SettleAfter.make({ shot: model.shot, seconds: 7 })],
   };
 };
 
@@ -115,10 +118,11 @@ const newGame = (model: Model, replay: Record | null): AppReturn => {
     angle: model.angle,
     speed: model.speed,
     layout: model.layout,
+    sceneStatus: model.sceneStatus,
     camera: model.camera,
     replay: replay === null ? null : { ...replay, rolled: 0 },
   };
-  return { model: next, commands: [RackRest({ shot: next.shot })] };
+  return { model: next, commands: [RackRest.make({ shot: next.shot })] };
 };
 
 /** The rack has rested: rolling may begin, and a replay rolls its next shot at once. */
@@ -133,38 +137,45 @@ const rested = (model: Model): AppReturn => {
 /** A replay link in the address starts that replay; anything else is left alone. */
 const fromFragment = (model: Model, fragment: string): AppReturn =>
   Option.match(decode(fragment), {
-    onNone: () => ({ model }),
+    onNone: () => ({ model, commands: [RackRest.make({ shot: model.shot })] }),
     onSome: (record) => newGame(model, record),
   });
 
 export const init = (props: { readonly assetBase?: string } = {}): AppReturn => ({
   model: initialModel(props.assetBase ?? '/models/'),
-  commands: [ReadFragment(), RackRest({ shot: 0 })],
 });
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    ChangedAim: ({ aim }) => ({ model: { ...model, aim: clamp(aim, limits.aim) } }),
-    ChangedAngle: ({ angle }) => ({ model: { ...model, angle: clamp(angle, limits.angle) } }),
-    ChangedSpeed: ({ speed }) => ({ model: { ...model, speed: clamp(speed, limits.speed) } }),
-    // While a replay rolls, the player watches.
-    ClickedRoll: () => (replaying(model) ? { model } : rolled(model)),
-    ClickedNewGame: () => newGame(model, null),
-    ClickedReplay: () =>
-      model.shots.length === 0
-        ? { model }
-        : newGame(model, { shots: model.shots, rolls: model.rolls }),
-    ReadFragment: ({ fragment }) => fromFragment(model, fragment),
-    RackRested: ({ shot }) =>
-      shot === model.shot && model.phase === 'racking' ? rested(model) : { model },
-    Collided: ({ collision }) => collided(model, collision),
-    Struck: ({ force }) => ({ model: { ...model, impact: Math.max(model.impact, force) } }),
-    // Only the shot still in play is counted, once: a later or earlier timer is stale.
-    Settled: ({ shot }) =>
-      shot === model.shot && (model.phase === 'rolling' || model.phase === 'settling')
-        ? counted(model)
-        : { model },
-    MeasuredScoreboard: ({ measured }) => ({ model: { ...model, layout: measured.block } }),
-    MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  Match.value(message).pipe(
+    Match.tagsExhaustive({
+      ChangedAim: ({ aim }) => ({ model: { ...model, aim: clamp(aim, limits.aim) } }),
+      ChangedAngle: ({ angle }) => ({ model: { ...model, angle: clamp(angle, limits.angle) } }),
+      ChangedSpeed: ({ speed }) => ({ model: { ...model, speed: clamp(speed, limits.speed) } }),
+      // While a replay rolls, the player watches.
+      ClickedRoll: () => (replaying(model) ? { model } : rolled(model)),
+      ClickedNewGame: () => newGame(model, null),
+      ClickedReplay: () =>
+        model.shots.length === 0
+          ? { model }
+          : newGame(model, { shots: model.shots, rolls: model.rolls }),
+      ReadFragment: ({ fragment }) => fromFragment(model, fragment),
+      RackRested: ({ shot }) =>
+        shot === model.shot && model.phase === 'racking' ? rested(model) : { model },
+      Collided: ({ collision }) => collided(model, collision),
+      Struck: ({ force }) => ({ model: { ...model, impact: Math.max(model.impact, force) } }),
+      // Only the shot still in play is counted, once: a later or earlier timer is stale.
+      Settled: ({ shot }) =>
+        shot === model.shot && (model.phase === 'rolling' || model.phase === 'settling')
+          ? counted(model)
+          : { model },
+      MeasuredScoreboard: ({ measured }) => ({ model: { ...model, layout: measured.block } }),
+      MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
+      ReceivedSceneLifecycle: ({ lifecycle }) =>
+        lifecycle._tag === 'FailedScene'
+          ? { model: Struct.assign(model, { sceneStatus: lifecycle }) }
+          : {
+              model: Struct.assign(model, { sceneStatus: lifecycle }),
+              commands: [ReadFragment.make()],
+            },
+    }),
+  );

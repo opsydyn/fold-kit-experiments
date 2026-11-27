@@ -1,13 +1,12 @@
 {
   "name": "@opsydyn/astro-foldkit",
-  "version": "0.13.1",
-  "description": "Astro integration and renderer for FoldKit.",
+  "version": "1.0.0-next.0",
+  "description": "Compatibility entry point for the standalone Astro Effect UI renderer.",
   "keywords": [
     "astro",
     "astro-integration",
     "effect",
-    "elm-architecture",
-    "foldkit"
+    "effect-ui"
   ],
   "bugs": {
     "url": "https://github.com/opsydyn/fold-kit-experiments/issues"
@@ -30,14 +29,8 @@
   "types": "./dist/index.d.mts",
   "typesVersions": {
     "*": {
-      "define-app": [
-        "./dist/define-app.d.mts"
-      ],
-      "define-page": [
-        "./dist/define-page.d.mts"
-      ],
-      "server": [
-        "./dist/server-public.d.mts"
+      "component": [
+        "./dist/component.d.mts"
       ]
     }
   },
@@ -46,27 +39,19 @@
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
-    "./define-app": {
-      "types": "./dist/define-app.d.mts",
-      "import": "./dist/define-app.mjs"
-    },
-    "./define-page": {
-      "types": "./dist/define-page.d.mts",
-      "import": "./dist/define-page.mjs"
-    },
-    "./server": {
-      "types": "./dist/server-public.d.mts",
-      "import": "./dist/server-public.mjs"
+    "./component": {
+      "types": "./dist/component.d.mts",
+      "import": "./dist/component.mjs"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "bun run --filter @opsydyn/astro-effect-ui build && tsdown",
     "typecheck": "tsc --noEmit",
-    "test": "bun run test:unit && bun run test:integration",
-    "test:unit": "bun test --path-ignore-patterns='**/client-helpers.test.ts' test/unit && vitest run",
+    "test": "bun test",
+    "test:unit": "bun test test/unit",
     "test:integration": "bun test test/integration",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
@@ -75,24 +60,19 @@
     "compat:astro": "bun ../../tools/astro-compat.ts"
   },
   "dependencies": {
-    "@foldkit/vite-plugin": "^0.29.0"
+    "@opsydyn/astro-effect-ui": "1.0.0-next.0"
   },
   "devDependencies": {
-    "@opsydyn/testing": "workspace:*",
     "@types/node": "^22.0.0",
     "astro": "7.4.11",
     "bun-types": "^1.3.14",
-    "effect": "4.1.0",
-    "fast-check": "^4.8.0",
-    "foldkit": "0.171.0",
+    "effect": "4.1.6",
     "tsdown": "^0.21.8",
-    "typescript": "^6.0.3",
-    "vitest": "^5.0.5"
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "astro": ">=5.0.0",
-    "effect": "~4.1.0",
-    "foldkit": ">=0.170.0 <0.172.0"
+    "astro": ">=5.0.0 <8",
+    "effect": "~4.1.0"
   },
   "engines": {
     "node": ">=22.0.0"

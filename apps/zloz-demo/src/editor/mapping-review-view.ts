@@ -1,13 +1,14 @@
-import type { HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
 
 import { workbenchMappingReview } from './mapping-review';
 import { Message } from './message';
 import type { Model } from './model';
 import { receiptReviewPanel } from './receipt-review';
 
-function conversionPlanPanel(
+function conversionPlanPanel<M>(
   model: Model,
-  h: HtmlBuilder<Message>,
+  h: Html.H<M>,
+  send: (message: Message) => M,
   context: ReturnType<typeof workbenchMappingReview>,
 ) {
   const { plan } = context.conversion;
@@ -18,215 +19,185 @@ function conversionPlanPanel(
     'consent-required': 'Loss acknowledgement needed',
     consented: 'Losses acknowledged for this plan',
   }[context.conversion.type];
-  return h.details(
-    [h.Key('conversion-plan'), h.Id('mapping-conversion-plan'), h.Class('mapping-plan')],
-    [
-      h.summary([], ['Conversion plan review']),
-      h.section(
-        [h.AriaLabel('Conversion plan review')],
-        [
-          h.p(
-            [
-              h.Role('status'),
-              h.AriaLabel('Conversion plan status'),
-              h.Class('mapping-plan-status'),
-            ],
-            [status],
+  return h.details
+    .key('conversion-plan')
+    .id('mapping-conversion-plan')
+    .class('mapping-plan')
+    .children(
+      h.summary.children('Conversion plan review'),
+      h.section.attr('aria-label', 'Conversion plan review').children(
+        h.p
+          .attr('role', 'status')
+          .attr('aria-label', 'Conversion plan status')
+          .class('mapping-plan-status')
+          .children(status),
+        h.h3.children('Source provenance'),
+        h.dl
+          .class('mapping-provenance')
+          .children(
+            h.dt.children('Model'),
+            h.dd.children(document.name),
+            h.dt.children('Snapshot'),
+            h.dd.children(context.sourceLabel),
+            h.dt.children('Fork ancestry'),
+            h.dd.children(
+              document.origin
+                ? `${document.origin.modelName} · ${document.origin.edition.name}`
+                : 'Original model · no fork parent',
+            ),
           ),
-          h.h3([], ['Source provenance']),
-          h.dl(
-            [h.Class('mapping-provenance')],
-            [
-              h.dt([], ['Model']),
-              h.dd([], [document.name]),
-              h.dt([], ['Snapshot']),
-              h.dd([], [context.sourceLabel]),
-              h.dt([], ['Fork ancestry']),
-              h.dd(
-                [],
-                [
-                  document.origin
-                    ? `${document.origin.modelName} · ${document.origin.edition.name}`
-                    : 'Original model · no fork parent',
-                ],
-              ),
-            ],
+        h.p.children(
+          'Original source graph, camera, editions and ancestry are captured for this review. Previewing does not apply further changes.',
+        ),
+        h.details
+          .class('mapping-source-details')
+          .children(
+            h.summary.children('Source identifiers'),
+            h.p.children(`Model ID: ${document.id}`),
+            ...(model.historyReview
+              ? [h.p.children(`Edition ID: ${model.historyReview.editionId}`)]
+              : []),
           ),
-          h.p(
-            [],
-            [
-              'Original source graph, camera, editions and ancestry are captured for this review. Previewing does not apply further changes.',
-            ],
-          ),
-          h.details(
-            [h.Class('mapping-source-details')],
-            [
-              h.summary([], ['Source identifiers']),
-              h.p([], [`Model ID: ${document.id}`]),
-              ...(model.historyReview
-                ? [h.p([], [`Edition ID: ${model.historyReview.editionId}`])]
-                : []),
-            ],
-          ),
-          ...(plan.type === 'blocked'
-            ? [
-                h.h4([], ['Unresolved mappings']),
-                h.ul(
-                  [h.AriaLabel('Conversion plan blockers')],
-                  plan.blockers.map((blocker) =>
-                    h.li(
-                      [h.Key(`${blocker.kind}:${blocker.id}`)],
-                      [
+        ...(plan.type === 'blocked'
+          ? [
+              h.h4.children('Unresolved mappings'),
+              h.ul
+                .attr('aria-label', 'Conversion plan blockers')
+                .children(
+                  ...plan.blockers.map((blocker) =>
+                    h.li
+                      .key(`${blocker.kind}:${blocker.id}`)
+                      .children(
                         `${context.items.find((item) => item.kind === blocker.kind && item.id === blocker.id)?.label ?? blocker.id}: ${blocker.reason}`,
-                      ],
-                    ),
+                      ),
                   ),
                 ),
-              ]
-            : []),
-          ...(plan.preview.disclosures.length
-            ? [
-                h.h4([], ['All prospective semantic losses']),
-                h.ul(
-                  [h.AriaLabel('Plan semantic losses')],
-                  plan.preview.disclosures.map((loss) =>
-                    h.li(
-                      [h.Key(`${loss.kind}:${loss.id}`)],
-                      [
-                        h.strong(
-                          [],
-                          [
-                            context.items.find(
-                              (item) => item.kind === loss.kind && item.id === loss.id,
-                            )?.label ?? loss.id,
-                          ],
+            ]
+          : []),
+        ...(plan.preview.disclosures.length
+          ? [
+              h.h4.children('All prospective semantic losses'),
+              h.ul
+                .attr('aria-label', 'Plan semantic losses')
+                .children(
+                  ...plan.preview.disclosures.map((loss) =>
+                    h.li
+                      .key(`${loss.kind}:${loss.id}`)
+                      .children(
+                        h.strong.children(
+                          context.items.find(
+                            (item) => item.kind === loss.kind && item.id === loss.id,
+                          )?.label ?? loss.id,
                         ),
-                        h.p([], [loss.reason]),
-                      ],
-                    ),
+                        h.p.children(loss.reason),
+                      ),
                   ),
                 ),
-              ]
-            : []),
-          h.label(
-            [h.Class('workbench-field mapping-acknowledgement')],
-            [
-              h.input([
-                h.Type('checkbox'),
-                h.AriaLabel('Acknowledge plan losses'),
-                h.Checked(context.acknowledged),
-                h.Disabled(context.acknowledgementReason !== null),
-                h.AriaDescribedBy('mapping-plan-acknowledgement-reason'),
-                h.OnClick(
-                  Message.ClickedMappingLossAcknowledgement({
-                    ...context.scope,
-                    generation: model.mappingConsentRun,
-                    planKey: plan.key,
-                    accepted: !context.acknowledged,
-                  }),
-                ),
-              ]),
-              'I acknowledge all listed semantic losses for this plan',
-            ],
-          ),
-          h.p(
-            [h.Id('mapping-plan-acknowledgement-reason')],
-            [
-              context.acknowledgementReason ??
-                'Acknowledgement records review only. The source model and Undo history are unchanged. Uncheck to withdraw it.',
-            ],
-          ),
-          h.label(
-            [h.Class('workbench-field')],
-            [
-              h.input([
-                h.Type('checkbox'),
-                h.Checked(model.protectMappingApply),
-                h.Disabled(context.reason !== null),
-                h.OnClick(Message.ClickedMappingApplyProtection()),
-              ]),
-              'Protect conversion Apply',
-            ],
-          ),
-          h.button(
-            [
-              h.Type('button'),
-              h.AriaLabel('Apply DDD conversion'),
-              h.AriaDescribedBy('mapping-apply-reason'),
-              h.Disabled(context.applyReason !== null),
-              h.OnClick(
-                Message.ClickedApplyMappingConversion({
+            ]
+          : []),
+        h.label.class('workbench-field mapping-acknowledgement').children(
+          h.input
+            .attr('type', 'checkbox')
+            .attr('aria-label', 'Acknowledge plan losses')
+            .checked(context.acknowledged)
+            .disabled(context.acknowledgementReason !== null)
+            .attr('aria-describedby', 'mapping-plan-acknowledgement-reason')
+            .on(
+              'click',
+              send(
+                Message.ClickedMappingLossAcknowledgement({
                   ...context.scope,
                   generation: model.mappingConsentRun,
                   planKey: plan.key,
+                  accepted: !context.acknowledged,
                 }),
               ),
-            ],
-            ['Apply DDD conversion'],
+            ),
+          'I acknowledge all listed semantic losses for this plan',
+        ),
+        h.p
+          .id('mapping-plan-acknowledgement-reason')
+          .children(
+            context.acknowledgementReason ??
+              'Acknowledgement records review only. The source model and Undo history are unchanged. Uncheck to withdraw it.',
           ),
-          h.p(
-            [h.Id('mapping-apply-reason')],
-            [
-              context.applyReason ??
-                'Apply the reviewed meanings together as one Undo step and retain the full provenance receipt in this tab.',
-            ],
+        h.label.class('workbench-field').children(
+          h.input
+            .attr('type', 'checkbox')
+            .checked(model.protectMappingApply)
+            .disabled(context.reason !== null)
+            .on('click', send(Message.ClickedMappingApplyProtection())),
+          'Protect conversion Apply',
+        ),
+        h.button
+          .attr('type', 'button')
+          .attr('aria-label', 'Apply DDD conversion')
+          .attr('aria-describedby', 'mapping-apply-reason')
+          .disabled(context.applyReason !== null)
+          .on(
+            'click',
+            send(
+              Message.ClickedApplyMappingConversion({
+                ...context.scope,
+                generation: model.mappingConsentRun,
+                planKey: plan.key,
+              }),
+            ),
+          )
+          .children('Apply DDD conversion'),
+        h.p
+          .id('mapping-apply-reason')
+          .children(
+            context.applyReason ??
+              'Apply the reviewed meanings together as one Undo step and retain the full provenance receipt in this tab.',
           ),
-        ],
       ),
-    ],
-  );
+    );
 }
 
-function retainedReceiptsPanel(
+function retainedReceiptsPanel<M>(
   model: Model,
-  h: HtmlBuilder<Message>,
+  h: Html.H<M>,
+  send: (message: Message) => M,
   context: ReturnType<typeof workbenchMappingReview>,
 ) {
-  if (!context.receipts.length) return null;
-  return h.section(
-    [h.AriaLabel('Retained conversion receipts'), h.Class('mapping-receipts')],
-    [
-      h.h3([], ['Retained conversion receipts']),
-      h.p(
-        [],
-        [
-          'Retained in this tab, independent of Undo. Download receipts to keep provenance after closing the tab. Model-only JSON does not include them.',
-        ],
+  return h.section
+    .attr('aria-label', 'Retained conversion receipts')
+    .class('mapping-receipts')
+    .children(
+      h.h3.children('Retained conversion receipts'),
+      h.p.children(
+        'Retained in this tab, independent of Undo. Download receipts to keep provenance after closing the tab. Model-only JSON does not include them.',
       ),
       ...[...context.receipts].reverse().map((saved) =>
-        h.details(
-          [h.Key(saved.id)],
-          [
-            h.summary([], [`Receipt ${saved.sequence} · ${saved.conversion.source.document.name}`]),
-            h.p(
-              [],
-              [
-                'The complete original and converted documents, fork ancestry and reviewed mappings are retained. This is a historical receipt, not a claim about the current diagram.',
-              ],
-            ),
-            h.button(
-              [
-                h.Type('button'),
-                h.AriaLabel(`Download conversion receipt ${saved.sequence}`),
-                h.OnClick(
-                  Message.ClickedDownloadConversionReceipt({
-                    modelId: model.modelIdentity.id,
-                    epoch: model.modelEpoch,
-                    receiptId: saved.id,
-                  }),
-                ),
-              ],
-              [`Download conversion receipt ${saved.sequence}`],
-            ),
-          ],
+        h.details.key(saved.id).children(
+          h.summary.children(
+            `Receipt ${saved.sequence} · ${saved.conversion.source.document.name}`,
+          ),
+          h.p.children(
+            'The complete original and converted documents, fork ancestry and reviewed mappings are retained. This is a historical receipt, not a claim about the current diagram.',
+          ),
+          h.button
+            .attr('type', 'button')
+            .attr('aria-label', `Download conversion receipt ${saved.sequence}`)
+            .on(
+              'click',
+              send(
+                Message.ClickedDownloadConversionReceipt({
+                  modelId: model.modelIdentity.id,
+                  epoch: model.modelEpoch,
+                  receiptId: saved.id,
+                }),
+              ),
+            )
+            .children(`Download conversion receipt ${saved.sequence}`),
         ),
       ),
-    ],
-  );
+    );
 }
 
-export function mappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
-  if (model.receiptReview) return receiptReviewPanel(model, h);
+export function mappingReviewPanel<M>(model: Model, h: Html.H<M>, send: (message: Message) => M) {
+  if (model.receiptReview) return receiptReviewPanel(model, h, send);
   const context = workbenchMappingReview(model),
     { selected, preview } = context;
   const diagnostics = model.diagnosticsEnabled && !model.minimalMode && model.diagnostics.status;
@@ -247,197 +218,161 @@ export function mappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
     retained: 'Retained',
     blocked: 'Incompatible',
   };
-  return h.section(
-    [h.AriaLabel('Workshop mapping preview'), h.Class('mapping-review')],
-    [
-      h.p(
-        [h.Class('mapping-review-intro')],
-        [
+  return h.section
+    .attr('aria-label', 'Workshop mapping preview')
+    .class('mapping-review')
+    .children(
+      h.p
+        .class('mapping-review-intro')
+        .children(
           'Review workshop intent before modelling it as DDD. Preview choices leave the canvas unchanged; acknowledged Apply commits one Undo step.',
-        ],
-      ),
+        ),
       ...(diagnostics
         ? [
-            h.div(
-              [h.Class('mapping-summary'), h.AriaLabel('Mapping summary')],
-              [
-                h.span(
-                  [],
-                  [
-                    `${context.items.filter((item) => item.decision.type === 'proposed').length} proposed`,
-                  ],
+            h.div
+              .class('mapping-summary')
+              .attr('aria-label', 'Mapping summary')
+              .children(
+                h.span.children(
+                  `${context.items.filter((item) => item.decision.type === 'proposed').length} proposed`,
                 ),
-                h.span(
-                  [],
-                  [
-                    `${context.items.filter((item) => item.decision.type === 'ambiguous' || item.decision.type === 'unmapped' || item.decision.type === 'blocked').length} unresolved`,
-                  ],
+                h.span.children(
+                  `${context.items.filter((item) => item.decision.type === 'ambiguous' || item.decision.type === 'unmapped' || item.decision.type === 'blocked').length} unresolved`,
                 ),
-                h.span([], [`${preview.disclosures.length} prospective losses`]),
-              ],
-            ),
+                h.span.children(`${preview.disclosures.length} prospective losses`),
+              ),
           ]
         : []),
       ...(context.items.length
         ? [
-            h.label(
-              [h.Class('workbench-field')],
-              [
-                'Review mapping',
-                h.select(
-                  [
-                    h.AriaLabel('Review mapping'),
-                    h.OnChange((key) =>
-                      Message.SelectedMappingReviewItem({ ...context.scope, key }),
-                    ),
-                  ],
-                  context.items.map((item) =>
-                    h.option(
-                      [h.Key(item.key), h.Value(item.key), h.Selected(selected?.key === item.key)],
-                      [
+            h.label.class('workbench-field').children(
+              'Review mapping',
+              h.select
+                .attr('aria-label', 'Review mapping')
+                .on('change', ({ value: key }) =>
+                  send(Message.SelectedMappingReviewItem({ ...context.scope, key })),
+                )
+                .children(
+                  ...context.items.map((item) =>
+                    h.option
+                      .key(item.key)
+                      .attr('value', item.key)
+                      .selected(selected?.key === item.key)
+                      .children(
                         `${item.kind === 'node' ? 'Node' : 'Connection'} · ${item.label} · ${states[item.decision.type]}`,
-                      ],
-                    ),
+                      ),
                   ),
                 ),
-              ],
             ),
           ]
         : [
-            h.p(
-              [],
-              [
-                'No EventStorming notes in this source. Open the workshop example to explore proposed mappings.',
-              ],
+            h.p.children(
+              'No EventStorming notes in this source. Open the workshop example to explore proposed mappings.',
             ),
-            h.button(
-              [
-                h.Type('button'),
-                h.Disabled(model.historyReview !== null),
-                h.OnClick(Message.SelectedExample({ example: 'event-storming' })),
-              ],
-              ['Open event-storming example'],
-            ),
+            h.button
+              .attr('type', 'button')
+              .disabled(model.historyReview !== null)
+              .on('click', send(Message.SelectedExample({ example: 'event-storming' })))
+              .children('Open event-storming example'),
           ]),
       ...(selected
         ? [
-            h.div(
-              [
-                h.Key(selected.key),
-                h.Class('mapping-decision'),
-                h.DataAttribute('mapping-state', selected.decision.type),
-                h.AriaLabel('Mapping decision'),
-              ],
-              [
-                h.span([h.Class('mapping-status')], [states[selected.decision.type]]),
-                h.h3([], [selected.label]),
-                h.p(
-                  [h.Class('mapping-source')],
-                  [
+            h.div
+              .key(selected.key)
+              .class('mapping-decision')
+              .attr('data-mapping-state', selected.decision.type)
+              .attr('aria-label', 'Mapping decision')
+              .children(
+                h.span.class('mapping-status').children(states[selected.decision.type]),
+                h.h3.children(selected.label),
+                h.p
+                  .class('mapping-source')
+                  .children(
                     `Source: ${selected.decision.sourceArchitecture?.family ?? 'untyped'} · ${selected.decision.sourceArchitecture?.role ?? 'connection'}`,
-                  ],
-                ),
-                h.label(
-                  [h.Class('workbench-field')],
-                  [
-                    'Preview choice',
-                    h.select(
-                      [
-                        h.AriaLabel('Preview choice'),
-                        h.Disabled(reason !== null),
-                        h.AriaDescribedBy('mapping-choice-reason'),
-                        h.OnChange((value) =>
-                          Message.SelectedMappingReviewChoice({
-                            ...context.scope,
-                            key: selected.key,
-                            value,
-                          }),
-                        ),
-                      ],
-                      context.choices.map((choice) =>
-                        h.option(
-                          [
-                            h.Key(choice.value),
-                            h.Value(choice.value),
-                            h.Selected(context.value === choice.value),
-                          ],
-                          [choice.label],
-                        ),
+                  ),
+                h.label.class('workbench-field').children(
+                  'Preview choice',
+                  h.select
+                    .attr('aria-label', 'Preview choice')
+                    .disabled(reason !== null)
+                    .attr('aria-describedby', 'mapping-choice-reason')
+                    .on('change', ({ value }) =>
+                      send(
+                        Message.SelectedMappingReviewChoice({
+                          ...context.scope,
+                          key: selected.key,
+                          value,
+                        }),
+                      ),
+                    )
+                    .children(
+                      ...context.choices.map((choice) =>
+                        h.option
+                          .key(choice.value)
+                          .attr('value', choice.value)
+                          .selected(context.value === choice.value)
+                          .children(choice.label),
                       ),
                     ),
-                  ],
                 ),
                 ...(selected.decision.type === 'proposed'
                   ? [
-                      h.p(
-                        [h.Class('mapping-target')],
-                        [
+                      h.p
+                        .class('mapping-target')
+                        .children(
                           `Proposed: DDD · ${selected.decision.architecture.role} (${selected.decision.origin})`,
-                        ],
-                      ),
+                        ),
                     ]
                   : []),
                 ...(selected.decision.type === 'ambiguous'
                   ? [
-                      h.p(
-                        [],
-                        [
-                          `Suggested interpretations: ${selected.decision.candidates.map((candidate) => candidate.role).join(', ')}. You can choose another supported DDD role or keep the workshop note.`,
-                        ],
+                      h.p.children(
+                        `Suggested interpretations: ${selected.decision.candidates.map((candidate) => candidate.role).join(', ')}. You can choose another supported DDD role or keep the workshop note.`,
                       ),
                     ]
                   : []),
-                h.p([h.AriaLabel('Mapping reason')], [selected.decision.reason]),
-                h.p(
-                  [h.Id('mapping-choice-reason'), h.Class('mapping-choice-reason')],
-                  [
+                h.p.attr('aria-label', 'Mapping reason').children(selected.decision.reason),
+                h.p
+                  .id('mapping-choice-reason')
+                  .class('mapping-choice-reason')
+                  .children(
                     reason ??
                       'Temporary review choice only. Conversion requires separate freshness, policy and loss-consent checks.',
-                  ],
-                ),
-                ...losses.map((loss) =>
-                  h.div(
-                    [
-                      h.Key(`${loss.kind}:${loss.id}`),
-                      h.Class('mapping-loss'),
-                      h.AriaLabel('Selected mapping loss'),
-                    ],
-                    [h.h4([], ['Loss if converted']), h.p([], [loss.reason])],
                   ),
+                ...losses.map((loss) =>
+                  h.div
+                    .key(`${loss.kind}:${loss.id}`)
+                    .class('mapping-loss')
+                    .attr('aria-label', 'Selected mapping loss')
+                    .children(h.h4.children('Loss if converted'), h.p.children(loss.reason)),
                 ),
-              ],
-            ),
+              ),
           ]
         : []),
-      receiptReviewPanel(model, h),
-      ...(!model.receiptReview ? [conversionPlanPanel(model, h, context)] : []),
-      ...(context.receipts.length ? [retainedReceiptsPanel(model, h, context)] : []),
-      h.p(
-        [h.Class('mapping-review-footer')],
-        [
+      receiptReviewPanel(model, h, send),
+      ...(!model.receiptReview ? [conversionPlanPanel(model, h, send, context)] : []),
+      ...(context.receipts.length ? [retainedReceiptsPanel(model, h, send, context)] : []),
+      h.p
+        .class('mapping-review-footer')
+        .children(
           'Preview choices do not apply changes. Use the guarded Apply control to publish a reviewed conversion and retain its receipt.',
-        ],
-      ),
+        ),
       ...(context.items.length
         ? [
-            h.button(
-              [
-                h.Type('button'),
-                h.Disabled(context.reason !== null || context.stored.choices.length === 0),
-                h.OnClick(Message.ClickedResetMappingReview(context.scope)),
-              ],
-              ['Reset preview choices'],
-            ),
+            h.button
+              .attr('type', 'button')
+              .disabled(context.reason !== null || context.stored.choices.length === 0)
+              .on('click', send(Message.ClickedResetMappingReview(context.scope)))
+              .children('Reset preview choices'),
           ]
         : []),
       ...(model.mappingReviewNotice
         ? [
-            h.p(
-              [h.Role('status'), h.AriaLabel('Mapping review feedback')],
-              [model.mappingReviewNotice],
-            ),
+            h.p
+              .attr('role', 'status')
+              .attr('aria-label', 'Mapping review feedback')
+              .children(model.mappingReviewNotice),
           ]
         : []),
-    ],
-  );
+    );
 }

@@ -1,30 +1,27 @@
-import { highlightingResources } from '@opsydyn/dataset-explorer/highlighting';
+import { Html } from '@effect/ui/html';
 import { Schema } from 'effect';
 
 import { Message } from './message';
 import { initModel, Model } from './model';
-import { ReplayEventPort, TransitionTelemetryPort } from './ports';
 import { SharedSession } from './share';
 import { subscriptions } from './subscription';
 import { update, withSession } from './update';
+import { view } from './view';
 
-export { Message, Model, subscriptions, update };
+/** The session a shared link carries, decoded from the Astro request URL. */
+const Props = Schema.Struct({ session: Schema.NullOr(SharedSession) });
 
-export const ports = {
-  inbound: { replay: ReplayEventPort },
-  outbound: { transitionTelemetry: TransitionTelemetryPort },
-};
-
-/** The session a shared link carries, decoded on the server from the page's address. */
-export const Flags = Schema.Struct({ session: Schema.NullOr(SharedSession) });
-
-export const init = (flags: typeof Flags.Type) => ({
-  model: withSession(initModel, flags.session),
+export const Stateflow = Html.component({
+  name: 'StateflowObservatory',
+  model: Model,
+  message: Message,
+  props: Props,
+}).make({
+  init: ({ props }) => withSession(initModel, props.session),
+  update: ($, message) => {
+    const result = update($.model, message);
+    return $.set(result.model).run(...(result.commands ?? []));
+  },
+  subscriptions,
+  view,
 });
-export const managedResources = highlightingResources<Model, Message>({
-  acquired: Message.AcquiredHighlighter,
-  failed: Message.FailedHighlighter,
-  released: Message.ReleasedHighlighter,
-});
-
-export { view } from './view';

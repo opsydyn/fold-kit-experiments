@@ -1,7 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-import type { Props } from './main';
+import { TeamsBoard } from './main';
 
-// The integration owns this client-only lazy boundary.
-// oxlint-disable-next-line linteffect/prevent-dynamic-imports
-export default lazyApp<Props>(() => import('./main'));
+export default astroComponent(TeamsBoard);

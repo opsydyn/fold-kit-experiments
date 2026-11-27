@@ -5,7 +5,7 @@ import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -32,7 +32,8 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1200 },
@@ -55,6 +56,12 @@ async function run() {
     ]);
     return JSON.parse(await readFile(await file.path(), 'utf8')).document;
   };
+  const panel = page.locator('[data-architecture-effect-ui="workshop-inspector"]');
+  const convention = page.getByRole('checkbox', {
+    name: 'Use workshop relationship convention',
+    exact: true,
+  });
+  const protection = page.getByRole('checkbox', { name: 'Protect facilitator note', exact: true });
   const inspector = page.getByRole('combobox', { name: 'Inspect workshop node', exact: true });
   const status = page.getByRole('button', { name: 'Set hotspot status to Resolved', exact: true });
   const openStatus = page.getByRole('button', {
@@ -65,7 +72,18 @@ async function run() {
   const agreement = page.locator('[data-flow-node="timeout-agreement"]');
   await page.goto(`http://127.0.0.1:${server.address().port}`);
   await button('Open workshop semantics example').click();
-  await expect(page.locator('[data-zloz-event-storming-group="lane"]')).toBeVisible();
+  const lane = page.locator('[data-zloz-event-storming-group="workshop-lane"]');
+  await expect(lane).toBeVisible();
+  const collapse = lane.getByRole('button', { name: 'Collapse Payment discovery', exact: true });
+  const more = lane.getByRole('button', {
+    name: 'More actions for Payment discovery',
+    exact: true,
+  });
+  await expect(more).toBeVisible();
+  const collapseBounds = await collapse.boundingBox();
+  const moreBounds = await more.boundingBox();
+  if (!collapseBounds || !moreBounds) throw new Error('Lane buttons do not have bounds.');
+  expect(collapseBounds.x + collapseBounds.width).toBeLessThan(moreBounds.x);
   await expect(page.locator('[data-flow-node="provider"] [data-flow-port]')).toHaveCount(2);
   await expect(retry.locator('[data-flow-port]')).toHaveCount(0);
   await expect(page.locator('[data-flow-group="workshop-lane"] [data-flow-port]')).toHaveCount(0);
@@ -73,6 +91,11 @@ async function run() {
   await expect(agreement.getByText('Agreed · resolved', { exact: true })).toBeVisible();
   const original = await download();
   await section('Inspect');
+  await expect(panel.getByRole('heading', { name: 'Workshop meaning', exact: true })).toBeVisible();
+  await expect(convention).toBeChecked();
+  await convention.uncheck();
+  await expect(convention).not.toBeChecked();
+  await convention.check();
   await inspector.selectOption('retry-question');
   await expect(openStatus).toHaveAttribute('aria-pressed', 'true');
   await expect(button('Add input port')).toHaveCount(0);
@@ -91,23 +114,40 @@ async function run() {
   await expect(
     page.getByRole('list', { name: 'Workshop restrictions', exact: true }),
   ).toContainText('facilitator');
-  await page.getByRole('checkbox', { name: 'Protect facilitator note', exact: true }).uncheck();
+  await protection.uncheck();
   await expect(status).toBeEnabled();
   await openStatus.click();
   await expect(agreement.getByText('Discuss · open', { exact: true })).toBeVisible();
   await section('Diagram');
   await button('Undo').click();
-  await button('Collapse Payment discovery').click();
+  await collapse.click();
   await expect(page.locator('[data-zloz-hotspot-status], [data-workbench-hotspot]')).toHaveCount(0);
   await button('Expand Payment discovery').press('Enter');
   await expect(retry.getByText('Discuss · open', { exact: true })).toBeVisible();
   await section('Inspect');
   await inspector.selectOption('provider');
   const role = page.getByRole('combobox', { name: 'Workshop role', exact: true });
-  await expect(role.locator('option[value="hotspot"]')).toBeDisabled();
+  await expect(role.locator('option[value="hotspot"]')).toHaveJSProperty('disabled', true);
   await expect(
     page.getByRole('list', { name: 'Workshop restrictions', exact: true }),
   ).toContainText('Remove ports');
+  await inspector.selectOption('retry-question');
+  await expect(role).toHaveValue('hotspot');
+  await expect(openStatus).toHaveAttribute('aria-pressed', 'true');
+  await role.focus();
+  await role.selectOption('command');
+  await expect(role).toHaveValue('command');
+  await expect(role).toBeFocused();
+  await expect(status).toHaveCount(0);
+  await expect(retry.locator('[data-zloz-event-storming-type="command"]')).toBeVisible();
+  await expect(
+    page.locator('[data-flow-node="provider"] [data-zloz-event-storming-type="external-system"]'),
+  ).toBeVisible();
+  await expect(retry.getByText('Discuss · open', { exact: true })).toHaveCount(0);
+  await section('Diagram');
+  await button('Undo').click();
+  await expect(retry.getByText('Discuss · open', { exact: true })).toBeVisible();
+  await section('Inspect');
   await inspector.selectOption('retry-question');
   await section('Diagnostics');
   await button('Minimal mode').click();
@@ -123,7 +163,7 @@ async function run() {
   await section('Diagnostics');
   await page.getByRole('checkbox', { name: 'Show diagnostics', exact: true }).check();
   await section('Inspect');
-  await page.getByRole('checkbox', { name: 'Protect facilitator note', exact: true }).check();
+  await protection.check();
   await inspector.selectOption('timeout-agreement');
   await expect(status).toBeDisabled();
   for (const theme of ['light', 'dark']) {
@@ -131,9 +171,11 @@ async function run() {
     await page
       .getByRole('heading', { name: 'Workshop meaning', exact: true })
       .evaluate((e) => e.scrollIntoView({ block: 'start' }));
-    await page.screenshot({
-      path: fileURLToPath(new URL(`./workshop-${theme}.png`, import.meta.url)),
-    });
+    if (process.env.ZLOZ_CAPTURE_DIR) {
+      await page.screenshot({
+        path: resolve(process.env.ZLOZ_CAPTURE_DIR, `workshop-${engine}-${theme}.png`),
+      });
+    }
   }
   expect((await download()).snapshot.graph).toEqual(original.snapshot.graph);
   await page.getByRole('textbox', { name: 'Edition name', exact: true }).fill('Workshop review');
@@ -146,6 +188,9 @@ async function run() {
   await section('Inspect');
   await inspector.selectOption('retry-question');
   await expect(status).toBeDisabled();
+  await expect(role).toBeDisabled();
+  await expect(convention).toBeDisabled();
+  await expect(protection).toBeDisabled();
   await expect(
     page.getByRole('list', { name: 'Workshop restrictions', exact: true }),
   ).toContainText('read-only');
@@ -160,9 +205,9 @@ async function run() {
           'public starter and optional node/lane renderers',
           'external sockets live; hotspots and lanes portless',
           'custom semantic status and keyboard activation with retained focus',
-          'one Undo preserves original graph',
+          'role and status updates preserve focus and Undo restores the original graph',
           'live facilitator lock and visible port/kind restrictions',
-          'native lane collapse/expand keyboard controls',
+          'lane collapse and context controls do not overlap; keyboard expansion still works',
           'status and editing remain independent of numeric diagnostics',
           'light/dark screenshots',
           'historical review status is read-only and working graph preserved',

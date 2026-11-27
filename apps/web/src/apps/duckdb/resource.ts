@@ -1,16 +1,11 @@
-import { Data, Effect, Option, Schema } from 'effect';
-import { ManagedResource } from 'foldkit';
+import { Data, Effect } from 'effect';
 
 import { setupSql } from './engine';
-import { Message } from './message';
-import type { Model } from './model';
 
 /** A DuckDB-Wasm database in a Web Worker, queried through one connection. */
 export type Engine = Readonly<{
   query: (sql: string) => Promise<import('@opsydyn/foldkit-viz/plot').ArrowTable>;
 }>;
-
-export const DuckDB = ManagedResource.tag<Engine>()('DuckDB');
 
 /** Why DuckDB could not start in this browser. */
 class DuckDBUnavailable extends Data.TaggedError('DuckDBUnavailable')<{
@@ -23,7 +18,7 @@ class DuckDBUnavailable extends Data.TaggedError('DuckDBUnavailable')<{
  * the installed version. The database and connection are released with the
  * resource's scope: the worker is terminated when the page lets go.
  */
-const start = Effect.gen(function* () {
+export const startDuckDB = Effect.gen(function* () {
   const duckdb = yield* Effect.tryPromise({
     try: () => import('@duckdb/duckdb-wasm'),
     catch: (cause) => new DuckDBUnavailable({ reason: String(cause) }),
@@ -37,26 +32,43 @@ const start = Effect.gen(function* () {
     return yield* Effect.fail(
       new DuckDBUnavailable({ reason: 'DuckDB-Wasm offers no worker for this browser' }),
     );
-  const db = yield* Effect.tryPromise({
-    try: async () => {
-      // A same-origin script that loads the pinned worker, as DuckDB documents for CDN bundles.
-      const workerUrl = URL.createObjectURL(
+  // The Worker and URL already have finalizers when instantiate begins.
+  const makeUrl = Effect.try({
+    try: () =>
+      URL.createObjectURL(
         new Blob([`importScripts("${mainWorker}");`], { type: 'text/javascript' }),
-      );
-      const database = new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), new Worker(workerUrl));
-      await database.instantiate(bundle.mainModule, bundle.pthreadWorker);
-      URL.revokeObjectURL(workerUrl);
-      return database;
-    },
+      ),
     catch: (cause) => new DuckDBUnavailable({ reason: String(cause) }),
   });
-  yield* Effect.addFinalizer(() => Effect.promise(() => db.terminate()));
-  const connection = yield* Effect.tryPromise({
+  const url = yield* Effect.acquireRelease(makeUrl, (url) =>
+    Effect.sync(() => URL.revokeObjectURL(url)),
+  );
+  const makeDatabase = Effect.try({
+    try: () => new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), new Worker(url)),
+    catch: (cause) => new DuckDBUnavailable({ reason: String(cause) }),
+  });
+  const db = yield* Effect.acquireRelease(makeDatabase, (db) =>
+    Effect.promise(() => db.terminate()),
+  );
+  yield* Effect.tryPromise({
+    try: () => db.instantiate(bundle.mainModule, bundle.pthreadWorker),
+    catch: (cause) => new DuckDBUnavailable({ reason: String(cause) }),
+  });
+  const connect = Effect.tryPromise({
     try: () => db.connect(),
     catch: (cause) => new DuckDBUnavailable({ reason: String(cause) }),
   });
-  // Finalizers run last-in first-out: the connection closes before the worker ends.
-  yield* Effect.addFinalizer(() => Effect.promise(() => connection.close()));
+  const connection = yield* Effect.acquireRelease(
+    connect,
+    // A hung or failed close must still allow the worker finalizer to run.
+    (connection) =>
+      Effect.tryPromise(() => connection.close()).pipe(
+        Effect.interruptible,
+        Effect.timeoutOption('2 seconds'),
+        Effect.result,
+      ),
+    { interruptible: true },
+  );
   yield* Effect.tryPromise({
     try: () => connection.query(setupSql()),
     catch: (cause) => new DuckDBUnavailable({ reason: String(cause) }),
@@ -64,17 +76,3 @@ const start = Effect.gen(function* () {
   const engine: Engine = { query: (sql) => connection.query(sql) };
   return engine;
 });
-
-export const managedResources = ManagedResource.make<Model, Message>()((entry) => ({
-  duckdb: entry(Schema.Option(Schema.Null), {
-    resource: DuckDB,
-    modelToMaybeRequirements: (model) =>
-      model.engine === 'starting' || model.engine === 'ready' ? Option.some(null) : Option.none(),
-    acquire: () => start,
-    // The scope that acquired DuckDB closes it: the connection, then the worker.
-    release: () => Effect.void,
-    onAcquired: () => Message.AcquiredDuckDB(),
-    onAcquireError: (error) => Message.FailedDuckDB({ reason: String(error) }),
-    onReleased: () => Message.ReleasedDuckDB(),
-  }),
-}));

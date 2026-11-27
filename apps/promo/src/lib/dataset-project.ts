@@ -1,18 +1,14 @@
 import { datasetIds, datasets } from '@opsydyn/dataset-explorer/data';
 
+import workspace from '../../../../package.json' with { type: 'json' };
 import type { SourceFile } from './example-project';
+import { effectUiEntry } from './standalone-effect';
 
-/** Adapt the common Vite scaffold to the maintained KeyedQuery example. */
+/** Adapt the common Vite scaffold to the maintained Effect UI example. */
 export function datasetProject(
   template: Readonly<Record<string, string>>,
   sources: ReadonlyArray<SourceFile>,
 ) {
-  const imports = sources
-    .map(({ name }, index) => `import source${index} from './${name}?raw';`)
-    .join('\n');
-  const sourceList = sources
-    .map(({ name }, index) => `{ name: '${name}', content: source${index} }`)
-    .join(',\n');
   const fixtures = Object.fromEntries(
     datasetIds.map((dataset) => [
       `public/datasets/${dataset}.json`,
@@ -43,15 +39,13 @@ export function datasetProject(
         },
         dependencies: {
           '@opsydyn/foldkit-viz': 'file:./vendor/foldkit-viz',
-          foldkit: '0.171.0',
-          effect: '4.1.0',
-          // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
-          '@effect/platform-browser': '4.1.0',
+          '@effect/ui': workspace.workspaces.catalog['@effect/ui'],
+          effect: workspace.workspaces.catalog.effect,
           '@wooorm/starry-night': '3.11.0',
           'vscode-oniguruma': '2.0.1',
           '@types/hast': '3.0.5',
         },
-        devDependencies: { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.29.0' },
+        devDependencies: { vite: '8.3.1', typescript: '6.0.3' },
         stackblitz: { installDependencies: true, startCommand: 'npm start' },
       },
       null,
@@ -75,13 +69,14 @@ export function datasetProject(
       2,
     ),
     'index.html':
-      '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dataset explorer — Foldkit Viz</title></head><body><main><header><p class="eyebrow">FOLDKIT / KEYEDQUERY</p><h1>Data that remembers.</h1><p>Switch stations, refresh the chart and inspect the running source.</p><p>Illustrative observations fetched from static JSON. Latency and failed refreshes are simulated in the client.</p></header><div id="app"></div></main><script type="module" src="/src/entry.ts"></script></body></html>',
-    'src/entry.ts':
-      "import { Runtime } from 'foldkit';\nimport * as app from './main';\nimport './explorer.css';\nimport './standalone.css';\n" +
-      imports +
-      "\nconst container = document.getElementById('app');\nif (!container) throw new Error('Missing example container');\nconst sources = [\n" +
-      sourceList +
-      "\n] as const;\nRuntime.embed(Runtime.makeApplication({ ...app, container, devTools: false, init: () => app.init({ transport: 'fixtures', sources }) }));\n",
+      '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dataset explorer — Foldkit Viz</title></head><body><main><header><p class="eyebrow">EFFECT UI / DATASET CACHE</p><h1>Data that remembers.</h1><p>Switch stations, refresh the chart and inspect the running source.</p><p>Illustrative observations fetched from static JSON. Latency and failed refreshes are simulated in the client.</p></header><div id="app"></div></main><script type="module" src="/src/entry.ts"></script></body></html>',
+    'vite.config.ts': "import { defineConfig } from 'vite';\nexport default defineConfig({});\n",
+    'src/entry.ts': effectUiEntry(
+      sources,
+      'DatasetExplorer',
+      { module: './main', stylesheet: 'explorer.css' },
+      "{ transport: 'fixtures', sources }",
+    ),
     'src/standalone.css': standaloneStyles,
     'README.md': readme,
     'vendor/foldkit-viz/LICENSE': mitLicence,
@@ -129,9 +124,9 @@ Starts on North station. All three illustrative datasets are included under
 simulates latency and deliberate failures locally. Refresh preserves the chart;
 reset invalidates late responses without cancelling their requests.
 
-These are the same maintained FoldKit sources as the promo example:
+These are the maintained Effect UI sources used by the promo example:
 
-- \`src/query.ts\`: experimental KeyedQuery, HTTP decoding and cache identity.
+- \`src/query.ts\`: scoped fetch commands, HTTP decoding and cache identity.
 - \`src/model.ts\`, \`src/message.ts\`, \`src/update.ts\`: native Model/Message/update flow.
 - \`src/chart.ts\`: data accessors, geometry, frame, theme and colour overrides.
 - \`src/frame.ts\`, \`src/measurement.ts\`: responsive chart frames and a scoped ResizeObserver Mount.
@@ -141,11 +136,11 @@ These are the same maintained FoldKit sources as the promo example:
 
 The source panel reads these local files through Vite. Edit a file and the viewer
 and application rebuild together. Replace the static fixtures or adapt the fetch
-Command to your API. Query is experimental in FoldKit 0.171.0.
+Command to your API. The Effect UI dependency is pinned to a preview build.
 
 The compiled Viz modules and their declarations are included under \`vendor/\`,
 so this project does not require the monorepo or an unpublished Viz release.
-Foldkit Viz is MIT, copyright Alan P Currie; its licence is included. FoldKit,
+Foldkit Viz is MIT, copyright Alan P Currie; its licence is included. Effect UI,
 Effect and Vite retain their respective licences.
 `;
 

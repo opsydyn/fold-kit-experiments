@@ -1,7 +1,7 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-import type { RadarProps } from './main';
+import Radar from './main';
 
 import './styles.css';
 
-export default lazyApp<RadarProps>(() => import('./main'));
+export default astroComponent(Radar);

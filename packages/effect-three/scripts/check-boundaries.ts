@@ -1,5 +1,6 @@
 // Enforces the package layering from ADR-003:
 // - src/** never imports foldkit, react or browser platform packages.
+// - The optional browser entry builds separately with DOM types.
 // - src/kernel/** never imports effect (hot path, import-gated lint rules do not apply).
 import { Glob } from 'bun';
 
@@ -15,7 +16,7 @@ const rules: ReadonlyArray<Rule> = [
   {
     glob: 'src/**/*.ts',
     forbidden: [/^foldkit(\/|$)/, /^react(-dom)?(\/|$)/, /^@effect\/platform-browser(\/|$)/],
-    why: 'core must stay independent of Foldkit, React and the DOM',
+    why: 'effect-three must stay independent of UI frameworks and browser platform packages',
   },
   {
     glob: 'src/kernel/**/*.ts',

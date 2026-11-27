@@ -14,7 +14,7 @@ const sources = [{ name: 'scene.ts', content: sceneSource }, { name: 'model.ts',
 ---
 <Layout title="3D scatter and surface — effect-three">
   <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">NEW / CHARTS IN THREE DIMENSIONS</p><h1>Scatter and surface, in a box you can turn.</h1><p>Foldkit Viz lays the chart out as plain geometry: a boxed space with nice ticks, a floor and back-wall grid, points coloured by cluster, a surface coloured by height. effect-three draws it as points, lines and labels that face the camera. Drag to orbit, scroll to zoom, and switch between the scatter and the surface.</p></section>
-  <Sample client:load noMeta />
+  <Sample client:load />
   <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
   <section class="closing-callout"><h2>Geometry first, scene second.</h2><p><code>chart/space3d</code> returns plain data, so its ticks, grid and colours are tested without a GPU. <code>effect-three/space3d</code> turns that data into scene nodes the parent places in its own scene, so the camera and gestures stay in its Model and orbiting is an ordinary update.</p><a class="text-link" href={samplesSource + '/chart3d'}>Explore the example source →</a></section>
   <ExampleSource files={sources} />

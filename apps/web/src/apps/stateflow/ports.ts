@@ -1,17 +1,17 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { Command, Port } from 'foldkit';
-import { defineTaggedUnion } from 'foldkit/schema';
 
+import { CancellationOutcome } from '../request-diagnostics/message';
 import { Point } from '../request-diagnostics/model';
 import { NavigationValue } from '../request-diagnostics/navigation';
 
-export const ReplayEvent = defineTaggedUnion({
+export const ReplayEvent = UiSchema.TaggedEnum({
   LoadedMetrics: { points: Schema.Array(Point) },
   StartedSelection: {},
   ChangedSelection: { domain: Schema.Tuple([Schema.Number, Schema.Number]) },
   ClearedSelection: {},
   ClickedReload: {},
-  CompletedCancelFetchMetrics: { outcome: Command.Interruptible.Outcome },
+  CompletedCancelFetchMetrics: { outcome: CancellationOutcome },
   Navigated: NavigationValue.fields,
 });
 export type ReplayEvent = typeof ReplayEvent.Type;
@@ -27,5 +27,5 @@ export const TransitionRecorded = Schema.Struct({
 });
 export type TransitionRecorded = typeof TransitionRecorded.Type;
 
-export const ReplayEventPort = Port.inbound(ReplayEvent);
-export const TransitionTelemetryPort = Port.outbound(TransitionRecorded);
+export const replayEventName = 'stateflow:replay';
+export const transitionTelemetryName = 'stateflow:transition';

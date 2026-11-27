@@ -1,10 +1,6 @@
-import type { Return as UpdateReturn } from 'foldkit/update';
-
 import { Message } from './message';
 import { initialModel } from './model';
 import type { Model } from './model';
-
-type Return = UpdateReturn<Model, Message>;
 
 const MAX_ZOOM = 8;
 
@@ -19,13 +15,13 @@ const pan = (model: Model, east: number, north: number): Model => {
   return { ...model, center: [nextLng, nextLat] };
 };
 
-export const update = (model: Model, message: Message): Return =>
+export const update = (model: Model, message: Message): Model =>
   Message.match(message, {
-    ZoomedIn: () => ({ model: { ...model, zoom: clampZoom(model.zoom * 2) } }),
-    ZoomedOut: () => ({ model: { ...model, zoom: clampZoom(model.zoom / 2) } }),
-    PannedWest: () => ({ model: pan(model, -1, 0) }),
-    PannedEast: () => ({ model: pan(model, 1, 0) }),
-    PannedNorth: () => ({ model: pan(model, 0, 1) }),
-    PannedSouth: () => ({ model: pan(model, 0, -1) }),
-    ResetView: () => ({ model: initialModel }),
+    ZoomedIn: () => ({ ...model, zoom: clampZoom(model.zoom * 2) }),
+    ZoomedOut: () => ({ ...model, zoom: clampZoom(model.zoom / 2) }),
+    PannedWest: () => pan(model, -1, 0),
+    PannedEast: () => pan(model, 1, 0),
+    PannedNorth: () => pan(model, 0, 1),
+    PannedSouth: () => pan(model, 0, -1),
+    ResetView: () => initialModel,
   });

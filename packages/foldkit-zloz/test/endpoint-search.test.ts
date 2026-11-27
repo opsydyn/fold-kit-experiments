@@ -1,26 +1,17 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import {
-  zlozConnectionCreationField,
-  zlozEdgeEndpointField,
-  zlozEndpointSearchInput,
-  zlozEndpointSearchClear,
-  zlozEndpointSearchFeedback,
-} from '../src/foldkit';
+import { endpointField } from '../src/effect-ui';
 import {
   createEditor,
   resolveConnectionCreation,
   resolveEdgeReconnection,
   resolveEndpointChoices,
   updateEditor,
-  type EditorEvent,
   type ZlozGraph,
 } from '../src/index';
+import { renderEffectUi } from './render-effect-ui';
 
 const graph: ZlozGraph = {
   nodes: ['a', 'b', 'node-c'].map((id, i) => ({
@@ -124,43 +115,28 @@ test('filtering preserves policy denial and cannot authorize a stale creation or
 
 test('native grouped fields preserve current/placeholder selection and expose no-results descriptions', async () => {
   const results = [];
-  for (const grouped of [true, false])
+  for (const groupByNode of [true, false]) {
+    const state = initial();
     results.push(
-      await Effect.runPromise(
-        renderToString(
-          {
-            Flags: Schema.Struct({}),
-            init: () => ({ model: initial() }),
-            view: (model, h: HtmlBuilder<EditorEvent>) => ({
-              title: 'Search',
-              body: h.div(
-                [],
-                [
-                  zlozConnectionCreationField(
-                    h,
-                    resolveConnectionCreation(model).target,
-                    (event) => event,
-                    { idPrefix: 'create-search', query: 'missing', groupByNode: grouped },
-                  ),
-                  zlozEdgeEndpointField(
-                    h,
-                    resolveEdgeReconnection(model, 'ab', 'target')!,
-                    (event) => event,
-                    {
-                      idPrefix: 'reconnect-search',
-                      query: 'node-c in',
-                      groupByNode: grouped,
-                      groupLabel: ({ id, label }) => `${label} (${id})`,
-                    },
-                  ),
-                ],
-              ),
-            }),
-          },
-          { flags: {}, isHydratable: false },
+      await renderEffectUi((h) =>
+        h.div.children(
+          endpointField(h, resolveConnectionCreation(state).target, {
+            id: 'create-search-target',
+            onEvent: ({ type }) => type,
+            groupByNode,
+            search: { label: 'Search ports', query: 'missing', onChange: (query) => query },
+          }),
+          endpointField(h, resolveEdgeReconnection(state, 'ab', 'target')!, {
+            id: 'reconnect-search-ab-target',
+            onEvent: ({ type }) => type,
+            groupByNode,
+            groupLabel: ({ id, label }) => `${label} (${id})`,
+            search: { label: 'Search ports', query: 'node-c in', onChange: (query) => query },
+          }),
         ),
       ),
     );
+  }
   const window = new Window();
   window.document.body.innerHTML = results[0]!.html;
   const target = window.document.querySelector('#create-search-target-select')!;
@@ -182,29 +158,12 @@ test('native grouped fields preserve current/placeholder selection and expose no
 
 test('search controls are model-owned, named and associated with visible no-results feedback', async () => {
   const query = 'Missing';
-  const search = resolveEndpointChoices([], { query });
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: query }),
-        view: (_model, h: HtmlBuilder<string>) => ({
-          title: 'Search controls',
-          body: h.div(
-            [],
-            [
-              zlozEndpointSearchInput(h, search, (query) => query, [], {
-                idPrefix: 'ports',
-                label: 'Search outputs',
-              }),
-              zlozEndpointSearchClear(h, (query) => query, [], ['Clear search']),
-              zlozEndpointSearchFeedback(h, search, [], { idPrefix: 'ports' }),
-            ],
-          ),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
+  const result = await renderEffectUi((h) =>
+    endpointField(h, resolveConnectionCreation(initial()).target, {
+      id: 'ports',
+      onEvent: ({ type }) => type,
+      search: { label: 'Search outputs', query, onChange: (query) => query },
+    }),
   );
   const window = new Window();
   window.document.body.innerHTML = result.html;

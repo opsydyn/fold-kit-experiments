@@ -6,13 +6,14 @@ import {
   parseGraph,
   updateEditor,
 } from '@opsydyn/foldkit-zloz';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Effect } from 'effect';
 import { expect, test } from 'vitest';
 
 import { workbenchPolicy } from '../src/editor/editor-policy';
 import { createProtectedWorkflowGraph } from '../src/editor/large-workflow';
-import type { Message as WorkbenchMessage } from '../src/editor/message';
 import { init } from '../src/editor/model';
+import { view } from '../src/editor/view';
+import { renderNativeReview } from './render-native-review';
 
 const endpoint = (node: string, port: string) => ({ node, port });
 
@@ -99,36 +100,19 @@ test('example preset enables Orbit composition and controls without changing aut
 });
 
 test('visible socket reasons use native descriptions and remain semantic in minimal mode', async () => {
-  const { Effect, Schema } = await import('effect');
-  const { renderToString } = await import('foldkit/experimental/server');
-  const { zlozView } = await import('@opsydyn/foldkit-zloz/foldkit');
-  const { orbitNode, reasonSocketPort } = await import('../src/editor/presentation');
-  const { Message } = await import('../src/editor/message');
-  const state = createEditor(createProtectedWorkflowGraph());
-  const policy = workbenchPolicy({ ...init().model, editor: state, mixedPortProtection: true });
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<WorkbenchMessage>) => ({
-          title: 'Protected',
-          body: zlozView(h, model, {
-            id: 'protected',
-            label: 'Protected workflow',
-            onEvent: (message) => Message.ObservedZlozInput({ message }),
-            renderNodeShell: orbitNode,
-            renderPort: reasonSocketPort,
-            canConnectPort: policy.canConnectPort,
-            minimalMode: true,
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
-  expect(result.html.match(/data-socket-reason/g)).toHaveLength(140);
-  const id = 'protected-help-socket-' + encodeURIComponent(JSON.stringify(['load-1-2', 'in']));
+  const model = {
+    ...init().model,
+    editor: createEditor(createProtectedWorkflowGraph()),
+    customPorts: true,
+    socketReasonBadges: true,
+    mixedPortProtection: true,
+    minimalMode: true,
+    nodeDesign: 'orbits' as const,
+    themePreference: 'light' as const,
+  };
+  const result = await Effect.runPromise(renderNativeReview(model, view));
+  expect(result.html.match(/class="architecture-native-socket-reason"/g)).toHaveLength(140);
+  const id = 'flow-demo-port-reason-' + encodeURIComponent(JSON.stringify(['load-1-2', 'in']));
   expect(result.html).toContain(`aria-describedby="${id}"`);
   expect(result.html).toContain(`id="${id}"`);
   expect(result.html).toContain('Approval required for this input.');

@@ -38,9 +38,9 @@
       "import": "./dist/index.mjs"
     },
     "./package.json": "./package.json",
-    "./foldkit": {
-      "types": "./dist/foldkit.d.mts",
-      "import": "./dist/foldkit.mjs"
+    "./effect-ui": {
+      "types": "./dist/effect-ui.d.mts",
+      "import": "./dist/effect-ui.mjs"
     }
   },
   "publishConfig": {
@@ -56,24 +56,18 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
+    "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
     "@opsydyn/foldkit-zloz": "workspace:*",
     "@types/node": "^22.0.0",
     "bun-types": "^1.3.14",
-    "effect": "4.1.0",
-    "foldkit": "0.171.0",
+    "effect": "4.1.6",
     "happy-dom": "^21.0.4",
     "publint": "0.3.25",
     "tsdown": "^0.21.8",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "@opsydyn/foldkit-zloz": "0.11.0",
-    "foldkit": ">=0.170.0 <0.172.0"
-  },
-  "peerDependenciesMeta": {
-    "foldkit": {
-      "optional": true
-    }
+    "@opsydyn/foldkit-zloz": "0.11.0"
   },
   "engines": {
     "node": ">=22.0.0"

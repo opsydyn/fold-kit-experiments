@@ -26,19 +26,17 @@ import {
   vignette,
 } from '@opsydyn/effect-three';
 import { troikaLabels } from '@opsydyn/effect-three-troika';
-import { Effect, Queue, Stream } from 'effect';
-import type { ViewState } from 'foldkit/mount';
+import { makeEnvironment } from '@opsydyn/effect-three/browser';
 
-import * as EffectThreeFoldkit from '../../src/index.ts';
 import { font } from './font.ts';
 import { effectsFromAddress, rendererFromAddress } from './rendererChoice.ts';
+import { showScenes } from './sceneHost.ts';
 
 const wanted = effectsFromAddress(location.search);
-const environmentOf = EffectThreeFoldkit.makeEnvironment(window, {
+const environmentOf = makeEnvironment(window, {
   labels: troikaLabels(),
   ...rendererFromAddress(location.search),
 });
-const sceneMount = EffectThreeFoldkit.makeSceneMount(environmentOf);
 
 const everything = scene({
   camera: perspectiveCamera({ position: [0, 3, 7], lookAt: [0, 0.5, 0] }),
@@ -94,13 +92,9 @@ const everything = scene({
 
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
-Reflect.set(element, 'scene', everything);
 document.body.append(element);
 
-const viewStates = Effect.runSync(Queue.sliding<ViewState>(4));
-Queue.offerUnsafe(viewStates, 'Live');
-const lifecycle = sceneMount().f(element, Stream.fromQueue(viewStates));
-Effect.runFork(Stream.runDrain(lifecycle));
+showScenes(environmentOf, element, everything);
 
 Reflect.set(globalThis, '__everything', {
   ready: () => element.querySelector('canvas') !== null,

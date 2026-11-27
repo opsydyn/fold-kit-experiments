@@ -1,6 +1,6 @@
+import { Mount } from '@effect/ui';
 import { clientToLocal } from '@opsydyn/foldkit-viz/interaction/coordinates';
-import { Effect, Option, Queue, Stream } from 'effect';
-import { defineStream } from 'foldkit/mount';
+import { Effect, Option, Queue, Schema, Stream } from 'effect';
 
 import { Message } from './message';
 import { ChartRole } from './model';
@@ -14,9 +14,14 @@ type InputFact = Extract<
       | 'StartedChartPointer'
       | 'MovedChartPointer'
       | 'EndedChartPointer'
-      | 'CancelledChartPointer';
+      | 'CancelledChartPointer'
+      | 'PressedInspectionKey';
   }
 >;
+
+const isInspectionKey = Schema.is(
+  Schema.Literals(['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape']),
+);
 
 /** Scoped browser resource acquisition; semantic gestures live only in Model. */
 export function signalInputFacts(
@@ -103,6 +108,20 @@ export function signalInputFacts(
           release(event.pointerId);
           captures.delete(event.pointerId);
         };
+        const keydown = (event: KeyboardEvent) => {
+          if (
+            event.target !== element ||
+            event.isComposing ||
+            event.altKey ||
+            event.ctrlKey ||
+            event.metaKey ||
+            !isInspectionKey(event.key)
+          )
+            return;
+          event.preventDefault();
+          offer(Message.PressedInspectionKey({ role, key: event.key }));
+        };
+        element.addEventListener('keydown', keydown);
         const listeners: ReadonlyArray<readonly [string, (event: PointerEvent) => void]> = [
           ['pointerdown', down],
           ['pointermove', move],
@@ -138,6 +157,7 @@ export function signalInputFacts(
             // SAFETY: Teardown uses the acquired pointer event/listener pairs.
             element.removeEventListener(name, listener as EventListener);
           }
+          element.removeEventListener('keydown', keydown);
           observer.disconnect();
           for (const id of captures) release(id);
           captures.clear();
@@ -151,19 +171,11 @@ export function signalInputFacts(
     ),
   );
 }
-export const ObserveSignalInput = defineStream('ObserveSignalInput', {
-  args: { role: ChartRole },
-  messages: [
-    Message.RecordedChartWidth,
-    Message.RecordedInputAvailability,
-    Message.StartedChartPointer,
-    Message.MovedChartPointer,
-    Message.EndedChartPointer,
-    Message.CancelledChartPointer,
-  ],
-  // SAFETY: The tag guard below narrows the actual mounted SVG element.
-  execute: ({ element, role }) =>
-    element.tagName.toLowerCase() === 'svg'
-      ? signalInputFacts(element as SVGSVGElement, role)
+export const ObserveSignalInput = Mount.makeStream(
+  'ObserveSignalInput',
+  { args: { role: ChartRole } },
+  (element, { role }) =>
+    element instanceof SVGSVGElement
+      ? signalInputFacts(element, role)
       : Stream.make(Message.RecordedInputAvailability({ role, status: 'Unavailable' })),
-});
+);

@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import cloudflare from '@astrojs/cloudflare';
-import foldkit from '@opsydyn/astro-foldkit';
+import effectUi from '@opsydyn/astro-effect-ui';
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import { defineConfig } from 'astro/config';
 import { Schema } from 'effect';
@@ -28,11 +28,23 @@ const isDevCommand = process.argv.includes('dev');
 export default defineConfig({
   output: 'server',
   devToolbar: { enabled: false },
-  integrations: [foldkit()],
+  integrations: [effectUi({ interaction: false })],
 
   vite: {
     define: { __FIELD_GUIDE_WORKSPACES__: JSON.stringify(inventory) },
     plugins: [vanillaExtractPlugin()],
+    // Prebundle the analysis and graph clients so discovery cannot reload the page during input.
+    optimizeDeps: {
+      include: [
+        '@ag-ui/client',
+        '@ag-ui/core',
+        '@ag-ui/core/schemas',
+        '@effect/ui',
+        '@effect/ui/html',
+        '@opsydyn/foldkit-zloz-elk > elkjs/lib/elk.bundled.js',
+        'fast-json-patch',
+      ],
+    },
   },
 
   adapter: isDevCommand ? undefined : cloudflare(),

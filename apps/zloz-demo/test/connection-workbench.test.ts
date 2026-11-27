@@ -5,10 +5,10 @@ import { Message, editorFor, init, update, type Model } from '../src/connections
 
 const source = { node: 'orders', port: 'in' };
 const target = { node: 'billing', port: 'out' };
-const step = (model: Model, message: typeof Message.Type) => update(model, message).model;
+const step = (model: Model, message: typeof Message.Type) => update(model, message);
 
 test('strict/loose workbench sessions retain independent graphs, intent and Undo', () => {
-  let model = init().model;
+  let model = init();
   const strict = model.strict;
   model = step(model, Message.SelectedSession({ session: 'loose' }));
   for (const endpoint of [source, target])
@@ -31,7 +31,7 @@ test('strict/loose workbench sessions retain independent graphs, intent and Undo
 });
 
 test('protection remains live after staging and read-only prevents commits without changing modes', () => {
-  let model = step(init().model, Message.SelectedSession({ session: 'loose' }));
+  let model = step(init(), Message.SelectedSession({ session: 'loose' }));
   model = step(
     model,
     Message.ObservedInput({ session: 'loose', event: { type: 'PortActivated', endpoint: source } }),
@@ -60,7 +60,7 @@ test('protection remains live after staging and read-only prevents commits witho
 });
 
 test('session/design switches cannot interrupt a drag; presentation changes retain graph history', () => {
-  let model = init().model;
+  let model = init();
   const strict = model.strict;
   model = step(model, Message.SelectedDesign({ design: 'custom' }));
   model = step(model, Message.SelectedScheme({ scheme: 'dark' }));

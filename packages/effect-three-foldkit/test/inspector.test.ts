@@ -1,19 +1,10 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import type { InspectedField } from '@opsydyn/effect-three';
-import { inertHtml } from 'foldkit/html';
+import { Effect, Schema } from 'effect';
 
 import { inspectorView } from '../src/index.ts';
-
-type Node = {
-  readonly sel?: string;
-  readonly text?: string;
-  readonly data?: {
-    readonly props?: Readonly<Record<string, unknown>>;
-    readonly attrs?: Readonly<Record<string, unknown>>;
-  };
-  readonly children?: ReadonlyArray<Node>;
-};
 
 const fields: ReadonlyArray<InspectedField> = [
   { _tag: 'Fixed', path: ['_tag'], label: '_tag', text: 'Mesh' },
@@ -25,28 +16,31 @@ const fields: ReadonlyArray<InspectedField> = [
   { _tag: 'Vector', path: ['position'], label: 'position', value: [1, 2, 3] },
 ];
 
-const rows = (): ReadonlyArray<Node> =>
-  (inspectorView(inertHtml, fields, () => undefined as never) as Node).children ?? [];
-
-/** A row's control: the element after its name. */
-const controlOf = (row: Node | undefined): Node | undefined => row?.children?.[1];
-
-test('each field is a row: its name, then a control for its kind', () => {
-  const [kind, width, key, shadow, side, colour, position] = rows();
-  expect(kind?.children?.[0]?.children?.[0]?.text).toBe('_tag');
-  expect(controlOf(kind)?.children?.[0]?.text).toBe('Mesh');
-  expect(width?.children?.[0]?.children?.[0]?.text).toBe('geometry width');
-  expect(controlOf(width)?.data?.props).toMatchObject({ type: 'number', value: '2' });
-  expect(controlOf(key)?.data?.props).toMatchObject({ type: 'text', value: 'crate' });
-  expect(controlOf(shadow)?.data?.props).toMatchObject({ type: 'checkbox', checked: true });
-  const options = controlOf(side)?.children ?? [];
-  expect(options.map((option) => option.data?.props?.['selected'])).toEqual([false, true]);
-  expect(controlOf(colour)?.data?.props).toMatchObject({ type: 'color', value: '#ff8800' });
-  const axes = controlOf(position)?.children ?? [];
-  expect(axes.map((axis) => axis.data?.props?.['value'])).toEqual(['1', '2', '3']);
-  expect(axes.map((axis) => axis.data?.attrs?.['aria-label'])).toEqual([
-    'position x',
-    'position y',
-    'position z',
-  ]);
+const Inspector = Html.component({
+  name: 'InspectorFixture',
+  model: Schema.Null,
+  message: Schema.Null,
+}).make({
+  init: () => null,
+  update: () => null,
+  view: (h) => inspectorView(h, fields, () => null),
 });
+
+async function checkInspectorFields() {
+  const { html } = await Effect.runPromise(
+    HtmlServer.renderToHtml(Inspector, {}, { static: true }),
+  );
+  expect(html).toContain('<span class="e3-inspector-fixed">Mesh</span>');
+  expect(html).toMatch(/<input[^>]+type="number"[^>]+aria-label="geometry width"[^>]+value="2"/);
+  expect(html).toMatch(/<input[^>]+type="text"[^>]+aria-label="key"[^>]+value="crate"/);
+  expect(html).toMatch(/<input[^>]+type="checkbox"[^>]+aria-label="castShadow"[^>]+checked/);
+  expect(html).toMatch(
+    /<option[^>]+value="front">front<\/option><option[^>]+value="back"[^>]+selected>back/,
+  );
+  expect(html).toMatch(/<input[^>]+type="color"[^>]+aria-label="color"[^>]+value="#ff8800"/);
+  expect(html).toMatch(/<input[^>]+aria-label="position x"[^>]+value="1"/);
+  expect(html).toMatch(/<input[^>]+aria-label="position y"[^>]+value="2"/);
+  expect(html).toMatch(/<input[^>]+aria-label="position z"[^>]+value="3"/);
+}
+
+test('each field renders its name, accessible control and current value', checkInspectorFields);

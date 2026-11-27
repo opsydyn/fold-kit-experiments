@@ -1,20 +1,14 @@
 import { expect, test } from 'bun:test';
 
 import { createEventStormingPattern } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
-import { Window } from 'happy-dom';
 
-import {
-  zlozReviewPacketControls,
-  zlozReviewPacketDownload,
-  type ZlozReviewPacketViewOptions,
-} from '../src/foldkit';
-import { resolveReviewPacketControls, type ZlozReviewPacketRequest } from '../src/index';
+import { reviewPacket, reviewPacketDownload, type ReviewPacketOptions } from '../src/effect-ui';
+import { resolveReviewPacketControls } from '../src/index';
+import { observedRequest, render as renderView, type Request } from './render-effect-ui';
+
 const graph = createEventStormingPattern();
 async function render(
-  options: ZlozReviewPacketViewOptions<ZlozReviewPacketRequest> = {},
+  options: ReviewPacketOptions<Request> = {},
   blockedReason: string | null = null,
 ) {
   const context = resolveReviewPacketControls(
@@ -29,22 +23,7 @@ async function render(
     { consentKey: null },
     { blockedReason },
   );
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: context }),
-        view: (model, h: HtmlBuilder<ZlozReviewPacketRequest>) => ({
-          title: 'Review packet',
-          body: zlozReviewPacketControls(h, model, (r) => r, options),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
-  const window = new Window();
-  window.document.body.innerHTML = result.html;
-  return window.document;
+  return renderView((h) => reviewPacket(h, context, () => observedRequest, options));
 }
 test('native scope, side-labelled loss list, checkbox and disabled download expose the consent requirement', async () => {
   const dom = await render();
@@ -65,11 +44,11 @@ test('nullable slots, custom badges/buttons, count-free status and alternate lay
     renderScope: () => null,
     renderStatus: () => null,
     renderConsent: () => null,
-    renderDiagnostic: (item, h) => h.li([], [h.strong([], ['Custom loss badge']), item.side]),
+    renderDiagnostic: (item, h) => h.li.children(h.strong.children('Custom loss badge'), item.side),
     renderDownload: (context, h, onRequest) =>
-      zlozReviewPacketDownload(h, context, onRequest, [], ['Save review'], 'Save review'),
+      reviewPacketDownload(h, context, onRequest, 'Save review'),
     renderLayout: (parts, _context, h) => [
-      h.ul([], parts.diagnostics),
+      h.ul.children(...parts.diagnostics),
       ...(parts.download ? [parts.download] : []),
     ],
   });

@@ -1,8 +1,8 @@
+import { UiSchema } from '@effect/ui';
 import { categoryIds, Ring } from '@opsydyn/effect-three-samples/radar/data';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ChangedQuery: { query: Schema.String },
   ChangedCategory: { category: Schema.Literals([...categoryIds, 'all']) },
   ClickedRing: { ring: Ring },
@@ -22,6 +22,5 @@ export const Message = defineMessageUnion({
   },
   MovedRadarPointer: { pointerId: Schema.Number, clientX: Schema.Number, clientY: Schema.Number },
   EndedRadarPointer: { pointerId: Schema.Number },
-  CompletedRadarPointerMount: {},
 });
 export type Message = typeof Message.Type;

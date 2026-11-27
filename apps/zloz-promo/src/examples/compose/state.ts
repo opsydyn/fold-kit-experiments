@@ -1,13 +1,12 @@
+import { UiSchema } from '@effect/ui';
 import {
   createEditor,
   updateEditor,
-  type EditorEvent,
   type EditorState,
   type ZlozGraph,
 } from '@opsydyn/foldkit-zloz';
+import { BrowserInput } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
-import type { Return } from 'foldkit/update';
 
 const input = { id: 'in', label: 'Input', kind: 'input', side: 'top', offset: 0.5 } as const;
 const output = { id: 'out', label: 'Output', kind: 'output', side: 'bottom', offset: 0.5 } as const;
@@ -47,33 +46,35 @@ const initialGraph: ZlozGraph = {
   ],
 };
 
-// Opaque package state is constructed only by createEditor/updateEditor, never decoded from props.
-export const Model = Schema.Struct({ editor: Schema.Unknown });
+// The runtime transfers the editor snapshot produced by this island's init.
+export const Model = Schema.Struct({ editor: Schema.fromJsonString(Schema.Unknown) });
 export type Model = Readonly<{ editor: EditorState }>;
-export const Message = defineMessageUnion({ ObservedZlozInput: { event: Schema.Unknown } });
+
+const ComposeEvent = Schema.Union([
+  BrowserInput,
+  Schema.Struct({ type: Schema.Literals(['FitViewClicked', 'ConnectionListToggled']) }),
+]);
+export type ComposeEvent = typeof ComposeEvent.Type;
+
+export const Message = UiSchema.TaggedEnum({ ObservedZlozInput: { event: ComposeEvent } });
 export type Message = typeof Message.Type;
 
-export const observe = (event: EditorEvent): Message => Message.ObservedZlozInput({ event });
+export const decodeBrowserInput = Schema.decodeUnknownSync(BrowserInput);
 
-export const init = (): Return<Model, Message> => ({
-  model: {
-    editor: createEditor(initialGraph, {
-      fitViewPadding: 24,
-      zoomLimits: { minZoom: 0.2, maxZoom: 1.25 },
-    }),
-  },
+export const observe = (event: ComposeEvent): Message => Message.ObservedZlozInput({ event });
+
+export const init = (): Model => ({
+  editor: createEditor(initialGraph, {
+    fitViewPadding: 24,
+    zoomLimits: { minZoom: 0.2, maxZoom: 1.25 },
+  }),
 });
 
-export const update = (model: Model, message: Message): Return<Model, Message> =>
-  Message.match(message, {
-    ObservedZlozInput: ({ event: raw }) => {
-      // SAFETY: zlozView and the controls below emit the public, typed EditorEvent contract.
-      const event = raw as EditorEvent;
-      const next = updateEditor(model.editor, event);
-      const editor =
-        event.type === 'SurfaceMeasured' && model.editor.surface === null
-          ? updateEditor(next, { type: 'FitViewClicked' })
-          : next;
-      return { model: { ...model, editor } };
-    },
-  });
+export const update = (model: Model, { event }: Message): Model => {
+  const next = updateEditor(model.editor, event);
+  const editor =
+    event.type === 'SurfaceMeasured' && model.editor.surface === null
+      ? updateEditor(next, { type: 'FitViewClicked' })
+      : next;
+  return editor === model.editor ? model : { editor };
+};

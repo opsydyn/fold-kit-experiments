@@ -2,14 +2,14 @@
   "$schema": "https://typedoc.org/schema.json",
   "entryPoints": [
     "src/index.ts",
-    "src/foldkit.ts",
+    "src/effect-ui.ts",
     "src/png-browser.ts",
     "src/coupling.ts",
     "../foldkit-zloz-elk/src/index.ts",
     "../foldkit-zloz-force/src/index.ts",
     "../foldkit-zloz-force/src/eligibility.ts",
     "../foldkit-zloz-mermaid/src/index.ts",
-    "../foldkit-zloz-mermaid/src/foldkit.ts",
+    "../foldkit-zloz-mermaid/src/effect-ui.ts",
     "../foldkit-zloz-cli/src/index.ts"
   ],
   "entryPointStrategy": "resolve",

@@ -13,9 +13,9 @@ import { update as updateWorkbench } from './update';
 import { view as viewWorkbench } from './view';
 
 export const Model = defineTaggedUnion({
-  Preparing: {},
-  Ready: { workbench: Schema.Unknown },
-  Failed: {},
+  Preparing: { nativeCanvas: Schema.Boolean },
+  Ready: { workbench: Schema.Unknown, nativeCanvas: Schema.Boolean },
+  Failed: { nativeCanvas: Schema.Boolean },
 });
 export type Model = typeof Model.Type;
 export const Message = defineMessageUnion({
@@ -34,7 +34,10 @@ export const AllocateIdentity = Command.define('AllocateIdentity', {
     }),
   ),
 });
-export const init = () => ({ model: Model.Preparing(), commands: [AllocateIdentity()] });
+export const init = (props?: Readonly<{ nativeCanvas?: boolean }>) => ({
+  model: Model.Preparing({ nativeCanvas: props?.nativeCanvas === true }),
+  commands: [AllocateIdentity()],
+});
 function readWorkbench(model: Model): Option.Option<WorkbenchModel> {
   return Model.match(model, {
     Preparing: () => Option.none(),
@@ -51,21 +54,30 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       model._tag !== 'Preparing'
         ? { model }
         : {
-            model: Model.Ready({ workbench: initModel(namespace).model }),
+            model: Model.Ready({
+              workbench: initModel(namespace).model,
+              nativeCanvas: model.nativeCanvas,
+            }),
             commands: [
               Command.mapMessage(runWorkbenchCommand(LoadThemePreference.make({})), (message) =>
                 Message.GotWorkbenchMessage({ message }),
               ),
             ],
           },
-    FailedIdentity: () => ({ model: model._tag === 'Preparing' ? Model.Failed() : model }),
-    ClickedRetryIdentity: () => (model._tag === 'Failed' ? init() : { model }),
+    FailedIdentity: () => ({
+      model:
+        model._tag === 'Preparing' ? Model.Failed({ nativeCanvas: model.nativeCanvas }) : model,
+    }),
+    ClickedRetryIdentity: () => (model._tag === 'Failed' ? init(model) : { model }),
     GotWorkbenchMessage: ({ message: raw }) => {
       const current = readWorkbench(model);
       if (Option.isNone(current)) return { model };
       const next = updateWorkbench(current.value, raw);
       return {
-        model: next.model === current.value ? model : Model.Ready({ workbench: next.model }),
+        model:
+          next.model === current.value
+            ? model
+            : Model.Ready({ workbench: next.model, nativeCanvas: model.nativeCanvas }),
         commands: workbenchTransitionCommands(next).map((command) =>
           Command.mapMessage(command, (message) => Message.GotWorkbenchMessage({ message })),
         ),
@@ -75,6 +87,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
 }
 const workbenchView = Submodel.defineView<WorkbenchModel, Workbench.Message>(
   (model, h) => viewWorkbench(model, h).body,
+);
+const nativeWorkbenchView = Submodel.defineView<WorkbenchModel, Workbench.Message>(
+  (model, h) => viewWorkbench(model, h, true).body,
 );
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
   return {
@@ -92,12 +107,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.button([h.OnClick(Message.ClickedRetryIdentity())], ['Try again']),
           ],
         ),
-      Ready: ({ workbench }) => {
+      Ready: ({ workbench, nativeCanvas }) => {
         // SAFETY: Ready is initialized with WorkbenchModel and maintained only through foldWorkbench.
         return h.submodel({
           slotId: 'workbench',
           model: workbench as WorkbenchModel,
-          view: workbenchView,
+          view: nativeCanvas ? nativeWorkbenchView : workbenchView,
           toParentMessage: (message) => Message.GotWorkbenchMessage({ message }),
         });
       },

@@ -19,7 +19,7 @@ export type NativePortAnchors<M> = ZlozPortAnchorHandleOptions &
   Readonly<{
     keyboardTargets?: boolean;
     guides?: boolean;
-    snapBypass?: ZlozPortAnchorSnapBypassModifier;
+    snapBypass?: ZlozPortAnchorSnapBypassModifier | undefined;
     renderHandle?: (
       context: ZlozPortAnchorHandleContext,
       h: Html.H<M>,

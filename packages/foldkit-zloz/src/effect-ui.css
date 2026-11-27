@@ -13,6 +13,9 @@
     )
     0 0 / 20px 20px;
 }
+.zloz-ui-surface[data-flow-native-background] {
+  background-image: none;
+}
 .zloz-ui-world {
   position: absolute;
   inset: 0;
@@ -715,4 +718,32 @@
 .zloz-ui-context-menu.custom-context-menu button[aria-pressed='true'] {
   background: #3730a3;
   color: #fff;
+}
+
+.zloz-ui-node-context {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  min-width: 28px;
+  min-height: 28px;
+}
+.zloz-ui-node-toolbar {
+  position: absolute;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  width: max-content;
+  z-index: 3;
+  border: 1px solid var(--flow-node-border, #64748b);
+  border-radius: 8px;
+  background: var(--flow-node-background, #fff);
+  color: var(--flow-node-color, #172033);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.14);
+}
+.zloz-ui-node-toolbar button {
+  min-height: 36px;
+}
+.zloz-ui-node-toolbar--compact button {
+  min-height: 28px;
 }

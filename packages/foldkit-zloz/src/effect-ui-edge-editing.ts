@@ -25,6 +25,9 @@ type EdgeEditEvent = Extract<
 export type NativeEdgeEditing<M> = Readonly<{
   onEdit: (event: EdgeEditEvent) => M;
   toolbar?: boolean;
+  toolbarDesign?: 'standard' | 'compact';
+  pathLabel?: string;
+  labelDesign?: EdgeLabelDesign | undefined;
   reconnection?: ZlozEdgeReconnectionOptions &
     Readonly<{
       onEvent: (event: Extract<EditorEvent, { type: 'EdgeReconnected' }>) => M;
@@ -78,7 +81,7 @@ export function edgeLabel<M>(
   if (!editing && custom === undefined && fallback) return fallback;
   if (!editing && (custom === null || (!label && !(selected && editable) && !custom)))
     return undefined;
-  const content = custom ?? edgeLabelControl(h, context, draft, onEdit);
+  const content = custom ?? edgeLabelControl(h, context, draft, onEdit, options.labelDesign);
   const { viewport, surface } = state;
   const width = Math.max(0, Math.min(276, (surface?.width ?? 292) - 16));
   const frame =
@@ -202,7 +205,7 @@ export function edgeToolbar<M>(
   position: Point,
   handlePoints: readonly Point[],
   policy: EditorPolicy | undefined,
-  { onEdit, reconnection }: NativeEdgeEditing<M>,
+  { onEdit, reconnection, toolbarDesign, pathLabel }: NativeEdgeEditing<M>,
 ) {
   const frameId = `${encodeURIComponent(id)}-edge-actions`;
   const context = resolveEdgeToolbar(
@@ -240,7 +243,8 @@ export function edgeToolbar<M>(
     })
     .children(
       edgeToolbarContent(h, context, {
-        pathLabel: 'Path style',
+        pathLabel: pathLabel ?? 'Path style',
+        design: toolbarDesign,
         onEvent: (event) => {
           if (event.type === 'EdgeReconnected') return reconnection?.onEvent(event);
           return event.type === 'EdgeLabelEditingStarted' ||

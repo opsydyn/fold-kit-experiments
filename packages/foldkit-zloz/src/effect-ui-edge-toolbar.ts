@@ -6,7 +6,7 @@ import { endpointField } from './effect-ui-endpoints';
 import type { EditorEvent } from './types';
 
 export type NativeEdgeToolbarOptions<M> = Readonly<{
-  design?: 'standard' | 'compact';
+  design?: 'standard' | 'compact' | undefined;
   pathLabel?: string;
   onEvent: (event: EditorEvent) => M | undefined;
 }>;

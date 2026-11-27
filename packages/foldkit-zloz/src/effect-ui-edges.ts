@@ -13,11 +13,11 @@ import {
 import type { ZlozEdge } from './types';
 
 export type NativeEdgePresentation<M> = Readonly<{
-  edgeGeometry?: ZlozEdgeGeometryPolicy;
+  edgeGeometry?: ZlozEdgeGeometryPolicy | undefined;
   edgeAppearance?: (edge: ZlozEdge) => ZlozEdgeAppearance;
   /** Draw decoration using the resolved path. The surface owns pointer selection. */
   renderEdge?: (context: ZlozEdgeRenderContext, h: Html.H<M>) => View.Content<M> | undefined;
-  connectionGeometry?: ZlozConnectionGeometryPolicy;
+  connectionGeometry?: ZlozConnectionGeometryPolicy | undefined;
   /** Draw the current preview, or use null to hide its artwork. */
   renderConnection?: (
     context: ZlozConnectionRenderContext,

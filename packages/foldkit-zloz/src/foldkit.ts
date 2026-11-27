@@ -3,6 +3,7 @@
  * @module FoldKit
  */
 
+import { alignmentGuideContexts, type ZlozAlignmentGuideContext } from './canvas-decoration';
 import type {
   ZlozGroupHeaderMeasurementRequest,
   ZlozGroupHeaderMeasurementResult,
@@ -310,7 +311,6 @@ import {
   type ZlozEdgeRenderContext,
 } from './edge-presentation';
 import type {
-  AlignmentGuide,
   EditorPolicy,
   ZlozGraph,
   EditorEvent,
@@ -338,14 +338,7 @@ export type ZlozResizeReadoutContext = Readonly<{
   heightText: string;
 }>;
 
-/** A resolved snap guide and its endpoints in the canvas world coordinate space. */
-export type ZlozAlignmentGuideContext = Readonly<{
-  guide: AlignmentGuide;
-  start: Point;
-  end: Point;
-  phase: 'drag' | 'resize';
-  viewport: Viewport;
-}>;
+export type { ZlozAlignmentGuideContext } from './canvas-decoration';
 
 /** Default canvas guidance and the controls it describes. */
 export type ZlozCanvasHelpContext = Readonly<{
@@ -979,18 +972,14 @@ function alignmentGuideViews<M>(
   options: ZlozViewOptions<M>,
   diagnostics: ZlozDiagnostics,
 ): readonly Html[] {
-  const { gesture, viewport } = state;
-  if (
-    !diagnostics.alignmentGuides ||
-    (gesture.type !== 'node-drag' && gesture.type !== 'node-resize')
-  )
-    return [];
-  return (gesture.guides ?? []).flatMap((guide) => {
-    const { axis, position, from, to } = guide;
-    const start = axis === 'x' ? { x: position, y: from } : { x: from, y: position };
-    const end = axis === 'x' ? { x: position, y: to } : { x: to, y: position };
-    const phase = gesture.type === 'node-drag' ? 'drag' : 'resize';
-    const custom = options.renderAlignmentGuide?.({ guide, start, end, phase, viewport }, h);
+  if (!diagnostics.alignmentGuides) return [];
+  return alignmentGuideContexts(state).flatMap((context) => {
+    const {
+      guide: { axis },
+      start,
+      end,
+    } = context;
+    const custom = options.renderAlignmentGuide?.(context, h);
     if (custom === null) return [];
     const attributes = [h.Key(`alignment:${axis}`), h.DataAttribute('flow-alignment-guide', axis)];
     if (custom !== undefined)

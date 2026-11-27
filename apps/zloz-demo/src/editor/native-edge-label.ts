@@ -19,6 +19,14 @@ const isDraftEdit = Schema.is(
   }),
 );
 
+export const architectureBadgeDesign = {
+  badgeClass: 'custom-edge-badge',
+  editorClass: 'custom-edge-editor',
+  icon: '↗',
+  saveLabel: 'Apply label',
+  cancelLabel: 'Discard',
+} as const;
+
 export const nativeEdgeLabel = architectureNativePanel<Label>(
   'ArchitectureEdgeLabel',
   Schema.is(Message.cases.ObservedModelInput),
@@ -28,13 +36,7 @@ export const nativeEdgeLabel = architectureNativePanel<Label>(
       context,
       draft,
       (message) => request(Message.ObservedModelInput({ modelId, epoch, message })),
-      {
-        badgeClass: 'custom-edge-badge',
-        editorClass: 'custom-edge-editor',
-        icon: '↗',
-        saveLabel: 'Apply label',
-        cancelLabel: 'Discard',
-      },
+      architectureBadgeDesign,
     ),
   {
     apply: (current, request) =>

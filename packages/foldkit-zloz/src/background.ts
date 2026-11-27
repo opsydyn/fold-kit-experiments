@@ -1,17 +1,15 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
-import type { EditorState, Size, Viewport } from './types';
+import {
+  backgroundPaint,
+  type ZlozBackgroundPreset,
+  type ZlozBackgroundRenderContext,
+} from './canvas-decoration';
+import type { EditorState } from './types';
 
-export type ZlozBackgroundRenderContext = Readonly<{
-  /** Same unique document ID supplied to zlozView. */
-  id: string;
-  viewport: Viewport;
-  surface: Size | null;
-  /** Editor snap spacing in graph units. */
-  spacing: number;
-}>;
+export type { ZlozBackgroundRenderContext } from './canvas-decoration';
 export type ZlozBackground<M> =
-  | Readonly<{ type: 'dots' | 'squares'; gap?: number; size?: number; color?: string }>
+  | ZlozBackgroundPreset
   | Readonly<{ type: 'none' }>
   | Readonly<{
       type: 'custom';
@@ -45,19 +43,7 @@ export function backgroundView<M>(
         ],
       ),
     ];
-  const gap = preset.gap ?? state.gridSpacing;
-  const size = preset.size ?? 1;
-  if (!Number.isFinite(gap) || gap <= 0 || !Number.isFinite(size) || size <= 0)
-    throw new RangeError('Background gap and size must be finite and positive');
-  const pitch = gap * state.viewport.zoom;
-  const thickness = size * state.viewport.zoom;
-  const dots = preset.type === 'dots';
-  const color =
-    preset.color ??
-    (dots
-      ? 'var(--flow-grid-dot, var(--flow-grid-line, #94a3b855))'
-      : 'var(--flow-grid-line, #94a3b855)');
-  const offset = dots ? pitch / 2 : 0;
+  const paint = backgroundPaint(state, preset);
   return [
     h.div(
       [
@@ -66,12 +52,10 @@ export function backgroundView<M>(
         h.AriaHidden(true),
         h.Style({
           ...layer,
-          'background-image': dots
-            ? `radial-gradient(circle, ${color} ${thickness}px, transparent ${thickness}px)`
-            : `linear-gradient(to right, ${color} ${thickness}px, transparent ${thickness}px), linear-gradient(to bottom, ${color} ${thickness}px, transparent ${thickness}px)`,
-          'background-size': `${pitch}px ${pitch}px`,
-          'background-position': `${state.viewport.x - offset}px ${state.viewport.y - offset}px`,
-          'background-origin': 'padding-box',
+          'background-image': paint.backgroundImage,
+          'background-size': paint.backgroundSize,
+          'background-position': paint.backgroundPosition,
+          'background-origin': paint.backgroundOrigin,
         }),
       ],
       [],

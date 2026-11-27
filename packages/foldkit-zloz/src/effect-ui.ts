@@ -12,6 +12,12 @@ import { resolveContextMapRelationship } from './context-map';
 import { contextPanelPlacement, resolveContextMenu } from './context-menu-context';
 import { resolveEdgeGeometry } from './edge-geometry';
 import { connectionDropRadii } from './edge-presentation';
+import {
+  nativeAlignmentGuides,
+  nativeBackground,
+  type NativeAlignmentGuide,
+  type NativeBackground,
+} from './effect-ui-canvas-decoration';
 import { contextMapLabel } from './effect-ui-context-map';
 import { contextMenu, type NativeContextMenuOptions } from './effect-ui-context-menu';
 import { edgeLabel, edgeToolbar, type NativeEdgeEditing } from './effect-ui-edge-editing';
@@ -24,6 +30,7 @@ import {
   type NativeWaypointOptions,
 } from './effect-ui-geometry-controls';
 import { surfaceInput } from './effect-ui-input';
+import { nodeToolbar, type NativeNodeToolbar } from './effect-ui-node-toolbar';
 import { nodeView, type NativeNodeOptions } from './effect-ui-nodes';
 import { portLabels } from './effect-ui-ports';
 import { nodeResizeReadout } from './effect-ui-resize';
@@ -37,6 +44,8 @@ import { resolveEdgeWaypointControls } from './waypoint-controls';
 import { resolveEdgeWaypointPreview } from './waypoint-interaction';
 
 export { BrowserInput } from './browser-input';
+export type { NativeAlignmentGuide, NativeBackground } from './effect-ui-canvas-decoration';
+export type { ZlozAlignmentGuideContext, ZlozBackgroundRenderContext } from './canvas-decoration';
 export type { ZlozSelectionMarqueeContext, ZlozZoomAreaMarqueeContext } from './canvas-gestures';
 export {
   viewportControlActions,
@@ -80,6 +89,7 @@ export type { ZlozPortLabelContext, ZlozPortLabelOptions } from './port-label-pr
 export type { ZlozPortAnchorHandleContext } from './port-anchor-presentation';
 export type { ZlozPortAnchorGuideContext } from './port-anchor-guides';
 export type { NativeNodeShell, NativeNodeShellContext } from './effect-ui-nodes';
+export type { NativeNodeToolbar } from './effect-ui-node-toolbar';
 export type { ZlozViewportCulling } from './viewport-culling';
 
 export type GraphSurfaceOptions<Message> = NativeNodeOptions<Message> &
@@ -100,10 +110,12 @@ export type GraphSurfaceOptions<Message> = NativeNodeOptions<Message> &
     /** Show pending node highlights during box selection. Defaults to true. */
     selectionPreviewHighlights?: boolean;
     /** Customize the decorative box. Undefined uses the default and null hides it. */
-    renderSelectionMarquee?: (
-      context: ZlozSelectionMarqueeContext,
-      h: Html.H<Message>,
-    ) => View.Content<Message> | null | undefined;
+    renderSelectionMarquee?:
+      | ((
+          context: ZlozSelectionMarqueeContext,
+          h: Html.H<Message>,
+        ) => View.Content<Message> | null | undefined)
+      | undefined;
     /** Customize the decorative camera box. Undefined uses the default and null hides it. */
     renderZoomAreaMarquee?: (
       context: ZlozZoomAreaMarqueeContext,
@@ -111,12 +123,13 @@ export type GraphSurfaceOptions<Message> = NativeNodeOptions<Message> &
     ) => View.Content<Message> | null | undefined;
     dropRadius?: number;
     /** Defaults to the creation radius. Zero requires an exact reconnection target. */
-    reconnectionDropRadius?: number;
+    reconnectionDropRadius?: number | undefined;
     reconnect?: boolean;
     /** Show size during a resize or while a single expanded group is selected. */
     resizeReadout?: boolean;
-    portAnchors?: NativePortAnchors<Message>;
-    edgeWaypoints?: NativeWaypointOptions<Message>;
+    portAnchors?: NativePortAnchors<Message> | undefined;
+    edgeWaypoints?: NativeWaypointOptions<Message> | undefined;
+    nodeToolbar?: NativeNodeToolbar<Message> | undefined;
     /** Enable on-canvas edge labels and optionally the selected-edge toolbar. */
     edgeEditing?: NativeEdgeEditing<Message>;
     /** Enable context actions from secondary click or the keyboard. */
@@ -126,6 +139,9 @@ export type GraphSurfaceOptions<Message> = NativeNodeOptions<Message> &
     worldOverlay?: View.Content<Message> | null;
     pinchZoom?: boolean;
     viewportCulling?: ZlozViewportCulling;
+    background?: NativeBackground<Message>;
+    alignmentGuides?: boolean;
+    renderAlignmentGuide?: NativeAlignmentGuide<Message> | undefined;
   }>;
 
 const reconnectOffset = {
@@ -306,6 +322,7 @@ export function graphSurface<Message>(
     .attr('aria-describedby', descriptionId)
     .attr('tabindex', '0')
     .attr('data-flow-surface', id)
+    .attr('data-flow-native-background', options.background?.type)
     .attr('data-flow-context-actions', String(options.contextActions !== undefined))
     .attr('data-flow-readonly', String(editor.readOnly))
     .attr('data-flow-connection-mode', editor.connectionMode ?? 'strict')
@@ -335,6 +352,7 @@ export function graphSurface<Message>(
     .style(zlozThemeStyle(options.theme ?? {}))
     .onMount(Mount.map(surfaceInput(), onInput))
     .children(
+      options.background ? nativeBackground(h, editor, id, options.background) : null,
       h.div
         .class('zloz-ui-world')
         .style({
@@ -357,6 +375,9 @@ export function graphSurface<Message>(
                   .children(svg('path').attr('d', 'M 0 0 L 10 5 L 0 10 Z').children()),
               ),
               ...edgeViews.map(({ path }) => path),
+              ...(options.alignmentGuides
+                ? nativeAlignmentGuides(h, editor, options.renderAlignmentGuide)
+                : []),
               connectionStroke(h, preview, options),
             ),
           ...nodes.map((node) => nodeView(h, editor, options, node, selecting.has(node.id))),
@@ -409,6 +430,7 @@ export function graphSurface<Message>(
               )
             : null,
         ),
+      options.nodeToolbar ? nodeToolbar(h, editor, nodes, policy, options.nodeToolbar) : null,
       toolbarEdge?.position && options.edgeEditing
         ? edgeToolbar(
             h,

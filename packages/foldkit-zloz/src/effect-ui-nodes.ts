@@ -48,6 +48,7 @@ export type NativeNodeOptions<M> = GraphPortOptions<M> &
     nodeNote?: (node: ZlozNode) => string;
     architectureNotation?: boolean;
     onToggleGroup?: (id: string) => M;
+    nodeContextAction?: (node: ZlozNode) => M;
     /** Change presentation while retaining the keyed frame and the native controller buttons. */
     renderNodeShell?: NodeShellRenderer<M>;
     renderGroupShell?: NodeShellRenderer<M>;
@@ -169,6 +170,22 @@ export function nodeView<Message>(
               .disabled(editor.gesture.type !== 'idle')
               .on('click', toggle(node.id))
               .children(collapsed ? 'Expand' : 'Collapse')
+          : null,
+        options.nodeContextAction && !editor.readOnly && selectionDisabledReason === undefined
+          ? h.button
+              .key('more-actions')
+              .class('zloz-ui-node-context')
+              .attr('type', 'button')
+              .attr('data-flow-no-drag', '')
+              .attr('data-flow-context-node', node.id)
+              .attr('aria-label', `More actions for ${node.label}`)
+              .attr(
+                'aria-expanded',
+                String(editor.context?.kind === 'node' && editor.context.id === node.id),
+              )
+              .disabled(editor.gesture.type !== 'idle')
+              .on('click', options.nodeContextAction(node))
+              .children('⋯')
           : null,
         shell?.body,
         ...(note ? [h.p.class('zloz-ui-node-note').children(note)] : []),

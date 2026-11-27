@@ -134,6 +134,7 @@ import {
   PortSnapPriority,
 } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { nativeArchitectureCanvas } from './native-canvas';
 import { nativeContextMenu } from './native-context-menu';
 import { nativeEdgeLabel } from './native-edge-label';
 import { nativeEdgeToolbar } from './native-edge-toolbar';
@@ -357,7 +358,7 @@ const playbackMessages = {
 } satisfies Record<ZlozPlaybackControlEvent['type'], () => Message>;
 const playbackInput = (event: ZlozPlaybackControlEvent): Message => playbackMessages[event.type]();
 
-export function view(model: Model, h: HtmlBuilder<Message>): Document {
+export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = false): Document {
   const modelId = model.modelIdentity.id;
   const epoch = model.modelEpoch;
   const observedInput = ({ message }: { message: EditorEvent }) =>
@@ -553,6 +554,30 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     : undefined;
   const insertionReason = patternInsertionReason(model);
   const placementControls = workbenchPlacement(model);
+  const showEdgeToolbar =
+    !dddInspectorVisible &&
+    !(
+      model.nodeDesign === 'event-storming' &&
+      model.sidebarSection === 'diagram' &&
+      !model.sidebarCollapsed
+    );
+  const nativeCanvas =
+    useNativeCanvas && model.historyReview === null
+      ? nativeArchitectureCanvas(
+          h,
+          {
+            model,
+            policy,
+            placement: placementControls,
+            scheme: colorScheme,
+            measurements: diagnostics.measurements,
+            alignmentGuides: diagnostics.alignmentGuides,
+            edgeToolbar: showEdgeToolbar,
+          },
+          'architecture-effect-ui',
+          'working-canvas',
+        )
+      : undefined;
   const placementInput = (input: ZlozPlacementInput) => Message.ObservedPlacementInput({ input });
   const inspector = Option.getOrUndefined(
     !model.minimalMode &&
@@ -3537,7 +3562,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           height: 'fill',
           renderLayout: (parts, builder) =>
-            workbenchLayout(builder, model, parts, controls, themePreference, notice),
+            workbenchLayout(builder, model, parts, controls, themePreference, notice, nativeCanvas),
           id: 'flow-demo',
           wheelNavigation: model.wheelNavigation,
           doubleClickZoom: model.doubleClickZoom,
@@ -3703,13 +3728,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             model.nodeToolbarDesign === 'compact'
               ? compactNodeToolbar(context, builder)
               : undefined,
-          edgeToolbar:
-            !dddInspectorVisible &&
-            !(
-              model.nodeDesign === 'event-storming' &&
-              model.sidebarSection === 'diagram' &&
-              !model.sidebarCollapsed
-            ),
+          edgeToolbar: showEdgeToolbar,
           edgeWaypoints: model.waypointDesign !== 'off',
           canChangeEdgeWaypoints: policy.canChangeEdgeWaypoints,
           renderEdgeWaypoints:

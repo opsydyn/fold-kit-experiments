@@ -16,7 +16,7 @@ export type NativePortControl<M> = Readonly<{
   className?: string;
   style?: Html.Style;
   content?: string | View.Content<M>;
-  describedBy?: string;
+  describedBy?: string | undefined;
 }>;
 
 export type NativeSocketContext = Readonly<{

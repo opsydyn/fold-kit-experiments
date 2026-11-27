@@ -250,6 +250,75 @@ button, input, select { font: inherit; }
   .workbench-canvas { padding: 6px; }
 }
 
+  [data-architecture-effect-ui='working-canvas'] {
+    width: 100%;
+    min-width: 0;
+    --zloz-ui-height: 100%;
+  }
+  .architecture-native-card-controls input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .architecture-native-card-controls input[type='text'] {
+    margin-top: 8px;
+    min-height: 30px;
+  }
+  .architecture-native-orbit.zloz-ui-node {
+    border-radius: 50%;
+    background: transparent;
+    outline: 0;
+  }
+  .architecture-native-orbit-group.zloz-ui-node {
+    border: 2px dotted #38bdf8;
+    border-radius: 28px;
+  }
+  .architecture-native-hatched {
+    position: absolute;
+    inset: 0;
+    border-style: dashed;
+    border-color: var(--flow-valid-target, #0f766e);
+    background: repeating-linear-gradient(135deg, transparent 0 6px, rgb(15 118 110 / 15%) 6px 9px);
+  }
+  .architecture-native-port-label {
+    padding: 3px 7px;
+    border: 1px solid var(--flow-canvas-border, #94a3b8);
+    border-radius: 6px;
+    background: var(--flow-node-background, #fff);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .architecture-native-socket.zloz-ui-port {
+    width: 30px;
+    height: 26px;
+    overflow: visible;
+    padding: 3px;
+    border: 2px solid var(--flow-node-color, #172033);
+    border-radius: 7px;
+    z-index: 2;
+  }
+  .architecture-native-socket-reason {
+    position: absolute;
+    top: calc(100% + 4px);
+    width: 132px;
+    padding: 4px 6px;
+    border: 1px solid var(--flow-node-border, #64748b);
+    border-radius: 5px;
+    background: var(--flow-node-background, #fff);
+    color: var(--flow-node-color, #172033);
+    font-size: 10px;
+    line-height: 1.25;
+    pointer-events: none;
+  }
+  .architecture-native-orbit-socket.zloz-ui-port {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 2px solid #172554;
+    border-radius: 6px;
+    color: #172554;
+    font-weight: 700;
+  }
   .orbit-node-caption {
     position: absolute;
     inset: 28px;

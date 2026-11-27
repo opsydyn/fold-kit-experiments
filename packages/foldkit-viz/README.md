@@ -134,7 +134,7 @@ path. Application Commands, request flags and data loading remain app-owned.
 | `@opsydyn/foldkit-viz/foldkit/cartesian`       | `chartFrame`, `axis`, `grid`, `legend`, `dataTable`, `barSeries`, `cellSeries`, `hexSeries`                                                                           |
 | `@opsydyn/foldkit-viz/foldkit/orbit`           | `orbitChart`                                                                                                                                                          |
 | `@opsydyn/foldkit-viz/foldkit/paint`           | `linearGradient`, `radialGradient`, `hatchPattern`, `dotPattern`                                                                                                      |
-| `@opsydyn/foldkit-viz/foldkit/keyboard`        | `chartKeyDown`, `chartKeyDownFocus`                                                                                                                                   |
+| `@opsydyn/foldkit-viz/effect-ui/keyboard`      | `chartKeyDown`, `chartKeyDownFocus`                                                                                                                                   |
 | `@opsydyn/foldkit-viz/interaction/keyboard`    | `chartCommandOf`, `targetAfter` — keyboard paths through chart targets                                                                                                |
 | `@opsydyn/foldkit-viz/interaction/coordinates` | `clientToLocal`                                                                                                                                                       |
 | `@opsydyn/foldkit-viz/interaction/viewport`    | `zoomDomain`, `panDomain`, `constrainDomain`                                                                                                                          |
@@ -708,12 +708,18 @@ demo in the web app's gallery that sits on axes is now a spec.
 
 ```ts
 import { chartCommandOf, targetAfter } from '@opsydyn/foldkit-viz/interaction/keyboard';
-import { chartKeyDown, chartKeyDownFocus } from '@opsydyn/foldkit-viz/foldkit/keyboard';
+import { chartKeyDown, chartKeyDownFocus } from '@opsydyn/foldkit-viz/effect-ui/keyboard';
 import { compilePlot, describePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
 import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
 
 // A chart's targets step with the keys a listbox uses.
-h.OnKeyDownPreventDefault(chartKeyDown((command) => PressedChartKey({ command })));
+h.div.on(
+  'keydown',
+  chartKeyDown((command) => PressedChartKey({ command })),
+  {
+    preventDefault: true,
+  },
+);
 // In update: const next = targetAfter(count, current, command);
 
 // Every chart can describe itself and carry its data as a hidden table.
@@ -727,9 +733,11 @@ plotChart(h, compilePlot(spec), { summary: true, table: plotTable(spec) });
   - keys held with Ctrl, Alt or Meta are left to the browser.
 - **`targetAfter(count, current, command)`** applies a command to a target
   index.
-- **`chartKeyDown` and `chartKeyDownFocus`** wrap the two for FoldKit's
-  `OnKeyDownPreventDefault` and `OnKeyDownFocus`. The latter moves roving focus
-  to the target's element.
+- **`chartKeyDown` and `chartKeyDownFocus`** read Effect UI key payloads.
+  `chartKeyDown` returns a message for a chart command. `chartKeyDownFocus`
+  returns the next focus selector and message for the application's focus
+  command. Both leave browser shortcuts, editable fields, and text
+  composition alone.
 - **`describePlot(geometry)`** summarises a plot in plain language: what it
   draws and how many, what the axes cover, and what colour shows.
 - **`plotTable(spec)`** lists the data a spec plots, field by field, capped at

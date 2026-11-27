@@ -64,6 +64,20 @@ for (const engine of [chromium, firefox, webkit]) {
         expect(await picker.inputValue()).toBe('a-01');
         await chart.press('Escape');
         expect(await picker.inputValue()).toBe('');
+        const shortcuts = await chart.evaluate((node) =>
+          (['ctrlKey', 'altKey', 'metaKey'] as const).map((modifier) =>
+            node.dispatchEvent(
+              new KeyboardEvent('keydown', {
+                key: 'Home',
+                [modifier]: true,
+                bubbles: true,
+                cancelable: true,
+              }),
+            ),
+          ),
+        );
+        expect(shortcuts).toEqual([true, true, true]);
+        expect(await picker.inputValue()).toBe('');
         await chart.press('Tab');
         expect(await chart.evaluate((node) => node !== document.activeElement)).toBe(true);
         await page.getByRole('button', { name: 'Group B' }).press('Enter');

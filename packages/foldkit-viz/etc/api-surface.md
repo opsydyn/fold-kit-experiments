@@ -2125,6 +2125,23 @@ type PointSeriesOptions<T, M> = Readonly<{
 }>;
 ```
 
+## ./effect-ui/keyboard
+
+```ts
+type ChartFocusConfig<M> = Readonly<{
+  count: number;
+  current: number | undefined;
+  focusSelector: (target: number) => string;
+  toMessage: (target: number, command: ChartCommand) => M;
+}> & ChartKeyOptions & TargetOptions;
+const chartKeyDown: <M>(toMessage: (command: ChartCommand) => M, options?: ChartKeyOptions) => (keyEvent: ChartKeyEvent) => M | undefined;
+const chartKeyDownFocus: <M>(config: ChartFocusConfig<M>) => (keyEvent: ChartKeyEvent) => Readonly<{
+  focusSelector: string;
+  message: M;
+}> | undefined;
+type ChartKeyEvent = Pick<Html.KeyPayload, 'key' | 'ctrl' | 'alt' | 'meta' | 'composing' | 'editable'>;
+```
+
 ## ./effect-ui/orbit
 
 ```ts
@@ -2342,22 +2359,6 @@ type TooltipOptions<T, M> = Readonly<{
   theme: ChartTheme;
   render?: (context: TooltipContext<T>, h: HtmlBuilder<M>) => Html;
 }>;
-```
-
-## ./foldkit/keyboard
-
-```ts
-type ChartFocusConfig<M> = Readonly<{
-  count: number;
-  current: number | undefined;
-  focusSelector: (target: number) => string;
-  toMessage: (target: number | undefined, command: ChartCommand) => M;
-}> & ChartKeyOptions & TargetOptions;
-const chartKeyDown: <M>(toMessage: (command: ChartCommand) => M, options?: ChartKeyOptions) => (key: string, modifiers: KeyboardModifiers) => Option.Option<M>;
-const chartKeyDownFocus: <M>(config: ChartFocusConfig<M>) => (key: string, modifiers: KeyboardModifiers) => Option.Option<Readonly<{
-  focusSelector: string;
-  message: M;
-}>>;
 ```
 
 ## ./foldkit/orbit

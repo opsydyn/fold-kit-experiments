@@ -95,7 +95,7 @@ no listeners.
   without recompiling. A linked brush is one chart's selection written into
   another chart's spec.
 - Keyboard: `chartCommandOf` and `targetAfter` (`interaction/keyboard`), and
-  `chartKeyDown` (`foldkit/keyboard`) for FoldKit views.
+  `chartKeyDown` (`effect-ui/keyboard`) for Effect UI views.
 - Every chart should carry `plotChart(h, geometry, { summary: true, table: plotTable(spec) })`:
   a plain-language description and the data as a table.
 

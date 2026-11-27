@@ -246,6 +246,24 @@ it('does not install FoldKit or Effect when npm consumers only need the pure pac
       { cwd: consumerDir, maxBuffer },
     );
     expect(schemaTitle.trim()).toBe('foldkit-viz plot spec');
+
+    const { stdout: keyboardResult } = await execFileAsync(
+      'node',
+      [
+        '--input-type=module',
+        '-e',
+        `import assert from 'node:assert/strict';
+import { chartKeyDown } from '@opsydyn/foldkit-viz/effect-ui/keyboard';
+const handler = chartKeyDown(({ _tag }) => _tag);
+const home = { key: 'Home', ctrl: false, alt: false, meta: false, composing: false, editable: false };
+assert.equal(handler(home), 'Jump');
+assert.equal(handler({ ...home, ctrl: true }), undefined);
+await assert.rejects(import('@opsydyn/foldkit-viz/foldkit/keyboard'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+console.log('Keyboard exports OK');`,
+      ],
+      { cwd: consumerDir, maxBuffer },
+    );
+    expect(keyboardResult.trim()).toBe('Keyboard exports OK');
   } finally {
     await fixture.cleanup();
   }

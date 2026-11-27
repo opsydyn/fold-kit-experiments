@@ -45,7 +45,7 @@ does not infer confidence or statistical significance.
 | Modules orbiting a core (ball of mud)         | `/chart/orbit`, rendered by `/foldkit/orbit` (`0.17.0`+)       |
 | A standard chart as a JSON spec (`0.18.0`+)   | `/plot` (`compilePlot`), rendered by `/foldkit/plot` or `/canvas/plot` |
 | Column, Arrow or million-row data (`0.18.0`+) | `/plot` (`columnTable`, `fromArrow`, `dense` dot marks)             |
-| Keyboard paths through chart targets (`0.18.0`+) | `/interaction/keyboard`, `/foldkit/keyboard`                        |
+| Keyboard paths through chart targets (`0.18.0`+) | `/interaction/keyboard`, `/effect-ui/keyboard`                        |
 | Checking specs another program writes (`0.18.0`+) | `/plot-spec.schema.json`, a JSON Schema for `PlotSpec`              |
 | A plot as an SVG file or HTML string (`0.19.0`+) | `/svg/plot` (`plotSvg`, `plotHtml`), legends and a `theme` included |
 | A plot as a PNG (`0.19.0`+)                  | `/canvas/image` (`plotPng` on an OffscreenCanvas, `paintImage` on any 2D context) |

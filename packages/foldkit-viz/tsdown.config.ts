@@ -20,7 +20,7 @@ export default defineConfig({
     'effect-ui/paint': 'src/effect-ui/paint.ts',
     'effect-ui/plot': 'src/effect-ui/plot.ts',
     'foldkit/plot': 'src/foldkit/plot.ts',
-    'foldkit/keyboard': 'src/foldkit/keyboard.ts',
+    'effect-ui/keyboard': 'src/effect-ui/keyboard.ts',
     'interaction/keyboard': 'src/interaction/keyboard.ts',
     'canvas/plot': 'src/canvas/plot.ts',
     'canvas/image': 'src/canvas/image.ts',

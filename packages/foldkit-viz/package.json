@@ -229,8 +229,8 @@
       "interaction/keyboard": [
         "./dist/interaction/keyboard.d.mts"
       ],
-      "foldkit/keyboard": [
-        "./dist/foldkit/keyboard.d.mts"
+      "effect-ui/keyboard": [
+        "./dist/effect-ui/keyboard.d.mts"
       ],
       "chart/space3d": [
         "./dist/chart/space3d.d.mts"
@@ -506,9 +506,9 @@
       "types": "./dist/interaction/keyboard.d.mts",
       "import": "./dist/interaction/keyboard.mjs"
     },
-    "./foldkit/keyboard": {
-      "types": "./dist/foldkit/keyboard.d.mts",
-      "import": "./dist/foldkit/keyboard.mjs"
+    "./effect-ui/keyboard": {
+      "types": "./dist/effect-ui/keyboard.d.mts",
+      "import": "./dist/effect-ui/keyboard.mjs"
     },
     "./chart/space3d": {
       "types": "./dist/chart/space3d.d.mts",

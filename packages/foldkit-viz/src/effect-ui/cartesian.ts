@@ -6,6 +6,7 @@ import type { AxisTick, CartesianLayout, ProjectedDatum } from '../chart/cartesi
 import type { ChartTheme, SeriesStyle } from '../chart/theme.js';
 import { hexagonPath, type HexBin } from '../math/bin2d.js';
 import { symbolPath } from '../shape/symbol.js';
+import { chartKey } from './keyboard-event.js';
 
 type FrameOptions<M> = Readonly<{
   layout: CartesianLayout;
@@ -15,7 +16,16 @@ type FrameOptions<M> = Readonly<{
   onKeyDown?: (key: string) => M | undefined;
 }>;
 
-const isKeyEvent = Schema.is(Schema.Struct({ key: Schema.String }));
+const isChartKeyEvent = Schema.is(
+  Schema.Struct({
+    key: Schema.String,
+    ctrl: Schema.Boolean,
+    alt: Schema.Boolean,
+    meta: Schema.Boolean,
+    composing: Schema.Boolean,
+    editable: Schema.Boolean,
+  }),
+);
 
 /** Draw the SVG shell around caller-owned Cartesian layers and interaction. */
 export function chartFrame<M>(
@@ -35,11 +45,15 @@ export function chartFrame<M>(
   const focusable =
     onKeyDown === undefined
       ? svg
-      : svg
-          .attr('tabindex', '0')
-          .on('keydown', (payload) => (isKeyEvent(payload) ? onKeyDown(payload.key) : undefined), {
-            preventDefault: true,
-          });
+      : svg.attr('tabindex', '0').on(
+          'keydown',
+          (payload) => {
+            if (!isChartKeyEvent(payload)) return undefined;
+            const key = chartKey(payload);
+            return key === undefined ? undefined : onKeyDown(key);
+          },
+          { preventDefault: true },
+        );
   return focusable.children(
     h.el('title').children(title),
     h.el('desc').children(description),

@@ -1,24 +1,21 @@
 import { expect, it } from 'bun:test';
 
+import { HtmlServer } from '@effect/ui/html';
 import { Effect } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
 
 import { barData } from '../src/examples/bars/data';
+import { Bars } from '../src/examples/bars/main';
 import { Message } from '../src/examples/bars/message';
-import { init, Props } from '../src/examples/bars/model';
+import { init } from '../src/examples/bars/model';
 import { update } from '../src/examples/bars/update';
-import { view } from '../src/examples/bars/view';
 
 it('bar controls and reset retain caller data, measured width and stable inspection identity', () => {
-  const initial = init({ data: barData }).model;
-  const resized = update(initial, Message.RecordedWidth({ width: 320 })).model;
-  const stacked = update(resized, Message.SelectedMode({ mode: 'stacked' })).model;
-  const horizontal = update(
-    stacked,
-    Message.SelectedOrientation({ orientation: 'horizontal' }),
-  ).model;
-  const painted = update(horizontal, Message.SelectedPaint({ paint: 'hatch' })).model;
-  const inspected = update(painted, Message.InspectedBar({ key: 'Jan-Core' })).model;
+  const initial = init({ data: barData });
+  const resized = update(initial, Message.RecordedWidth({ width: 320 }));
+  const stacked = update(resized, Message.SelectedMode({ mode: 'stacked' }));
+  const horizontal = update(stacked, Message.SelectedOrientation({ orientation: 'horizontal' }));
+  const painted = update(horizontal, Message.SelectedPaint({ paint: 'hatch' }));
+  const inspected = update(painted, Message.InspectedBar({ key: 'Jan-Core' }));
   expect(inspected).toMatchObject({
     mode: 'stacked',
     orientation: 'horizontal',
@@ -27,7 +24,7 @@ it('bar controls and reset retain caller data, measured width and stable inspect
     activeKey: 'Jan-Core',
   });
   expect(inspected.data).toBe(barData);
-  const reset = update(inspected, Message.ClickedReset()).model;
+  const reset = update(inspected, Message.ClickedReset());
   expect(reset).toMatchObject({
     mode: 'grouped',
     orientation: 'vertical',
@@ -36,27 +33,16 @@ it('bar controls and reset retain caller data, measured width and stable inspect
     width: 320,
   });
   expect(reset.data).toBe(barData);
-  expect(update(reset, Message.RecordedWidth({ width: NaN })).model).toBe(reset);
-  expect(update(reset, Message.RecordedWidth({ width: 0 })).model).toBe(reset);
-  expect(update(reset, Message.InspectedBar({ key: 'missing' })).model).toBe(reset);
+  expect(update(reset, Message.RecordedWidth({ width: NaN }))).toBe(reset);
+  expect(update(reset, Message.RecordedWidth({ width: 0 }))).toBe(reset);
+  expect(update(reset, Message.RecordedWidth({ width: 320 }))).toBe(reset);
+  expect(update(reset, Message.InspectedBar({ key: 'missing' }))).toBe(reset);
 });
 
 it('renders keyboard-inspectable bars, pressed control state and a complete accessible table', async () => {
-  const model = update(
-    init({ data: barData }).model,
-    Message.SelectedMode({ mode: 'stacked' }),
-  ).model;
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Props,
-        init: () => ({ model }),
-        view,
-      },
-      { flags: { data: barData }, isHydratable: false },
-    ),
-  );
-  expect(result.html).toContain('aria-pressed="true"');
+  const result = await Effect.runPromise(HtmlServer.renderToHtml(Bars, { data: barData }));
+  expect(result.html).toContain('aria-pressed="true">grouped</button>');
+  expect(result.html).toContain('<title>Jan, Core: 12</title>');
   expect(result.html.match(/tabindex="0"/g)).toHaveLength(12);
   expect(result.html).toContain('<caption>Illustrative monthly activity</caption>');
   expect(result.html.match(/<tr>/g)).toHaveLength(13);

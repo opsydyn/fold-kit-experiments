@@ -9,16 +9,13 @@ import { init as initCloud } from '../src/examples/wordcloud/model';
 import { update as updateCloud } from '../src/examples/wordcloud/update';
 import { barData } from '../src/lib/gallery-charts';
 it('bar controls change grouping/orientation without replacing input data', () => {
-  const initial = initBars({ data: barData }).model;
-  const stacked = updateBars(initial, Bars.SelectedMode({ mode: 'stacked' })).model;
-  const horizontal = updateBars(
-    stacked,
-    Bars.SelectedOrientation({ orientation: 'horizontal' }),
-  ).model;
+  const initial = initBars({ data: barData });
+  const stacked = updateBars(initial, Bars.SelectedMode({ mode: 'stacked' }));
+  const horizontal = updateBars(stacked, Bars.SelectedOrientation({ orientation: 'horizontal' }));
   expect(horizontal.mode).toBe('stacked');
   expect(horizontal.orientation).toBe('horizontal');
   expect(horizontal.data).toEqual(barData);
-  expect(updateBars(horizontal, Bars.ClickedReset()).model.mode).toBe('grouped');
+  expect(updateBars(horizontal, Bars.ClickedReset()).mode).toBe('grouped');
 });
 it('cloud layout controls retain measurements; font controls request a new revision', () => {
   const initial = initCloud({ words });

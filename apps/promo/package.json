@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "catalog:",
+    "@effect/ui": "catalog:",
     "@fontsource-variable/inter": "catalog:",
+    "@opsydyn/astro-effect-ui": "workspace:*",
     "@opsydyn/astro-foldkit": "workspace:*",
     "@opsydyn/dataset-explorer": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",
@@ -38,6 +40,7 @@
     "@vanilla-extract/vite-plugin": "catalog:",
     "bun-types": "catalog:",
     "happy-dom": "catalog:",
+    "playwright": "catalog:",
     "typescript": "catalog:"
   }
 }

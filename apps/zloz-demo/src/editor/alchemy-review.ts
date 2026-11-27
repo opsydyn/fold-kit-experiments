@@ -1,9 +1,10 @@
+import type { Html } from '@effect/ui/html';
 import { createEditor, updateHistoryReview, type EditorEvent } from '@opsydyn/foldkit-zloz';
 import {
   resolveAlchemyFindingNavigator,
   resolveAlchemyFindingReveal,
 } from '@opsydyn/foldkit-zloz-alchemy';
-import { Match } from 'effect';
+import { Match, Schema } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
 
 import example from './alchemy-example.json';
@@ -22,6 +23,7 @@ import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { nativeAlchemyCanvas } from './native-alchemy';
+import { architectureNativePanel } from './native-panel';
 import type { Return } from './transition';
 const own = new Set([
   'ChangedAlchemyText',
@@ -296,165 +298,200 @@ export function updateAlchemyReview(model: Model, message: Message): Return<Mode
     Match.orElse(() => ({ model })),
   );
 }
-export function alchemyReviewPanel(model: Model, h: HtmlBuilder<Message>) {
+function renderAlchemyReview<M>(h: Html.H<M>, model: Model, send: (message: Message) => M) {
   const state = model.alchemyReview,
     review = state.review,
     reason = openReason(model),
     navigator = workbenchAlchemyFindings(model);
-  return h.div(
-    [h.Class('alchemy-review')],
-    [
-      h.p(
-        [],
-        [
-          'Review portable Domain declarations without importing a working model. No SDK, TypeScript, handlers or providers are loaded by this view.',
-        ],
-      ),
-      h.p(
-        [h.Id('alchemy-input-help')],
-        ['UTF-8 JSON · 1 MiB · depth 16 · 16,384 values. Duplicate keys are rejected.'],
-      ),
-      h.label(
-        [],
-        [
-          'Descriptor JSON',
-          h.textarea([
-            h.Value(state.text),
-            h.Rows(7),
-            h.AriaLabel('Descriptor JSON'),
-            h.AriaDescribedBy('alchemy-input-help'),
-            h.OnInput((text) => Message.ChangedAlchemyText({ text })),
-          ]),
-        ],
-      ),
-      h.label(
-        [],
-        [
-          'Open descriptor file',
-          h.input([
-            h.Key(`alchemy-file:${state.run}`),
-            h.Type('file'),
-            h.Accept('.json,application/json'),
-            h.AriaLabel('Open descriptor file'),
-            h.Disabled(reason !== null),
-            h.OnFileChange((files) => Message.ChoseAlchemyFiles({ files })),
-          ]),
-        ],
-      ),
-      h.div(
-        [h.Class('alchemy-actions')],
-        [
-          h.button(
-            [
-              h.Type('button'),
-              h.Disabled(reason !== null || !!state.pending || !state.text.trim()),
-              h.OnClick(Message.ClickedAlchemyReview()),
-            ],
-            ['Review descriptor'],
+  return h.div.class('alchemy-review').children(
+    h.p.children(
+      'Review portable Domain declarations without importing a working model. No SDK, TypeScript, handlers or providers are loaded by this view.',
+    ),
+    h.p
+      .id('alchemy-input-help')
+      .children('UTF-8 JSON · 1 MiB · depth 16 · 16,384 values. Duplicate keys are rejected.'),
+    h.label.children(
+      'Descriptor JSON',
+      h.textarea
+        .value(state.text)
+        .attr('rows', '7')
+        .attr('aria-label', 'Descriptor JSON')
+        .attr('aria-describedby', 'alchemy-input-help')
+        .on('input', ({ value: text }) => send(Message.ChangedAlchemyText({ text }))),
+    ),
+    h.label.children(
+      'Open descriptor file',
+      h.input
+        .key(`alchemy-file:${state.run}`)
+        .attr('type', 'file')
+        .attr('accept', '.json,application/json')
+        .attr('aria-label', 'Open descriptor file')
+        .disabled(reason !== null)
+        .value('')
+        .on('change', ({ files }) => send(Message.ChoseAlchemyFiles({ files }))),
+    ),
+    h.div.class('alchemy-actions').children(
+      h.button
+        .attr('type', 'button')
+        .disabled(reason !== null || !!state.pending || !state.text.trim())
+        .on('click', send(Message.ClickedAlchemyReview()))
+        .children('Review descriptor'),
+      h.button
+        .attr('type', 'button')
+        .disabled(reason !== null || !!state.pending)
+        .on('click', send(Message.ClickedAlchemyExample()))
+        .children('Review bank example'),
+    ),
+    ...(reason ? [h.p.children(reason)] : []),
+    ...(state.pending
+      ? [
+          h.button
+            .attr('type', 'button')
+            .on('click', send(Message.ClickedCancelAlchemyRead()))
+            .children('Cancel descriptor read'),
+        ]
+      : []),
+    h.p.attr('role', 'status').attr('aria-live', 'polite').children(state.notice),
+    ...(review
+      ? [
+          alchemyLayoutControls(model, h, send),
+          h.h3.children('Source provenance'),
+          h.dl.class('alchemy-provenance').children(
+            ...Object.entries({
+              'Domain version': review.projection.source.source.packageVersion,
+              Namespace: review.projection.source.source.namespace,
+              Model: review.projection.source.source.modelName,
+              Revision: review.projection.source.source.revision,
+            }).flatMap(([key, value]) => [h.dt.children(key), h.dd.children(value)]),
           ),
-          h.button(
-            [
-              h.Type('button'),
-              h.Disabled(reason !== null || !!state.pending),
-              h.OnClick(Message.ClickedAlchemyExample()),
-            ],
-            ['Review bank example'],
+          h.p.children(
+            'Host-declared provenance and state claims; authorship and runtime behaviour are unverified. This preview grants no editing or execution authority.',
           ),
-        ],
-      ),
-      ...(reason ? [h.p([], [reason])] : []),
-      ...(state.pending
-        ? [
-            h.button(
-              [h.Type('button'), h.OnClick(Message.ClickedCancelAlchemyRead())],
-              ['Cancel descriptor read'],
-            ),
-          ]
-        : []),
-      h.p([h.Role('status'), h.AriaLive('polite')], [state.notice]),
-      ...(review
-        ? [
-            alchemyLayoutControls(model, h),
-            h.h3([], ['Source provenance']),
-            h.dl(
-              [h.Class('alchemy-provenance')],
-              Object.entries({
-                'Domain version': review.projection.source.source.packageVersion,
-                Namespace: review.projection.source.source.namespace,
-                Model: review.projection.source.source.modelName,
-                Revision: review.projection.source.source.revision,
-              }).flatMap(([key, value]) => [h.dt([], [key]), h.dd([], [value])]),
-            ),
-            h.p(
-              [],
-              [
-                'Host-declared provenance and state claims; authorship and runtime behaviour are unverified. This preview grants no editing or execution authority.',
-              ],
-            ),
-            h.p(
-              [],
-              [
-                'Compatibility: exact Domain/Alchemy beta.85; native core from this branch. Published core 0.3.0 is not qualified. Omitted-read and stateless-view strict typing remain upstream gates.',
-              ],
-            ),
-            h.h3([], ['Projection coverage']),
-            h.p(
-              [],
-              [
-                `${review.projection.coverage.length} source facts · ${review.projection.nativeReadModels.length} native read-model · ${review.projection.nativeConsumption.length} declared feed`,
-              ],
-            ),
-            h.h3([], ['Losses and unverified meaning']),
-            h.ul(
-              [h.AriaLabel('Descriptor findings')],
-              (navigator?.entries ?? []).map((entry, index) => {
-                const f = entry.finding,
-                  reasonId = `alchemy-finding-${review.id}-${index}-reason`;
-                return h.li(
-                  [
-                    h.Key(JSON.stringify([f.code, f.sourceId])),
-                    h.DataAttribute('alchemy-finding-selected', String(entry.selected)),
-                  ],
-                  [
-                    h.strong([], [`${f.severity}: ${f.code}`]),
-                    h.p([h.Class('alchemy-finding-label')], [entry.label]),
-                    h.p([], [f.reason]),
-                    ...(f.sourceId
-                      ? [h.details([], [h.summary([], ['Source fact']), h.code([], [f.sourceId])])]
-                      : []),
-                    h.button(
-                      [
-                        h.Type('button'),
-                        h.AriaLabel(`Reveal ${entry.label}`),
-                        h.Disabled(entry.reason !== null || entry.request === null),
-                        ...(entry.reason ? [h.AriaDescribedBy(reasonId)] : []),
-                        ...(entry.request
-                          ? [
-                              h.OnClick(
-                                Message.ClickedAlchemyFinding({
-                                  id: review.id,
-                                  request: entry.request,
-                                }),
-                              ),
-                            ]
-                          : []),
-                      ],
-                      [entry.target?.entity === 'edge' ? 'Reveal relation' : 'Reveal node'],
-                    ),
-                    ...(entry.reason ? [h.p([h.Id(reasonId)], [entry.reason])] : []),
-                  ],
+          h.p.children(
+            'Compatibility: exact Domain/Alchemy beta.85; native core from this branch. Published core 0.3.0 is not qualified. Omitted-read and stateless-view strict typing remain upstream gates.',
+          ),
+          h.h3.children('Projection coverage'),
+          h.p.children(
+            `${review.projection.coverage.length} source facts · ${review.projection.nativeReadModels.length} native read-model · ${review.projection.nativeConsumption.length} declared feed`,
+          ),
+          h.h3.children('Losses and unverified meaning'),
+          h.ul.attr('aria-label', 'Descriptor findings').children(
+            ...(navigator?.entries ?? []).map((entry, index) => {
+              const f = entry.finding,
+                reasonId = `alchemy-finding-${review.id}-${index}-reason`;
+              return h.li
+                .key(JSON.stringify([f.code, f.sourceId, index]))
+                .attr('data-alchemy-finding-selected', String(entry.selected))
+                .children(
+                  h.strong.children(`${f.severity}: ${f.code}`),
+                  h.p.class('alchemy-finding-label').children(entry.label),
+                  h.p.children(f.reason),
+                  ...(f.sourceId
+                    ? [
+                        h.details.children(
+                          h.summary.children('Source fact'),
+                          h.code.children(f.sourceId),
+                        ),
+                      ]
+                    : []),
+                  h.button
+                    .attr('type', 'button')
+                    .attr('aria-label', `Reveal ${entry.label}`)
+                    .disabled(entry.reason !== null || entry.request === null)
+                    .attr('aria-describedby', entry.reason ? reasonId : undefined)
+                    .on('click', () =>
+                      entry.request
+                        ? send(
+                            Message.ClickedAlchemyFinding({
+                              id: review.id,
+                              request: entry.request,
+                            }),
+                          )
+                        : undefined,
+                    )
+                    .children(entry.target?.entity === 'edge' ? 'Reveal relation' : 'Reveal node'),
+                  ...(entry.reason ? [h.p.id(reasonId).children(entry.reason)] : []),
                 );
-              }),
-            ),
-            h.button(
-              [h.Type('button'), h.OnClick(Message.ClickedCloseAlchemyReview())],
-              ['Return to working model'],
-            ),
-          ]
-        : []),
-    ],
+            }),
+          ),
+          h.button
+            .attr('type', 'button')
+            .on('click', send(Message.ClickedCloseAlchemyReview()))
+            .children('Return to working model'),
+        ]
+      : []),
   );
 }
+export const alchemyReviewPanel = architectureNativePanel<Model>(
+  'ArchitectureDomainReview',
+  Schema.is(
+    Schema.Union([
+      Message.cases.ChangedAlchemyText,
+      Message.cases.ChoseAlchemyFiles,
+      Message.cases.ClickedAlchemyReview,
+      Message.cases.ClickedAlchemyExample,
+      Message.cases.ClickedCancelAlchemyRead,
+      Message.cases.ClickedAlchemyFinding,
+      Message.cases.ClickedCloseAlchemyReview,
+      Message.cases.SelectedAlchemyGroupHeader,
+      Message.cases.SelectedAlchemyHeadingDetail,
+      Message.cases.ClickedCancelAlchemyHeadings,
+      Message.cases.ClickedMeasureAlchemyHeadings,
+      Message.cases.SelectedAlchemyLabelMode,
+      Message.cases.SelectedAlchemyLabelDetail,
+      Message.cases.ClickedCancelAlchemyLabels,
+      Message.cases.ClickedMeasureAlchemyLabels,
+      Message.cases.SelectedAlchemyLayoutDirection,
+      Message.cases.ClickedCancelAlchemyLayout,
+      Message.cases.ClickedAlchemyLayout,
+      Message.cases.ClickedRestoreAlchemyLayout,
+    ]),
+  ),
+  renderAlchemyReview,
+  {
+    // Keep the controlled textarea current while its input is forwarded to the workbench.
+    apply: (current, request) =>
+      request._tag === 'ChangedAlchemyText' ? updateAlchemyReview(current, request).model : current,
+    receive: (current, incoming) =>
+      current.modelIdentity.id === incoming.modelIdentity.id &&
+      current.modelEpoch === incoming.modelEpoch &&
+      current.alchemyReview.run > incoming.alchemyReview.run
+        ? { ...incoming, alchemyReview: current.alchemyReview }
+        : incoming,
+  },
+);
+
+const alchemyReviewBanner = architectureNativePanel<{
+  readonly id: number;
+  readonly name: string;
+  readonly revision: string;
+  readonly canFit: boolean;
+}>(
+  'ArchitectureDomainReviewBanner',
+  Schema.is(
+    Schema.Union([Message.cases.ObservedAlchemyInput, Message.cases.ClickedCloseAlchemyReview]),
+  ),
+  (h, { id, name, revision, canFit }, send) =>
+    h.div
+      .class('receipt-canvas-banner')
+      .attr('role', 'status')
+      .children(
+        `Read-only Domain descriptor · ${name} · ${revision} · Working model preserved`,
+        h.button
+          .attr('type', 'button')
+          .disabled(!canFit)
+          .on(
+            'click',
+            send(Message.ObservedAlchemyInput({ id, message: { type: 'FitViewClicked' } })),
+          )
+          .children('Fit descriptor diagram'),
+        h.button
+          .attr('type', 'button')
+          .on('click', send(Message.ClickedCloseAlchemyReview()))
+          .children('Return to working model'),
+      ),
+);
+
 export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
   const review = model.alchemyReview.review;
   if (!review) return h.div([], []);
@@ -474,28 +511,16 @@ export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
   return h.div(
     [h.Key(`alchemy:${review.id}`), h.Class('receipt-canvas alchemy-canvas')],
     [
-      h.div(
-        [h.Class('receipt-canvas-banner'), h.Role('status')],
-        [
-          `Read-only Domain descriptor · ${review.projection.source.source.modelName} · ${review.projection.source.source.revision} · Working model preserved`,
-          h.button(
-            [
-              h.Type('button'),
-              h.Disabled(review.editor.surface === null),
-              h.OnClick(
-                Message.ObservedAlchemyInput({
-                  id: review.id,
-                  message: { type: 'FitViewClicked' },
-                }),
-              ),
-            ],
-            ['Fit descriptor diagram'],
-          ),
-          h.button(
-            [h.Type('button'), h.OnClick(Message.ClickedCloseAlchemyReview())],
-            ['Return to working model'],
-          ),
-        ],
+      alchemyReviewBanner(
+        h,
+        {
+          id: review.id,
+          name: review.projection.source.source.modelName,
+          revision: review.projection.source.source.revision,
+          canFit: review.editor.surface !== null,
+        },
+        'architecture-effect-ui',
+        'domain-review-banner',
       ),
       nativeAlchemyCanvas(
         h,

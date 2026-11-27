@@ -240,7 +240,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         })
       : [];
   const controls: WorkbenchControls = {
-    alchemy: [alchemyReviewPanel(model, h)],
+    alchemy:
+      model.sidebarSection === 'alchemy'
+        ? [alchemyReviewPanel(h, model, 'architecture-effect-ui', 'domain-review')]
+        : [],
     review: model.sidebarSection === 'review' ? [packetReaderPanel(model, h)] : [],
     patch: patchWorkbenchPanel(model, h),
     history: [

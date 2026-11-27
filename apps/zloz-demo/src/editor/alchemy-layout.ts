@@ -1,3 +1,4 @@
+import type { Html } from '@effect/ui/html';
 import {
   applyPreviewLayout,
   startGroupHeaderMeasurement,
@@ -14,7 +15,6 @@ import {
   type LayoutResult,
 } from '@opsydyn/foldkit-zloz';
 import { Match, Result } from 'effect';
-import type { HtmlBuilder } from 'foldkit/html';
 
 import { alchemyGroupHeader, alchemyGroupHeaderSpec } from './alchemy-group-header';
 import { alchemyPreviewLabelSize } from './alchemy-labels';
@@ -452,9 +452,13 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
     Match.orElse(() => ({ model })),
   );
 }
-export function alchemyLayoutControls(model: Model, h: HtmlBuilder<Message>) {
+export function alchemyLayoutControls<M>(
+  model: Model,
+  h: Html.H<M>,
+  send: (message: Message) => M,
+) {
   const review = model.alchemyReview.review;
-  if (!review) return h.div([], []);
+  if (!review) return h.div;
   const { layout } = review,
     reason = alchemyLayoutReason(model),
     measured = alchemyLabelContext(model),
@@ -464,220 +468,192 @@ export function alchemyLayoutControls(model: Model, h: HtmlBuilder<Message>) {
       layout.header === 'measured' && heading.type !== 'ready' ? heading.reason : null,
     labelReason =
       layout.labels.mode === 'measured' && measured.type !== 'ready' ? measured.reason : null;
-  return h.section(
-    [h.AriaLabel('Descriptor preview layout'), h.Class('alchemy-layout-controls')],
-    [
-      h.h3([], ['Preview layout']),
-      h.label(
-        [],
-        [
-          'Group heading',
-          h.select(
-            [
-              h.AriaLabel('Group heading'),
-              h.Value(layout.header),
-              h.OnChange((header) =>
-                Message.SelectedAlchemyGroupHeader({
-                  id: review.id,
-                  header:
-                    header === 'measured'
-                      ? 'measured'
-                      : header === 'expanded'
-                        ? 'expanded'
-                        : 'default',
-                }),
-              ),
-            ],
-            [
-              h.option([h.Value('default')], ['Default heading']),
-              h.option([h.Value('expanded')], ['Expanded architecture heading']),
-              h.option([h.Value('measured')], ['Measure intrinsic heading']),
-            ],
+  return h.section
+    .attr('aria-label', 'Descriptor preview layout')
+    .class('alchemy-layout-controls')
+    .children(
+      h.h3.children('Preview layout'),
+      h.label.children(
+        'Group heading',
+        h.select
+          .attr('aria-label', 'Group heading')
+          .value(layout.header)
+          .on('change', ({ value: header }) =>
+            send(
+              Message.SelectedAlchemyGroupHeader({
+                id: review.id,
+                header:
+                  header === 'measured'
+                    ? 'measured'
+                    : header === 'expanded'
+                      ? 'expanded'
+                      : 'default',
+              }),
+            ),
+          )
+          .children(
+            h.option.attr('value', 'default').children('Default heading'),
+            h.option.attr('value', 'expanded').children('Expanded architecture heading'),
+            h.option.attr('value', 'measured').children('Measure intrinsic heading'),
           ),
-        ],
       ),
       ...(layout.header === 'measured'
         ? [
-            h.label(
-              [],
-              [
-                'Heading detail',
-                h.select(
-                  [
-                    h.AriaLabel('Heading detail'),
-                    h.Value(layout.heading.detail),
-                    h.OnChange((detail) =>
-                      Message.SelectedAlchemyHeadingDetail({
-                        id: review.id,
-                        detail: detail === 'provenance' ? 'provenance' : 'summary',
-                      }),
-                    ),
-                  ],
-                  [
-                    h.option([h.Value('summary')], ['Summary']),
-                    h.option([h.Value('provenance')], ['Provenance details']),
-                  ],
+            h.label.children(
+              'Heading detail',
+              h.select
+                .attr('aria-label', 'Heading detail')
+                .value(layout.heading.detail)
+                .on('change', ({ value: detail }) =>
+                  send(
+                    Message.SelectedAlchemyHeadingDetail({
+                      id: review.id,
+                      detail: detail === 'provenance' ? 'provenance' : 'summary',
+                    }),
+                  ),
+                )
+                .children(
+                  h.option.attr('value', 'summary').children('Summary'),
+                  h.option.attr('value', 'provenance').children('Provenance details'),
                 ),
-              ],
             ),
-            h.button(
-              [
-                h.Key('alchemy-heading-measure'),
-                h.Type('button'),
-                h.Disabled(
-                  heading.type !== 'pending' && (reason !== null || layout.pending !== null),
-                ),
-                h.OnClick(
+            h.button
+              .key('alchemy-heading-measure')
+              .attr('type', 'button')
+              .disabled(heading.type !== 'pending' && (reason !== null || layout.pending !== null))
+              .on(
+                'click',
+                send(
                   heading.type === 'pending'
                     ? Message.ClickedCancelAlchemyHeadings({ id: review.id })
                     : Message.ClickedMeasureAlchemyHeadings({ id: review.id }),
                 ),
-              ],
-              [
+              )
+              .children(
                 heading.type === 'pending'
                   ? 'Cancel heading measurement'
                   : 'Measure group headings',
-              ],
-            ),
-            h.p(
-              [h.AriaLabel('Heading measurement status'), h.Role('status')],
-              [
+              ),
+            h.p
+              .attr('aria-label', 'Heading measurement status')
+              .attr('role', 'status')
+              .children(
                 heading.type === 'ready'
                   ? `Measured ${heading.groupHeaders.length} group headings. Arrange to apply.`
                   : heading.reason,
-              ],
-            ),
+              ),
           ]
         : []),
-      h.p(
-        [],
-        ['ELK is opt-in. Arrange only this preview; source identity and findings stay unchanged.'],
+      h.p.children(
+        'ELK is opt-in. Arrange only this preview; source identity and findings stay unchanged.',
       ),
-      h.label(
-        [],
-        [
-          'Label sizing',
-          h.select(
-            [
-              h.AriaLabel('Label sizing'),
-              h.Value(layout.labels.mode),
-              h.OnChange((mode) =>
-                Message.SelectedAlchemyLabelMode({
-                  id: review.id,
-                  mode: mode === 'measured' ? 'measured' : 'declared',
-                }),
-              ),
-            ],
-            [
-              h.option([h.Value('declared')], ['Declared bounds']),
-              h.option([h.Value('measured')], ['Measure rendered badges']),
-            ],
+      h.label.children(
+        'Label sizing',
+        h.select
+          .attr('aria-label', 'Label sizing')
+          .value(layout.labels.mode)
+          .on('change', ({ value: mode }) =>
+            send(
+              Message.SelectedAlchemyLabelMode({
+                id: review.id,
+                mode: mode === 'measured' ? 'measured' : 'declared',
+              }),
+            ),
+          )
+          .children(
+            h.option.attr('value', 'declared').children('Declared bounds'),
+            h.option.attr('value', 'measured').children('Measure rendered badges'),
           ),
-        ],
       ),
       ...(layout.labels.mode === 'measured'
         ? [
-            h.label(
-              [],
-              [
-                'Badge detail',
-                h.select(
-                  [
-                    h.AriaLabel('Badge detail'),
-                    h.Value(layout.labels.detail),
-                    h.OnChange((detail) =>
-                      Message.SelectedAlchemyLabelDetail({
-                        id: review.id,
-                        detail: detail === 'expanded' ? 'expanded' : 'compact',
-                      }),
-                    ),
-                  ],
-                  [
-                    h.option([h.Value('compact')], ['Compact']),
-                    h.option([h.Value('expanded')], ['Expanded source badges']),
-                  ],
+            h.label.children(
+              'Badge detail',
+              h.select
+                .attr('aria-label', 'Badge detail')
+                .value(layout.labels.detail)
+                .on('change', ({ value: detail }) =>
+                  send(
+                    Message.SelectedAlchemyLabelDetail({
+                      id: review.id,
+                      detail: detail === 'expanded' ? 'expanded' : 'compact',
+                    }),
+                  ),
+                )
+                .children(
+                  h.option.attr('value', 'compact').children('Compact'),
+                  h.option.attr('value', 'expanded').children('Expanded source badges'),
                 ),
-              ],
             ),
-            h.button(
-              [
-                h.Key('alchemy-measure-action'),
-                h.Type('button'),
-                h.Disabled(!measuring && (reason !== null || layout.pending !== null)),
-                h.OnClick(
+            h.button
+              .key('alchemy-measure-action')
+              .attr('type', 'button')
+              .disabled(!measuring && (reason !== null || layout.pending !== null))
+              .on(
+                'click',
+                send(
                   measuring
                     ? Message.ClickedCancelAlchemyLabels({ id: review.id })
                     : Message.ClickedMeasureAlchemyLabels({ id: review.id }),
                 ),
-              ],
-              [measuring ? 'Cancel label measurement' : 'Measure label bounds'],
-            ),
-            h.p(
-              [h.AriaLabel('Label measurement status'), h.Role('status')],
-              [
+              )
+              .children(measuring ? 'Cancel label measurement' : 'Measure label bounds'),
+            h.p
+              .attr('aria-label', 'Label measurement status')
+              .attr('role', 'status')
+              .children(
                 measured.type === 'ready'
                   ? `Measured ${measured.edgeLabels.length} rendered labels. Arrange to apply.`
                   : measured.reason,
-              ],
-            ),
+              ),
           ]
         : []),
-      h.label(
-        [],
-        [
-          'Layout direction',
-          h.select(
-            [
-              h.Value(layout.direction),
-              h.Disabled(reason !== null || layout.pending !== null),
-              h.OnChange((direction) =>
-                Message.SelectedAlchemyLayoutDirection({
-                  id: review.id,
-                  direction: direction === 'DOWN' ? 'DOWN' : 'RIGHT',
-                }),
-              ),
-            ],
-            [
-              h.option([h.Value('RIGHT')], ['Left to right']),
-              h.option([h.Value('DOWN')], ['Top to bottom']),
-            ],
+      h.label.children(
+        'Layout direction',
+        h.select
+          .value(layout.direction)
+          .disabled(reason !== null || layout.pending !== null)
+          .on('change', ({ value: direction }) =>
+            send(
+              Message.SelectedAlchemyLayoutDirection({
+                id: review.id,
+                direction: direction === 'DOWN' ? 'DOWN' : 'RIGHT',
+              }),
+            ),
+          )
+          .children(
+            h.option.attr('value', 'RIGHT').children('Left to right'),
+            h.option.attr('value', 'DOWN').children('Top to bottom'),
           ),
-        ],
       ),
-      h.button(
-        [
-          h.Key('alchemy-layout-action'),
-          h.Type('button'),
-          h.Disabled(layout.pending === null && reason !== null),
-          h.AriaDisabled(
-            layout.pending === null && (labelReason !== null || headingReason !== null),
-          ),
-          ...((headingReason ?? labelReason)
-            ? [h.AriaDescription(headingReason ?? labelReason ?? '')]
-            : []),
-          h.OnClick(
+      h.button
+        .key('alchemy-layout-action')
+        .attr('type', 'button')
+        .disabled(layout.pending === null && reason !== null)
+        .attr(
+          'aria-disabled',
+          String(layout.pending === null && (labelReason !== null || headingReason !== null)),
+        )
+        .attr('aria-description', headingReason ?? labelReason ?? undefined)
+        .on(
+          'click',
+          send(
             layout.pending
               ? Message.ClickedCancelAlchemyLayout({ id: review.id })
               : Message.ClickedAlchemyLayout({ id: review.id }),
           ),
-        ],
-        [layout.pending ? 'Cancel preview layout' : 'Arrange preview with ELK'],
-      ),
-      h.button(
-        [
-          h.Type('button'),
-          h.Disabled(
-            reason !== null || (layout.displayed === 'original' && layout.pending === null),
-          ),
-          h.OnClick(Message.ClickedRestoreAlchemyLayout({ id: review.id })),
-        ],
-        ['Restore original preview'],
-      ),
-      h.p(
-        [h.AriaLabel('Preview layout mode')],
-        [layout.displayed === 'elk' ? 'ELK preview geometry' : 'Original descriptor geometry'],
-      ),
-      ...(reason ? [h.p([], [reason])] : []),
-    ],
-  );
+        )
+        .children(layout.pending ? 'Cancel preview layout' : 'Arrange preview with ELK'),
+      h.button
+        .attr('type', 'button')
+        .disabled(reason !== null || (layout.displayed === 'original' && layout.pending === null))
+        .on('click', send(Message.ClickedRestoreAlchemyLayout({ id: review.id })))
+        .children('Restore original preview'),
+      h.p
+        .attr('aria-label', 'Preview layout mode')
+        .children(
+          layout.displayed === 'elk' ? 'ELK preview geometry' : 'Original descriptor geometry',
+        ),
+      ...(reason ? [h.p.children(reason)] : []),
+    );
 }

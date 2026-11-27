@@ -59,7 +59,7 @@ import {
   type MotionPreference,
 } from '../appearance/preferences';
 import { publishTitle, titleChanges } from '../board-settings/channel';
-import * as DiagramImport from '../likec4/main';
+import * as DiagramImport from '../likec4/foldkit';
 import { requestLimit } from '../likec4/review';
 import * as Assessment from './assessment';
 import { bridgeEvent, isAuthoredGesture } from './bridge';

@@ -222,8 +222,24 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         writes.push(request.postData() ?? '');
     });
     try {
+      const initial = await fetch(`${origin}/app/${data.organizationId}/diagrams/new`, {
+        headers: { cookie: data.editor.cookie },
+      });
+      expect(initial.ok).toBe(true);
+      const imports: string[] = [];
+      await new HTMLRewriter()
+        .on('[data-effect-ui-root] > section[aria-label]', {
+          element: (element) => {
+            const label = element.getAttribute('aria-label');
+            if (label) imports.push(label);
+          },
+        })
+        .transform(initial)
+        .text();
+      expect(imports).toEqual(['LikeC4 import', 'Alchemy infrastructure import']);
       await page.goto(`${origin}/app/${data.organizationId}/diagrams/new`);
       const panel = page.getByRole('region', { name: 'LikeC4 import' });
+      await browserExpect(page.locator('astro-island[ssr]').filter({ has: panel })).toHaveCount(0);
       await panel
         .getByLabel('LikeC4 JSON file')
         .setInputFiles(fileURLToPath(new URL('./fixtures/likec4-view.json', import.meta.url)));
@@ -2307,6 +2323,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const owner = await session(data.owner.cookie);
     await editor.goto(boardUrl);
     const panel = editor.getByRole('region', { name: 'Alchemy infrastructure import' });
+    await browserExpect(editor.locator('astro-island[ssr]').filter({ has: panel })).toHaveCount(0);
     const snapshot = {
       format: 'foldkit-zloz-alchemy-infrastructure',
       version: 1,

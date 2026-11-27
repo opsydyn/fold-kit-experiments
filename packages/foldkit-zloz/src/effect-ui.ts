@@ -47,6 +47,7 @@ export {
 } from './viewport-controls';
 
 export { surfaceInput } from './effect-ui-input';
+export { endpointField, type NativeEndpointFieldOptions } from './effect-ui-endpoints';
 export type { NativeEdgeEditing } from './effect-ui-edge-editing';
 export type { ZlozEdgeLabelContext, ZlozEdgeLabelEditorContext } from './edge-label';
 export { viewportControl } from './effect-ui-viewport-control';

@@ -17,6 +17,11 @@ const ForwardRequest = Command.make(
   ({ host, message }) => Effect.sync(() => host.send(message)),
 );
 
+type PanelState<A> = Readonly<{
+  apply: (current: A, request: WorkbenchMessage) => A;
+  receive: (current: A, incoming: A) => A;
+}>;
+
 /** Temporary scoped child host for the controls that have moved off the FoldKit workbench. */
 export function architectureNativePanel<A>(
   name: string,
@@ -26,6 +31,7 @@ export function architectureNativePanel<A>(
     snapshot: A,
     request: (message: WorkbenchMessage) => M,
   ) => View.Content<M>,
+  state?: PanelState<A>,
 ) {
   class PanelSnapshot {
     constructor(readonly value: A) {}
@@ -47,9 +53,18 @@ export function architectureNativePanel<A>(
     init: ($) => $.set({ snapshot: $.props.snapshot }),
     update: ($, message) =>
       Message.match(message, {
-        ReceivedSnapshot: ({ snapshot }) => $.set({ snapshot }),
+        ReceivedSnapshot: ({ snapshot }) =>
+          $.set({
+            snapshot: state
+              ? new PanelSnapshot(state.receive($.model.snapshot.value, snapshot.value))
+              : snapshot,
+          }),
         Requested: ({ message }) =>
-          $.set($.model).run(
+          $.set(
+            state
+              ? { snapshot: new PanelSnapshot(state.apply($.model.snapshot.value, message)) }
+              : $.model,
+          ).run(
             ForwardRequest.make({ host: $.props.host, message }).pipe(
               Command.as(Message.ForwardedRequest()),
             ),

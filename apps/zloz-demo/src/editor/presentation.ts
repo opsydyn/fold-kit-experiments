@@ -1,7 +1,4 @@
 import {
-  resolveEndpointChoices,
-  type ZlozSearchableEndpoint,
-  type ZlozConnectionCreationContext,
   portBoundaryPosition,
   type Endpoint,
   type EditorEvent,
@@ -11,12 +8,6 @@ import {
   type Port,
 } from '@opsydyn/foldkit-zloz';
 import {
-  zlozEndpointSearchInput,
-  zlozEndpointSearchClear,
-  zlozEndpointSearchFeedback,
-  zlozConnectionCreationSelect,
-  zlozConnectionCreationReasons,
-  zlozConnectionCreationCancel,
   zlozDragHandle,
   zlozWorldOverlayItem,
   type ZlozWorldOverlayContext,
@@ -57,7 +48,6 @@ import {
 import type { HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
-import type { Model, PortChooserSearchField } from './model';
 
 export function targetAnchorGuide(context: ZlozPortAnchorGuideContext, h: HtmlBuilder<Message>) {
   const extent = 4 / context.viewport.zoom;
@@ -1079,160 +1069,5 @@ export function canvasStatusCard(context: ZlozCanvasStatusContext, h: HtmlBuilde
       }),
     ],
     [context.notice ?? summary],
-  );
-}
-
-/** A host-authored creation panel using the same public fields and model-owned workflow. */
-export function connectionCreationPanel(
-  context: ZlozConnectionCreationContext,
-  h: HtmlBuilder<Message>,
-  queries: Model['portChooserQueries'],
-) {
-  const options = { idPrefix: 'workbench-create' };
-  return h.div(
-    [
-      h.Role('group'),
-      h.AriaLabel('Create a connection'),
-      h.Class('workbench-connection-creation'),
-      h.Style({
-        padding: '14px',
-        margin: '12px 0',
-        border: '1px solid var(--flow-node-border, #cbd5e1)',
-        'border-radius': '12px',
-        background: 'var(--flow-node-background, #fff)',
-        color: 'var(--flow-node-color, #172033)',
-      }),
-    ],
-    [
-      h.div(
-        [
-          h.Style({
-            display: 'flex',
-            gap: '12px',
-            'align-items': 'center',
-            'justify-content': 'space-between',
-          }),
-        ],
-        [
-          h.strong([], ['New connection']),
-          zlozConnectionCreationCancel(
-            h,
-            context,
-            zlozEvent,
-            [h.Style({ padding: '6px 12px', 'border-radius': '8px' })],
-            ['Cancel choice'],
-          ),
-        ],
-      ),
-      h.div(
-        [h.Style({ display: 'flex', gap: '16px', 'flex-wrap': 'wrap', margin: '10px 0 0' })],
-        [context.source, context.target].map((field) => {
-          const key = field.end === 'source' ? 'creationSource' : 'creationTarget';
-          const fieldOptions = { ...options, query: queries[key], groupByNode: true };
-          return h.div(
-            [h.Key(field.end), h.Style({ flex: '1 1 220px', 'min-width': '0' })],
-            [
-              h.span(
-                [h.Style({ display: 'block', 'font-weight': '600', 'margin-bottom': '6px' })],
-                [field.end === 'source' ? '↗ From' : '↘ To'],
-              ),
-              portChooserSearch(field.entries, queries[key], key, h),
-              zlozConnectionCreationSelect(
-                h,
-                field,
-                zlozEvent,
-                [
-                  h.Style({
-                    width: '100%',
-                    'min-height': '36px',
-                    padding: '4px 8px',
-                    'border-radius': '8px',
-                  }),
-                ],
-                fieldOptions,
-              ),
-              zlozConnectionCreationReasons(
-                h,
-                field,
-                [h.Style({ 'font-size': '0.85rem' })],
-                fieldOptions,
-              ),
-            ],
-          );
-        }),
-      ),
-    ],
-  );
-}
-
-/** Host layout only: all matching, grouping and query input semantics come from the package. */
-export function portChooserSearch(
-  entries: readonly ZlozSearchableEndpoint[],
-  query: string,
-  field: PortChooserSearchField,
-  h: HtmlBuilder<Message>,
-) {
-  const result = resolveEndpointChoices(entries, { query });
-  const changed = (query: string) => Message.ChangedPortChooserSearch({ field, query });
-  const labels = {
-    creationSource: 'Search new connection sources',
-    creationTarget: 'Search new connection targets',
-    reconnectSource: 'Search reconnection sources',
-    reconnectTarget: 'Search reconnection targets',
-  } satisfies Record<PortChooserSearchField, string>;
-  const options = { idPrefix: `workbench-${field}`, label: labels[field] };
-  return h.div(
-    [],
-    [
-      h.div(
-        [h.Style({ display: 'flex', gap: '6px', margin: '6px 0' })],
-        [
-          zlozEndpointSearchInput(
-            h,
-            result,
-            changed,
-            [
-              h.Placeholder('Find a node or port…'),
-              h.Style({
-                flex: '1',
-                'min-width': '0',
-                'min-height': '32px',
-                padding: '4px 8px',
-                'border-radius': '8px',
-              }),
-            ],
-            options,
-          ),
-          zlozEndpointSearchClear(
-            h,
-            changed,
-            [
-              h.AriaLabel(`Clear ${labels[field].toLowerCase()}`),
-              h.Style({ padding: '4px 8px', 'border-radius': '8px' }),
-            ],
-            ['Clear'],
-          ),
-        ],
-      ),
-      // The select's reasons show the same no-results text; keep the input's live feedback available without a second visible copy.
-      zlozEndpointSearchFeedback(
-        h,
-        result,
-        [
-          h.Style({
-            position: 'absolute',
-            width: '1px',
-            height: '1px',
-            padding: '0',
-            margin: '-1px',
-            overflow: 'hidden',
-            clip: 'rect(0, 0, 0, 0)',
-            'white-space': 'nowrap',
-            border: '0',
-          }),
-        ],
-        options,
-      ),
-    ],
   );
 }

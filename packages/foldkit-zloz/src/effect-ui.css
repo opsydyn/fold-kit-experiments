@@ -608,3 +608,41 @@
 .zloz-ui-edge-label-editor :is(button, input) {
   min-height: 28px;
 }
+
+.zloz-ui-endpoint-field > label {
+  display: block;
+  font-weight: 650;
+}
+.zloz-ui-endpoint-field > select {
+  width: 100%;
+  min-height: 36px;
+  margin-block: 6px;
+}
+.zloz-ui-endpoint-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-block: 6px;
+}
+.zloz-ui-endpoint-search input {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.zloz-ui-endpoint-search button {
+  padding-inline: 8px;
+}
+.zloz-ui-endpoint-search-feedback {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.zloz-ui-endpoint-reasons {
+  font-size: 0.85rem;
+}

@@ -119,6 +119,12 @@ button, input, select { font: inherit; }
 .svg-finding-card { border: 1px solid var(--rule); padding: 10px; border-radius: 8px; margin-bottom: 8px; list-style: none; }
 .workbench-sidebar-scroll input, .workbench-sidebar-scroll select { max-width: 100%; box-sizing: border-box; }
 .workbench-sidebar-scroll select { min-width: 0; width: 100%; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+.workbench-connection-creation, .workbench-endpoint-field { border: 1px solid var(--flow-node-border, #cbd5e1); border-radius: 10px; background: var(--flow-node-background, #fff); padding: 10px; margin-block: 6px; }
+.workbench-connection-creation { padding: 14px; margin-block: 12px; }
+.workbench-connection-creation-header { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.workbench-connection-creation-header button { padding-inline: 12px; }
+.workbench-connection-creation-fields { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+.workbench-connection-creation-fields > * { flex: 1 1 220px; min-width: 0; }
 .workbench-field { display: grid; gap: 6px; margin: 16px 0; }
 .workbench-field:has(input[type='checkbox']) { display: flex; align-items: flex-start; gap: 8px; }
 .workbench-field input[type='checkbox'] { margin-top: 3px; flex: 0 0 auto; }

@@ -66,8 +66,6 @@ import {
   type ZlozDddNodeOptions,
   type ZlozC4NodeOptions,
   createZlozNodeBodyCache,
-  zlozEdgeEndpointSelect,
-  zlozEdgeEndpointReasons,
   zlozPortLabel,
   zlozPortAnchorHandle,
   portInspectorContext,
@@ -136,6 +134,7 @@ import {
   PortSnapPriority,
 } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endpoints';
 import { architecturePalettePanel } from './native-palette';
 import { packetReaderPanel } from './packet-reader';
 import { workbenchPlacement } from './palette';
@@ -159,8 +158,6 @@ import {
   releaseGateAnnotation,
   compactNodeToolbar,
   compactEdgeToolbar,
-  connectionCreationPanel,
-  portChooserSearch,
   customContextMenu,
   connectionRows,
   labeledResizeReadout,
@@ -593,45 +590,17 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     padding: '3px 9px',
     'font-size': '0.85rem',
   };
-  const endpointFields = selectedEdge
-    ? (['source', 'target'] as const).flatMap((end) => {
-        const context = resolveEdgeReconnection(model.editor, selectedEdge.id, end, policy);
-        if (!context) return [];
-        const key = end === 'source' ? 'reconnectSource' : 'reconnectTarget';
-        const options = {
-          idPrefix: 'workbench-endpoint',
-          query: model.portChooserQueries[key],
-          groupByNode: true,
-        };
-        return [
-          h.div(
-            [
-              h.Key(end),
-              h.Class('workbench-endpoint-field'),
-              h.Style({
-                padding: '10px',
-                margin: '6px 0',
-                border: '1px solid var(--flow-node-border, #cbd5e1)',
-                'border-radius': '10px',
-                background: 'var(--flow-node-background, #fff)',
-              }),
-            ],
-            [
-              h.strong([], [end === 'source' ? '↗ Source port' : '↘ Target port']),
-              portChooserSearch(context.entries, model.portChooserQueries[key], key, h),
-              zlozEdgeEndpointSelect(
-                h,
-                context,
-                (message) => observedInput({ message }),
-                [h.Style({ width: '100%', 'min-height': '36px', margin: '6px 0' })],
-                options,
-              ),
-              zlozEdgeEndpointReasons(h, context, [h.Style({ 'font-size': '0.85rem' })], options),
-            ],
-          ),
-        ];
-      })
-    : [];
+  const endpointScope = { modelId, epoch, queries: model.portChooserQueries };
+  const endpointFields =
+    selectedEdge &&
+    !model.minimalMode &&
+    model.sidebarSection === 'inspect' &&
+    !model.sidebarCollapsed
+      ? (['source', 'target'] as const).flatMap((end) => {
+          const field = resolveEdgeReconnection(model.editor, selectedEdge.id, end, policy);
+          return field ? [field] : [];
+        })
+      : [];
   const edgeHooks: WorkbenchEdgeHooks = {};
   if (model.edgeDesign === 'raised') edgeHooks.edgeGeometry = raisedEdge;
   if (model.editor.graph.edges.some((edge) => edge.id === 'storage-application'))
@@ -3143,7 +3112,16 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.div(
               [h.Role('group'), h.AriaLabel('Selected connection')],
               [
-                ...endpointFields,
+                ...(endpointFields.length
+                  ? [
+                      nativeSelectedEndpoints(
+                        h,
+                        { ...endpointScope, fields: endpointFields },
+                        'architecture-effect-ui',
+                        'connection-endpoints',
+                      ),
+                    ]
+                  : []),
                 h.label(
                   [],
                   [
@@ -3728,9 +3706,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ? (context, builder) => customWaypointControls(context, builder, zlozInput)
               : undefined,
           edgeReconnection: true,
-          connectionCreation: true,
+          connectionCreation: model.sidebarSection === 'ports' && !model.sidebarCollapsed,
           renderConnectionCreation: (context, builder) =>
-            connectionCreationPanel(context, builder, model.portChooserQueries),
+            nativeConnectionCreation(
+              builder,
+              { ...endpointScope, context },
+              'architecture-effect-ui',
+              'connection-creation',
+            ),
           canConnect: policy.canConnect,
           canDelete: policy.canDelete,
           canReconnect: policy.canReconnect,

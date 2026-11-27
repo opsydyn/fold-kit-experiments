@@ -1,33 +1,31 @@
-import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
+import { plotChart } from '@opsydyn/foldkit-viz/effect-ui/plot';
 import { compilePlot } from '@opsydyn/foldkit-viz/plot';
 import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { BIN_CHOICES, KINDS, ROWS } from './engine';
 import { Message } from './message';
 import type { Model, Ran } from './model';
+import { RunDuckDB } from './mount';
 
 import * as styles from './duckdb.css';
 
 const thousands = (n: number): string => n.toLocaleString('en-US');
 
 const choice = (
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   label: string,
   pressed: boolean,
   message: Message,
   busy: boolean,
-): Html =>
-  h.button(
-    [
-      h.Type('button'),
-      h.Class(styles.button),
-      h.AriaPressed(pressed ? 'true' : 'false'),
-      h.Disabled(busy),
-      h.OnClick(message),
-    ],
-    [label],
-  );
+) =>
+  h.button
+    .class(styles.button)
+    .attrs({ type: 'button', 'aria-pressed': String(pressed) })
+    .disabled(busy)
+    .on('click', message)
+    .children(label);
 
 // SAFETY: a Ran's specs are the ones engine.run returned, carried through the Message as JSON.
 const specOf = (spec: Ran['histogram']): PlotSpec => spec as PlotSpec;
@@ -53,80 +51,66 @@ const status = (model: Model): string => {
   }
 };
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+export const view = (h: Html.H<Message>, model: Model) => {
   const ready = model.engine === 'ready';
   const busy = model.querying || model.engine === 'starting';
-  return {
-    title: 'Query a million rows in your browser — foldkit-viz',
-    body: h.div(
-      [h.Class(styles.page)],
-      [
-        h.p(
-          [],
-          [
-            'DuckDB, compiled to WebAssembly, holds a million requests in this page. foldkit-viz pushes each chart’s bins into it as SQL, so DuckDB counts and only the counts come back to draw: the same charts binning every row would draw.',
-          ],
-        ),
-        ...(ready
-          ? []
-          : [
-              h.div(
-                [h.Class(styles.toolbar)],
-                [
-                  h.button(
-                    [
-                      h.Type('button'),
-                      h.Class(styles.button),
-                      h.Disabled(busy),
-                      h.OnClick(Message.ClickedLoad()),
-                    ],
-                    [model.engine === 'failed' ? 'Try again' : 'Load DuckDB'],
-                  ),
-                ],
-              ),
-            ]),
-        h.div(
-          [h.Class(styles.toolbar), h.Role('group'), h.AriaLabel('Bins')],
-          [
-            h.span([h.Class(styles.label)], ['Bins']),
-            ...BIN_CHOICES.map((bins) =>
-              choice(
-                h,
-                String(bins),
-                model.bins === bins,
-                Message.SelectedBins({ bins }),
-                busy || !ready,
-              ),
-            ),
-          ],
-        ),
-        h.div(
-          [h.Class(styles.toolbar), h.Role('group'), h.AriaLabel('Kind')],
-          [
-            h.span([h.Class(styles.label)], ['Kind']),
-            ...KINDS.map((kind) =>
-              choice(h, kind, model.kind === kind, Message.SelectedKind({ kind }), busy || !ready),
-            ),
-          ],
-        ),
-        h.p([h.Class(styles.readout), h.AriaLive('polite')], [status(model)]),
-        ...(model.ran === null
-          ? []
-          : [
-              h.div(
-                [h.Class(styles.surface)],
-                [plotChart(h, compilePlot(specOf(model.ran.histogram)))],
-              ),
-              h.div([h.Class(styles.surface)], [plotChart(h, compilePlot(specOf(model.ran.grid)))]),
-              h.details(
-                [],
-                [
-                  h.summary([], [`The ${model.ran.statements.length} statements sent to DuckDB`]),
-                  ...model.ran.statements.map((sql) => h.pre([h.Class(styles.sql)], [sql.trim()])),
-                ],
-              ),
-            ]),
-      ],
+  const running = ready || model.engine === 'starting';
+  const { ran } = model;
+  return h.div.class(styles.page).children(
+    h.p(
+      'DuckDB, compiled to WebAssembly, holds a million requests in this page. Foldkit Viz pushes each chart’s bins into it as SQL, and draws the counts DuckDB returns.',
     ),
-  };
+    running &&
+      h.span
+        .attr('hidden', '')
+        .onMount(
+          Mount.map(
+            RunDuckDB({ revision: model.revision, bins: model.bins, kind: model.kind }),
+            (message) => message,
+          ),
+        )
+        .children(),
+    !ready &&
+      h.div.class(styles.toolbar).children(
+        h.button
+          .class(styles.button)
+          .attr('type', 'button')
+          .disabled(busy)
+          .on('click', Message.ClickedLoad())
+          .children(model.engine === 'failed' ? 'Try again' : 'Load DuckDB'),
+      ),
+    h.div
+      .class(styles.toolbar)
+      .attrs({ role: 'group', 'aria-label': 'Bins' })
+      .children(
+        h.span.class(styles.label).children('Bins'),
+        ...BIN_CHOICES.map((bins) =>
+          choice(
+            h,
+            String(bins),
+            model.bins === bins,
+            Message.SelectedBins({ bins }),
+            busy || !ready,
+          ),
+        ),
+      ),
+    h.div
+      .class(styles.toolbar)
+      .attrs({ role: 'group', 'aria-label': 'Kind' })
+      .children(
+        h.span.class(styles.label).children('Kind'),
+        ...KINDS.map((kind) =>
+          choice(h, kind, model.kind === kind, Message.SelectedKind({ kind }), busy || !ready),
+        ),
+      ),
+    h.p.class(styles.readout).attr('aria-live', 'polite').children(status(model)),
+    ran !== null && [
+      h.div.class(styles.surface).children(plotChart(h, compilePlot(specOf(ran.histogram)))),
+      h.div.class(styles.surface).children(plotChart(h, compilePlot(specOf(ran.grid)))),
+      h.details(
+        h.summary(`The ${ran.statements.length} statements sent to DuckDB`),
+        ...ran.statements.map((sql) => h.pre.class(styles.sql).children(sql.trim())),
+      ),
+    ],
+  );
 };

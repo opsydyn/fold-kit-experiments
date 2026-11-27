@@ -1,7 +1,16 @@
+import { Html } from '@effect/ui/html';
+
 import { Message } from './message';
 import { init, Model } from './model';
-import { managedResources } from './resource';
 import { update } from './update';
 import { view } from './view';
 
-export { init, managedResources, Message, Model, update, view };
+export const DuckDB = Html.component({
+  name: 'DuckDBExplorer',
+  model: Model,
+  message: Message,
+}).make({
+  init: () => init({}).model,
+  update: ($, message) => update($.model, message),
+  view,
+});

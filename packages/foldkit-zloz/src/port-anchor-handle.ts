@@ -1,13 +1,13 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { attributesWithGeometry, zlozWorldOverlayItem } from './composition';
-import type { ZlozPortAnchorSnapBypassModifier } from './input-message';
 import {
   portAnchorHandleContexts,
   portAnchorHandleTitle,
   type ZlozPortAnchorHandleContext,
   type ZlozPortAnchorHandleOptions,
 } from './port-anchor-presentation';
+import type { ZlozPortAnchorSnapBypassModifier } from './types';
 import type { EditorPolicy, EditorState, ZlozNode } from './types';
 
 export type {

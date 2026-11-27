@@ -65,8 +65,8 @@ export {
 } from './edge-endpoint';
 export type { ZlozEdgeEndpointOptions } from './edge-endpoint';
 
-import type { ZlozPortAnchorSnapBypassModifier } from './input-message';
-export type { ZlozPortAnchorSnapBypassModifier } from './input-message';
+import type { ZlozPortAnchorSnapBypassModifier } from './types';
+export type { ZlozPortAnchorSnapBypassModifier } from './types';
 export {
   portPositionDraft,
   updatePortPositionDraft,

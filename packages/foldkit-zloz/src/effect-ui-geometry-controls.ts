@@ -2,7 +2,6 @@ import type { View } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 
 import type { NativePortControl } from './effect-ui-ports';
-import type { ZlozPortAnchorSnapBypassModifier } from './input-message';
 import { resolvePortAnchorGuides, type ZlozPortAnchorGuideContext } from './port-anchor-guides';
 import {
   portAnchorHandleContexts,
@@ -10,7 +9,14 @@ import {
   type ZlozPortAnchorHandleContext,
   type ZlozPortAnchorHandleOptions,
 } from './port-anchor-presentation';
-import type { EditorEvent, EditorPolicy, EditorState, Point, ZlozNode } from './types';
+import type {
+  EditorEvent,
+  EditorPolicy,
+  EditorState,
+  Point,
+  ZlozNode,
+  ZlozPortAnchorSnapBypassModifier,
+} from './types';
 import type { ZlozEdgeWaypointAction, ZlozEdgeWaypointControlsContext } from './waypoint-controls';
 
 const position = (point: Point) => ({ left: `${point.x}px`, top: `${point.y}px` });

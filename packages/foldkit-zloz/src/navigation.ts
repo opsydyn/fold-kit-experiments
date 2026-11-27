@@ -14,8 +14,7 @@ export {
   type ZlozViewportControl,
 } from './viewport-controls';
 
-/** Wheel behavior inside the canvas. Pan mode uses Ctrl/Command-wheel to zoom. */
-export type ZlozWheelNavigation = 'zoom' | 'pan' | 'off';
+export type { ZlozWheelNavigation } from './canvas-accessibility';
 
 export type ZlozViewportControlsContext = Readonly<{
   state: EditorState;

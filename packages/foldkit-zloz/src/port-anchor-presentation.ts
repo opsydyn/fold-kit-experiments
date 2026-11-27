@@ -1,11 +1,11 @@
 import { finitePoint, portAnchor } from './geometry';
-import type { ZlozPortAnchorSnapBypassModifier } from './input-message';
 import { resolvePortAnchorSnapSettings } from './port-anchor-snap';
 import { portEditReason } from './port-edit';
 import type {
   EditorPolicy,
   EditorState,
   ZlozNode,
+  ZlozPortAnchorSnapBypassModifier,
   Point,
   Port,
   PortCorner,

@@ -1,8 +1,10 @@
 import { Effect, Match, Queue, Stream } from 'effect';
 import { Mount } from 'foldkit';
+import { defineMessageUnion } from 'foldkit/message';
 
+import { BrowserInput } from './browser-input';
 import { bindInput, bindMinimapInput } from './input';
-import { InputMessage, type BrowserInput } from './input-message';
+const InputMessage = defineMessageUnion({ ObservedZlozInput: { event: BrowserInput } });
 
 function inputs(element: Element): Stream.Stream<BrowserInput> {
   return Stream.callback<BrowserInput>((queue) => {

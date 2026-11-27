@@ -1,5 +1,7 @@
-import type { ZlozWheelNavigation } from './navigation';
 import type { EditorState } from './types';
+
+/** Wheel behavior inside the canvas. Pan mode uses Ctrl/Command-wheel to zoom. */
+export type ZlozWheelNavigation = 'zoom' | 'pan' | 'off';
 
 /** Instructions for the current canvas interaction mode. */
 export type ZlozCanvasHelpContext = Readonly<{

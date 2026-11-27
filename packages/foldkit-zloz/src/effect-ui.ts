@@ -44,7 +44,11 @@ import { resolveEdgeWaypointControls, waypointLabelPosition } from './waypoint-c
 import { resolveEdgeWaypointPreview } from './waypoint-interaction';
 
 export { canvasHelpContext, canvasStatusContext } from './canvas-accessibility';
-export type { ZlozCanvasHelpContext, ZlozCanvasStatusContext } from './canvas-accessibility';
+export type {
+  ZlozCanvasHelpContext,
+  ZlozCanvasStatusContext,
+  ZlozWheelNavigation,
+} from './canvas-accessibility';
 export { resolveConnectionList, toolbarControl } from './connections';
 export type { ZlozConnectionsContext } from './connections';
 export { visuallyHidden } from './diagnostics';

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 
 import { Schema } from 'effect';
 
-import { BrowserInput } from '../src/input-message';
+import { BrowserInput } from '../src/browser-input';
 
 test('native browser input decoding retains explicit chooser intent', () => {
   const event = {

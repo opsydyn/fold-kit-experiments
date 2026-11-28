@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.13.1...astro-foldkit-v1.0.0) (2026-11-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **astro-foldkit:** forward to the standalone Effect UI renderer
+
+### Features
+
+* **astro-foldkit:** forward to the standalone Effect UI renderer ([37de015](https://github.com/opsydyn/fold-kit-experiments/commit/37de015a29d86302c81d2c0b8ddea36cf1e100f8))
+
 ## [0.13.1](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.13.0...astro-foldkit-v0.13.1) (2026-11-23)
 
 ### Bug Fixes

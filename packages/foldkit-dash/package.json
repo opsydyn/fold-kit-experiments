@@ -31,7 +31,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test ./test --path-ignore-patterns='**/browser.test.ts'",
+    "test": "bun test ./test --path-ignore-patterns='**/browser.test.ts' --path-ignore-patterns='**/csv.test.ts' && vitest run",
     "test:e2e": "bun test ./test/browser.test.ts"
   },
   "dependencies": {
@@ -43,9 +43,11 @@
     "parse5": "8.0.1"
   },
   "devDependencies": {
+    "@opsydyn/testing": "workspace:*",
     "bun-types": "catalog:",
     "playwright": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "bun": ">=1.4.0"

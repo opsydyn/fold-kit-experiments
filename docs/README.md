@@ -29,11 +29,9 @@ search and navigation.
 
 ## Mutant field guide
 
-A mutation test changes a small piece of code and runs the tests to see whether they catch it.
-[Browse the live field guide by workspace](https://opsydyn-web.opsydyn.workers.dev/mutant-field-guide#inventory-title),
-then open a specimen to follow its verdict across runs. **Caught** means a test detected the change.
-**Survived** means the tests still passed. Each archived observation links to its GitHub Actions run.
-The [archive notes](spikes/mutant-cafe.md#field-guide-history) explain how results reach the guide.
+Meet **The endless one**. Swap the scatter plot’s paint effect for `Effect.never` and the caller waits forever. Its portrait has two eyes for an Effect mutation and a loop for the wait. Follow its sightings from **Survived** to **Caught** to find the run where the tests finally noticed. Keep an eye on Cthulhu’s tentacles. [Inspect The endless one](https://opsydyn-web.opsydyn.workers.dev/mutant-field-guide/088431c5ccfa86175c2fdbce).
+
+To go specimen hunting, pick a workspace and open its specimen count. **Outcomes in last run** tells you what happened on the latest expedition. The shelf keeps every distinct mutant seen there, and the markings come from its ID so you can recognise the same one next time. Each dated sighting links to the GitHub Actions attempt that recorded it. [Browse the live field guide](https://opsydyn-web.opsydyn.workers.dev/mutant-field-guide#inventory-title).
 
 ## Adding to it
 

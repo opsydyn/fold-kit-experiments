@@ -498,9 +498,11 @@
         "parse5": "8.0.1",
       },
       "devDependencies": {
+        "@opsydyn/testing": "workspace:*",
         "bun-types": "catalog:",
         "playwright": "catalog:",
         "typescript": "catalog:",
+        "vitest": "catalog:",
       },
     },
     "packages/foldkit-phosphor": {

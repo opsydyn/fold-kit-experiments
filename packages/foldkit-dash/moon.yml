@@ -1,11 +1,12 @@
 # Each task is the package script of the same name without its dependency
 # builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
+tags: ['foldkit-vitest']
 tasks:
   typecheck:
     script: 'tsc --noEmit'
     deps: ['^:build']
   test:
-    script: "bun test ./test --path-ignore-patterns='**/browser.test.ts'"
+    script: "bun test ./test --path-ignore-patterns='**/browser.test.ts' --path-ignore-patterns='**/csv.test.ts' && vitest run"
     deps: ['^:build']
   e2e:
     script: 'bun test ./test/browser.test.ts'

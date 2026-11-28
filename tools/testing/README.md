@@ -22,6 +22,8 @@ Moon reuses cached results on later runs. Use `bun run ci:clean -- test` to exer
 
 The [Dataset Explorer cache advisory](../../.github/workflows/dataset-cache-advisory.yml) runs the web cache tests against two generated constant keys and one custom station-only key. The artifact includes the control and per-specimen Vitest reports. The [field guide](https://opsydyn-web.opsydyn.workers.dev/mutant-field-guide#inventory-title) archives the verdicts under the package that owns the cache.
 
+The [Dash CSV advisory](../../.github/workflows/dash-csv-advisory.yml) tests seven replacements for `typed`, the function that turns CSV cells into values. Run the control with `bun run test:vitest run --project foldkit-dash`. To replay the mutants locally, install the [pinned tool](../../tools/mutant-cafe/package.json) with `npm ci --prefix tools/mutant-cafe`, then run `bash tools/mutant-cafe/dash-csv.sh "$(mktemp -d)"` from the repo root. The [field guide notes](../../docs/spikes/mutant-cafe.md#field-guide-history) explain how to read the verdicts.
+
 ## P0 tests
 
 Use the shared Vitest tag `{ tags: ['p0'] }` on a test when its failure would justify holding a release. Name the user impact in the test. The first two [Zloz history tests tagged P0](../../apps/zloz-demo/test/history.test.ts) protect the working document and undo history when someone reviews an older edition and returns to the present.

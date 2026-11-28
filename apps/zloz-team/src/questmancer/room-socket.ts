@@ -15,13 +15,22 @@ export const roomSocket = (api: string) =>
         if (isNotice(data)) Queue.offerUnsafe(queue, data);
       };
       const closed = () => Queue.endUnsafe(queue);
+      // A backgrounded tab can miss a notice without seeing a socket close.
+      // Reopening reads the current room and party Ledger on the existing reconnect path.
+      const resumed = () => {
+        if (document.visibilityState === 'visible') closed();
+      };
+      window.addEventListener('focus', resumed);
+      document.addEventListener('visibilitychange', resumed);
       socket.addEventListener('open', opened);
       socket.addEventListener('message', received);
       socket.addEventListener('close', closed);
-      return { socket, opened, received, closed };
+      return { socket, opened, received, closed, resumed };
     });
-    return Effect.acquireRelease(connect, ({ socket, opened, received, closed }) =>
+    return Effect.acquireRelease(connect, ({ socket, opened, received, closed, resumed }) =>
       Effect.sync(() => {
+        window.removeEventListener('focus', resumed);
+        document.removeEventListener('visibilitychange', resumed);
         socket.removeEventListener('open', opened);
         socket.removeEventListener('message', received);
         socket.removeEventListener('close', closed);

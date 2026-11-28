@@ -296,6 +296,20 @@ test('Questmancer opens one private table for a DM and three distinct player sea
             socket.on('framereceived', ({ payload }) => playerFrames.push(String(payload)));
         });
       }
+      const miraPage = invitedPages[0]!;
+      let dropMiraReveal = false;
+      let missedMiraReveal = false;
+      await miraPage.routeWebSocket(livePath, (socket) => {
+        socket.connectToServer().onMessage((message) => {
+          if (dropMiraReveal && message === 'room') {
+            dropMiraReveal = false;
+            missedMiraReveal = true;
+            return;
+          }
+          socket.send(message);
+        });
+      });
+
       let wicketRoute: WebSocketRoute | undefined;
       let wicketDisconnected = false;
       let wicketConnections = 0;
@@ -421,17 +435,22 @@ test('Questmancer opens one private table for a DM and three distinct player sea
       await beforeReveal.close({ code: 1012 });
       await browserExpect(wicketPage.getByText('Reconnecting to the room…')).toBeVisible();
       await capture(wicketPage.getByRole('main'), 'player-reconnecting');
+      dropMiraReveal = true;
+      const miraDocument = await miraPage.evaluate(() => performance.timeOrigin);
       await dm.getByRole('button', { name: 'Reveal room', exact: true }).click();
       await browserExpect(dm).toHaveTitle('The Moonwell Observatory · Questmancer');
-      await Promise.all(
-        pages
-          .slice(0, 2)
-          .map((page) =>
-            browserExpect(
-              page.getByRole('heading', { name: 'The Moonwell Observatory', exact: true }),
-            ).toBeVisible(),
-          ),
-      );
+      await browserExpect(
+        pages[1]!.getByRole('heading', { name: 'The Moonwell Observatory', exact: true }),
+      ).toBeVisible();
+      await browserExpect.poll(() => missedMiraReveal).toBe(true);
+      await browserExpect(
+        miraPage.getByRole('heading', { name: 'The Aurora Gate', exact: true }),
+      ).toBeVisible();
+      await miraPage.evaluate(() => window.dispatchEvent(new FocusEvent('focus')));
+      await browserExpect(
+        miraPage.getByRole('heading', { name: 'The Moonwell Observatory', exact: true }),
+      ).toBeVisible();
+      expect(await miraPage.evaluate(() => performance.timeOrigin)).toBe(miraDocument);
       await browserExpect(
         wicketPage.getByRole('heading', { name: 'The Aurora Gate' }),
       ).toBeVisible();

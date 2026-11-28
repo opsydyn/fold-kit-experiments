@@ -46,6 +46,18 @@ test('public engine arranges mixed cards deterministically and integrates with c
       ).toBe(true);
 });
 
+test('force layout accepts 100 flat nodes and rejects the 101st', () => {
+  const nodes = Array.from({ length: 101 }, (_, index) => ({
+    id: String(index),
+    label: String(index),
+    position: { x: index * 200, y: 0 },
+    size: { width: 140, height: 80 },
+    ports: [],
+  }));
+  expect(supportsForceLayout({ nodes: nodes.slice(0, 100), edges: [] })).toBe(true);
+  expect(supportsForceLayout({ nodes, edges: [] })).toBe(false);
+});
+
 test('public engine rejects unsupported and malformed graphs', async () => {
   const engine = createForceLayout();
   const empty = { nodes: [], edges: [] };

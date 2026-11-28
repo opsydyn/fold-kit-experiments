@@ -1,0 +1,55 @@
+name: Force eligibility mutation advisory
+
+on:
+  pull_request:
+    paths:
+      - 'packages/foldkit-zloz-force/src/**'
+      - 'packages/foldkit-zloz-force/package.json'
+      - 'packages/foldkit-zloz-force/test/layout.test.ts'
+      - '.github/workflows/force-eligibility-advisory.yml'
+      - 'tools/mutant-cafe/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: force-eligibility-mutation-advisory-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  force-eligibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - run: bun install --frozen-lockfile
+
+      - name: Install the locked mutation tool
+        run: npm ci --prefix tools/mutant-cafe
+
+      - name: Build layout dependencies
+        run: bun moon run foldkit-zloz:build foldkit-viz:build
+
+      - name: Replay the two generated booleans and the custom 100-node limit
+        run: python3 tools/mutant-cafe/force_eligibility.py "$RUNNER_TEMP/force-eligibility"
+
+      - name: Upload replay and test evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ github.run_attempt == 1 && 'force-eligibility-outcomes' || format('force-eligibility-outcomes-{0}', github.run_attempt) }}
+          path: ${{ runner.temp }}/force-eligibility/
+          if-no-files-found: error

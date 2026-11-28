@@ -2349,5 +2349,42 @@
         "description": "replace typed -> Value with \"xyzzy\""
       }
     ]
+  },
+  {
+    "workspace": "packages/foldkit-viz",
+    "selected": 3,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 46161873424,
+    "attempt": 1,
+    "commit": "b501c2afea2197649aa6a2c5b5254cfa798857a7",
+    "startedAt": "2026-11-28T15:49:20Z",
+    "reportSha256": "52dea20b4f7d973f0bfaec5287a8e0d71e22892a0352d85b5720109572c7371d",
+    "entries": [
+      {
+        "id": "47434606e330580e5ef0a603",
+        "file": "src/chart/layout.ts",
+        "fn": "linearLabels",
+        "genre": "FnValue",
+        "line": 197,
+        "outcome": "caught"
+      },
+      {
+        "id": "cec254c4a128d942fd973c7a",
+        "file": "src/chart/layout.ts",
+        "fn": "linearLabels",
+        "genre": "FnValue",
+        "line": 197,
+        "outcome": "caught"
+      },
+      {
+        "id": "fcf999e3071a382b77893676",
+        "file": "src/chart/layout.ts",
+        "fn": "linearLabels",
+        "genre": "FnValue",
+        "line": 197,
+        "outcome": "caught"
+      }
+    ]
   }
 ]

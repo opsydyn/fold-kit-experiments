@@ -2233,5 +2233,45 @@
         "description": "Custom replay: use the station alone as the cache key, sharing API and fixture snapshots."
       }
     ]
+  },
+  {
+    "workspace": "packages/foldkit-zloz-force",
+    "selected": 3,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 46156311705,
+    "attempt": 1,
+    "commit": "ad02fbf121f0d2f0a21dd537d7010ee24d470929",
+    "startedAt": "2026-11-28T14:45:42Z",
+    "reportSha256": "301a5dce7414eb8d71f4b71bb18d64d452b69b3253fecdc466dad15d35443fa2",
+    "entries": [
+      {
+        "id": "25f6e7a1f32b5d48e973cc3e",
+        "file": "src/eligibility.ts",
+        "fn": "supportsForceLayout",
+        "genre": "BooleanFlip",
+        "line": 8,
+        "outcome": "caught",
+        "description": "replace supportsForceLayout -> boolean with true"
+      },
+      {
+        "id": "a9dc6120552401178a9a94b3",
+        "file": "src/eligibility.ts",
+        "fn": "supportsForceLayout",
+        "genre": "BooleanFlip",
+        "line": 8,
+        "outcome": "caught",
+        "description": "replace supportsForceLayout -> boolean with false"
+      },
+      {
+        "id": "94ba87299bf7bc8a744ca68c",
+        "file": "src/eligibility.ts",
+        "fn": "supportsForceLayout",
+        "genre": "CustomExclusiveLimit",
+        "line": 8,
+        "outcome": "caught",
+        "description": "Custom replay: reject a flat graph with exactly 100 nodes."
+      }
+    ]
   }
 ]

@@ -1762,6 +1762,35 @@
     ]
   },
   {
+    "workspace": "apps/zloz-demo",
+    "selected": 9,
+    "budgetSkipped": 7,
+    "failed": false,
+    "run": 46145216072,
+    "attempt": 1,
+    "commit": "b9f4b52f433c3e0b2dbbfad900b87d2e274878dd",
+    "startedAt": "2026-11-28T12:33:02Z",
+    "reportSha256": "f2546170506d25f92c0a32c3b04487c7dd09212d458f63874cef2014f452b545",
+    "entries": [
+      {
+        "id": "540cc4f702e0c758be088d29",
+        "file": "src/editor/history.ts",
+        "fn": "historyAllowsMessage",
+        "genre": "BooleanFlip",
+        "line": 15,
+        "outcome": "caught"
+      },
+      {
+        "id": "d5223e92e3ce78e8f0b2e676",
+        "file": "src/editor/history.ts",
+        "fn": "historyAllowsMessage",
+        "genre": "BooleanFlip",
+        "line": 15,
+        "outcome": "caught"
+      }
+    ]
+  },
+  {
     "workspace": "packages/dataset-explorer",
     "selected": 3,
     "budgetSkipped": 0,

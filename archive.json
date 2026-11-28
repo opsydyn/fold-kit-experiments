@@ -1760,5 +1760,66 @@
         "outcome": "caught"
       }
     ]
+  },
+  {
+    "workspace": "packages/astro-effect-ui",
+    "selected": 6,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 46145216181,
+    "attempt": 1,
+    "commit": "b9f4b52f433c3e0b2dbbfad900b87d2e274878dd",
+    "startedAt": "2026-11-28T12:33:02Z",
+    "reportSha256": "a02b721368c0ec280e638121da9862008a1c14109b5d5987bd04794e3096d9f0",
+    "entries": [
+      {
+        "id": "9b2b4c2f18cab1a366cde438",
+        "file": "src/client.ts",
+        "fn": "renderer.onUnmount",
+        "genre": "FnValue",
+        "line": 26,
+        "outcome": "caught"
+      },
+      {
+        "id": "664d8a5d5e8ace76ee31791d",
+        "file": "src/client.ts",
+        "fn": "renderer.activate",
+        "genre": "SwallowTag",
+        "line": 33,
+        "outcome": "caught"
+      },
+      {
+        "id": "6cfb3dc03bfaedae9c6289e8",
+        "file": "src/client.ts",
+        "fn": "renderer.activate",
+        "genre": "EffectDie",
+        "line": 33,
+        "outcome": "caught"
+      },
+      {
+        "id": "7a7745da3776a0e77fd18b96",
+        "file": "src/client.ts",
+        "fn": "renderer.activate",
+        "genre": "EffectSucceed",
+        "line": 33,
+        "outcome": "caught"
+      },
+      {
+        "id": "ac019b884487c4fdf42dccc7",
+        "file": "src/client.ts",
+        "fn": "renderer.activate",
+        "genre": "EffectFail",
+        "line": 33,
+        "outcome": "caught"
+      },
+      {
+        "id": "bc2bfd358a7da95bcfc9dbcb",
+        "file": "src/client.ts",
+        "fn": "renderer.activate",
+        "genre": "EffectNever",
+        "line": 33,
+        "outcome": "caught"
+      }
+    ]
   }
 ]

@@ -64,6 +64,19 @@ describe('dataset explorer query composition', () => {
     expect(visible(returned.model).snapshot?.revision).toBe(1);
   });
 
+  it('keeps the API and fixture snapshots for the same station independently', () => {
+    const station = { dataset: 'north' } as const;
+    const api = { ...station, revision: 1, points: [{ hour: 0, value: 7 }] };
+    const fixture = { ...api, points: [{ hour: 0, value: 19 }] };
+    const fixturesKey = { ...station, source: 'fixtures' } as const;
+
+    const fromApi = DatasetQuery.write(DatasetQuery.init(), station, { snapshot: api });
+    const cache = DatasetQuery.write(fromApi, fixturesKey, { snapshot: fixture });
+
+    expect(DatasetQuery.read(cache, fixturesKey).snapshot).toEqual(fixture);
+    expect(DatasetQuery.read(cache, { ...station, source: 'api' }).snapshot).toEqual(api);
+  });
+
   it('folds a response into its own dataset after the selection changes', () => {
     const north = init();
     const coast = update(north.model, Message.ClickedDataset({ dataset: 'coast' }));

@@ -2391,6 +2391,18 @@
     ]
   },
   {
+    "workspace": "apps/web",
+    "selected": 0,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 46161873385,
+    "attempt": 1,
+    "commit": "b501c2afea2197649aa6a2c5b5254cfa798857a7",
+    "startedAt": "2026-11-28T15:49:20Z",
+    "reportSha256": "f17ce39f12eb385b9cb08e86047c8bfbc00e441797d7b91ec71648e13f814993",
+    "entries": []
+  },
+  {
     "workspace": "packages/astro-effect-ui",
     "selected": 6,
     "budgetSkipped": 0,

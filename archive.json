@@ -2017,6 +2017,18 @@
     ]
   },
   {
+    "workspace": "apps/web",
+    "selected": 0,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 46156311493,
+    "attempt": 1,
+    "commit": "ad02fbf121f0d2f0a21dd537d7010ee24d470929",
+    "startedAt": "2026-11-28T14:45:42Z",
+    "reportSha256": "f17ce39f12eb385b9cb08e86047c8bfbc00e441797d7b91ec71648e13f814993",
+    "entries": []
+  },
+  {
     "workspace": "apps/zloz-demo",
     "selected": 9,
     "budgetSkipped": 7,

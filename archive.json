@@ -1537,6 +1537,27 @@
     "entries": []
   },
   {
+    "workspace": "apps/web",
+    "selected": 1,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 46142418458,
+    "attempt": 1,
+    "commit": "ce8631dbd7dab73d91d7edc26c986e1eb6c23ae7",
+    "startedAt": "2026-11-28T11:59:14Z",
+    "reportSha256": "79b449b8089b8683a3d0175178def156641e83ac1bb561adcbc5372f2006950f",
+    "entries": [
+      {
+        "id": "0bacaf83b12a4d3cabeab4c3",
+        "file": "src/apps/mutant-field-guide/archive.ts",
+        "fn": "fieldGuide",
+        "genre": "FnValue",
+        "line": 48,
+        "outcome": "caught"
+      }
+    ]
+  },
+  {
     "workspace": "packages/astro-effect-ui",
     "selected": 6,
     "budgetSkipped": 0,

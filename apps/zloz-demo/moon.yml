@@ -14,3 +14,9 @@ tasks:
   test:
     script: 'tsc --noEmit -p tsconfig.test.json && vitest run'
     deps: ['^:build']
+    inputs:
+      [
+        '**/*',
+        '/packages/foldkit-zloz/test/fixtures/*.json',
+        '/packages/foldkit-zloz-mermaid/test/fixtures/review-packet-v1.json',
+      ]

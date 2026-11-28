@@ -124,7 +124,14 @@ export async function registryRequest(url, fetcher = fetch, wait = pause, binary
   throw new Error('Registry retries exhausted');
 }
 
-export function verifyPublished(candidate, metadata, bytes, attestations, sourceSha) {
+export function verifyPublished(
+  candidate,
+  metadata,
+  bytes,
+  attestations,
+  sourceSha,
+  workflows = ['.github/workflows/zloz-release-train.yml', '.github/workflows/release-please.yml'],
+) {
   const expected = candidate.manifest;
   assert.equal(metadata.name, expected.name);
   assert.equal(metadata.version, expected.version);
@@ -163,9 +170,7 @@ export function verifyPublished(candidate, metadata, bytes, attestations, source
         (subject) => subject.name === expectedSubject && subject.digest?.sha512 === expectedDigest,
       ) &&
       workflow?.repository === repository &&
-      ['.github/workflows/zloz-release-train.yml', '.github/workflows/release-please.yml'].includes(
-        workflow.path,
-      ) &&
+      workflows.includes(workflow.path) &&
       build.resolvedDependencies?.some(
         (dependency) =>
           dependency.uri?.startsWith(`git+${repository}@`) &&

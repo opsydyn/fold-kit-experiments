@@ -14,3 +14,4 @@ tasks:
   test:
     script: 'bun test test'
     deps: ['^:build']
+    inputs: ['**/*', '/packages/foldkit-viz/src/**/*']

@@ -2,8 +2,9 @@ import { readFile, realpath } from 'node:fs/promises';
 import { dirname, isAbsolute, join, posix, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { Schema } from 'effect';
+
 import workspace from '../../../../package.json' with { type: 'json' };
-import vizPackage from '../../../../packages/foldkit-viz/package.json' with { type: 'json' };
 import { assertVizSubpath, staticImports } from './comparison-sources';
 import { datasetProject } from './dataset-project';
 import { effectUiEntry } from './standalone-effect';
@@ -126,6 +127,9 @@ export async function buildExampleTemplate(
     }[example],
   ];
   Object.assign(files, await collectVizModules(libraryRoot, modules));
+  const vizPackage = Schema.decodeUnknownSync(
+    Schema.fromJsonString(Schema.Struct({ version: Schema.String })),
+  )(await readFile(join(libraryRoot, '..', 'package.json'), 'utf8'));
   files['vendor/foldkit-viz/package.json'] = JSON.stringify(
     {
       name: '@opsydyn/foldkit-viz',

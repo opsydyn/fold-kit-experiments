@@ -10,27 +10,35 @@ import { promisify } from 'node:util';
 import { Schema } from 'effect';
 
 import rootManifest from '../../../package.json';
-import vizManifest from '../../../packages/foldkit-viz/package.json';
-import coreManifest from '../../../packages/foldkit-zloz/package.json';
 
 const exec = promisify(execFile);
-const root = fileURLToPath(new URL('../../../', import.meta.url));
+const appDirectory = fileURLToPath(new URL('..', import.meta.url));
 const maxBuffer = 5 * 1024 * 1024;
-const compiler = path.join(root, 'packages/foldkit-viz/node_modules/.bin/tsc');
+const compiler = path.join(appDirectory, 'node_modules/.bin/tsc');
+const viz = '@opsydyn/foldkit-viz';
+const core = '@opsydyn/foldkit-zloz';
+const published = rootManifest.workspaces.catalogs.published;
 const PackageVersion = Schema.Struct({ version: Schema.String });
 const versionAt = async (directory: string, name: string) =>
   Schema.decodeUnknownSync(Schema.fromJsonString(PackageVersion))(
     await readFile(path.join(directory, 'node_modules', name, 'package.json'), 'utf8'),
   ).version;
 
-async function pack(directory: string, name: string, version: string) {
-  const cwd = path.join(root, 'packages', name);
-  await exec('bun', ['run', 'build'], { cwd, maxBuffer });
-  await exec('npm', ['pack', '--ignore-scripts', '--pack-destination', directory], {
-    cwd,
-    maxBuffer,
-  });
-  return path.join(directory, `opsydyn-${name}-${version}.tgz`);
+async function verifyPinnedPackage(directory: string, name: keyof typeof published) {
+  const installed = await versionAt(directory, name);
+  const consumer = await versionAt(appDirectory, name);
+  expect(installed).toBe(consumer);
+  const lock = Schema.decodeUnknownSync(
+    Schema.fromJsonString(
+      Schema.Struct({
+        packages: Schema.Record(
+          Schema.String,
+          Schema.Struct({ resolved: Schema.optional(Schema.String) }),
+        ),
+      }),
+    ),
+  )(await readFile(path.join(directory, 'package-lock.json'), 'utf8'));
+  expect(lock.packages[`node_modules/${name}`]?.resolved).toBe(published[name]);
 }
 async function qualify(directory: string, fixture: 'headless' | 'host', expected: string) {
   await copyFile(
@@ -69,7 +77,7 @@ async function qualify(directory: string, fixture: 'headless' | 'host', expected
   }
 }
 
-test('packed Viz root and orbit entries typecheck and run without FoldKit/Effect peers on Node and Bun', async () => {
+test('published Viz root and orbit entries typecheck and run without FoldKit/Effect peers on Node and Bun', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'zloz-viz-headless-'));
   // oxlint-disable-next-line linteffect/no-try-catch -- Reclaim only the owned temporary consumer after native verification succeeds or fails.
   try {
@@ -77,21 +85,20 @@ test('packed Viz root and orbit entries typecheck and run without FoldKit/Effect
       path.join(directory, 'package.json'),
       JSON.stringify({ private: true, type: 'module' }),
     );
-    const archive = await pack(directory, 'foldkit-viz', vizManifest.version);
-    await exec('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', archive], {
+    await exec('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', published[viz]], {
       cwd: directory,
       maxBuffer,
     });
     for (const peer of ['foldkit', 'effect', '@effect/platform-browser'])
       expect(existsSync(path.join(directory, 'node_modules', peer))).toBe(false);
     await qualify(directory, 'headless', 'headless-orbit-ok');
-    expect(await versionAt(directory, '@opsydyn/foldkit-viz')).toBe(vizManifest.version);
+    await verifyPinnedPackage(directory, viz);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
 }, 120_000);
 
-test('packed Viz and Zloz share the pinned Effect UI host with independent SVG definitions', async () => {
+test('published Viz and Zloz share the pinned Effect UI host with independent SVG definitions', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'zloz-viz-host-'));
   // oxlint-disable-next-line linteffect/no-try-catch -- Reclaim only the owned temporary consumer after native verification succeeds or fails.
   try {
@@ -99,8 +106,6 @@ test('packed Viz and Zloz share the pinned Effect UI host with independent SVG d
       path.join(directory, 'package.json'),
       JSON.stringify({ private: true, type: 'module' }),
     );
-    const viz = await pack(directory, 'foldkit-viz', vizManifest.version);
-    const core = await pack(directory, 'foldkit-zloz', coreManifest.version);
     await exec(
       'npm',
       [
@@ -108,8 +113,8 @@ test('packed Viz and Zloz share the pinned Effect UI host with independent SVG d
         '--ignore-scripts',
         '--no-audit',
         '--no-fund',
-        viz,
-        core,
+        published[viz],
+        published[core],
         rootManifest.workspaces.catalog['@effect/ui'],
         `effect@${rootManifest.workspaces.catalog.effect}`,
       ],
@@ -117,8 +122,8 @@ test('packed Viz and Zloz share the pinned Effect UI host with independent SVG d
     );
     expect(existsSync(path.join(directory, 'node_modules', 'foldkit'))).toBe(false);
     expect(await versionAt(directory, 'effect')).toBe(rootManifest.workspaces.catalog.effect);
-    expect(await versionAt(directory, '@opsydyn/foldkit-viz')).toBe(vizManifest.version);
-    expect(await versionAt(directory, '@opsydyn/foldkit-zloz')).toBe(coreManifest.version);
+    await verifyPinnedPackage(directory, viz);
+    await verifyPinnedPackage(directory, core);
     const installed = await exec('npm', ['ls', '--all', '--parseable', '@effect/ui', 'effect'], {
       cwd: directory,
       maxBuffer,

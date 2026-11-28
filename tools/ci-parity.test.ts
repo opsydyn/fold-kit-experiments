@@ -574,10 +574,6 @@ const NOT_READS: ReadonlyMap<string, string> = new Map([
     'the repository root, from which it reads every workspace manifest (the reads-workspace-manifests tag) and the install (bun.lock)',
   ],
   [
-    'packages/foldkit-zloz-alchemy/test/package.test.ts :: ../..',
-    'the packages folder, as the working directory for packing; the packages it packs are its workspace dependencies',
-  ],
-  [
     'packages/foldkit-zloz-alchemy/test/package.test.ts :: ../../src/descriptor',
     'text the test expects in packed output, not a file it reads',
   ],

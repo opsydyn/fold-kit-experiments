@@ -41,9 +41,16 @@ export default defineConfig({
         '@ag-ui/core/schemas',
         '@effect/ui',
         '@effect/ui/html',
+        '@opsydyn/astro-effect-ui/component',
+        '@opsydyn/foldkit-zloz',
+        '@opsydyn/foldkit-zloz/effect-ui',
+        '@opsydyn/foldkit-zloz-elk',
         '@opsydyn/foldkit-zloz-elk > elkjs/lib/elk.bundled.js',
+        'effect',
         'fast-json-patch',
       ],
+      // Load Viz's published ESM subpaths directly to avoid re-optimizing on route changes.
+      exclude: ['@opsydyn/foldkit-viz'],
     },
   },
 

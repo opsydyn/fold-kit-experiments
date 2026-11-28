@@ -1,5 +1,5 @@
 {
-  "lockfileVersion": 1,
+  "lockfileVersion": 2,
   "configVersion": 1,
   "workspaces": {
     "": {
@@ -11,6 +11,7 @@
         "@effect/ui-devtools": "catalog:",
         "@effect/ui-kit": "catalog:",
         "@moonrepo/cli": "2.5.4",
+        "@opsydyn/effect-three": "catalog:published",
         "@opsydyn/oxlint-effect": "catalog:",
         "@oxlint/plugins": "1.79.0",
         "@typescript-eslint/utils": "^8.63.0",
@@ -37,7 +38,7 @@
     "apps/polars-summary": {
       "name": "@opsydyn/polars-summary",
       "dependencies": {
-        "@opsydyn/foldkit-viz": "workspace:*",
+        "@opsydyn/foldkit-viz": "catalog:published",
         "nodejs-polars": "0.26.1",
       },
       "devDependencies": {
@@ -52,9 +53,9 @@
         "@duckdb/duckdb-wasm": "catalog:",
         "@effect/ui": "catalog:",
         "@fontsource-variable/inter": "catalog:",
-        "@opsydyn/astro-effect-ui": "workspace:*",
+        "@opsydyn/astro-effect-ui": "catalog:published",
         "@opsydyn/dataset-explorer": "workspace:*",
-        "@opsydyn/foldkit-viz": "workspace:*",
+        "@opsydyn/foldkit-viz": "catalog:published",
         "@stackblitz/sdk": "1.11.0",
         "@vanilla-extract/css": "catalog:",
         "astro": "catalog:",
@@ -80,10 +81,10 @@
       "name": "@opsydyn/tech-radar",
       "dependencies": {
         "@effect/ui": "catalog:",
-        "@opsydyn/astro-effect-ui": "workspace:*",
-        "@opsydyn/effect-three": "workspace:*",
-        "@opsydyn/effect-three-troika": "workspace:*",
-        "@opsydyn/foldkit-viz": "workspace:*",
+        "@opsydyn/astro-effect-ui": "catalog:published",
+        "@opsydyn/effect-three": "catalog:published",
+        "@opsydyn/effect-three-troika": "catalog:published",
+        "@opsydyn/foldkit-viz": "catalog:published",
         "astro": "catalog:",
         "effect": "catalog:",
         "three": "catalog:",
@@ -103,12 +104,12 @@
       "name": "@opsydyn/three-promo",
       "dependencies": {
         "@fontsource-variable/inter": "catalog:",
-        "@opsydyn/astro-effect-ui": "workspace:*",
+        "@opsydyn/astro-effect-ui": "catalog:published",
         "@opsydyn/dataset-explorer": "workspace:*",
-        "@opsydyn/effect-three": "workspace:*",
-        "@opsydyn/effect-three-rapier": "workspace:*",
+        "@opsydyn/effect-three": "catalog:published",
+        "@opsydyn/effect-three-rapier": "catalog:published",
         "@opsydyn/effect-three-samples": "workspace:*",
-        "@opsydyn/effect-three-troika": "workspace:*",
+        "@opsydyn/effect-three-troika": "catalog:published",
         "astro": "catalog:",
         "effect": "catalog:",
         "hast-util-to-html": "catalog:",
@@ -134,15 +135,15 @@
         "@effect/platform-browser": "catalog:",
         "@effect/ui": "catalog:",
         "@nanostores/persistent": "^1.3.4",
-        "@opsydyn/astro-effect-ui": "workspace:*",
+        "@opsydyn/astro-effect-ui": "catalog:published",
         "@opsydyn/dataset-explorer": "workspace:*",
-        "@opsydyn/effect-three": "workspace:*",
-        "@opsydyn/effect-three-rapier": "workspace:*",
+        "@opsydyn/effect-three": "catalog:published",
+        "@opsydyn/effect-three-rapier": "catalog:published",
         "@opsydyn/effect-three-samples": "workspace:*",
-        "@opsydyn/effect-three-troika": "workspace:*",
-        "@opsydyn/foldkit-viz": "workspace:*",
-        "@opsydyn/foldkit-zloz": "workspace:*",
-        "@opsydyn/foldkit-zloz-elk": "workspace:*",
+        "@opsydyn/effect-three-troika": "catalog:published",
+        "@opsydyn/foldkit-viz": "catalog:published",
+        "@opsydyn/foldkit-zloz": "catalog:published",
+        "@opsydyn/foldkit-zloz-elk": "catalog:published",
         "@types/topojson-client": "catalog:",
         "@vanilla-extract/css": "catalog:",
         "astro": "catalog:",
@@ -178,12 +179,12 @@
       "dependencies": {
         "@effect/ui": "catalog:",
         "@fontsource-variable/inter": "catalog:",
-        "@opsydyn/astro-effect-ui": "workspace:*",
-        "@opsydyn/foldkit-zloz": "workspace:*",
+        "@opsydyn/astro-effect-ui": "catalog:published",
+        "@opsydyn/foldkit-zloz": "catalog:published",
         "@opsydyn/foldkit-zloz-alchemy": "workspace:*",
-        "@opsydyn/foldkit-zloz-elk": "workspace:*",
-        "@opsydyn/foldkit-zloz-force": "workspace:*",
-        "@opsydyn/foldkit-zloz-mermaid": "workspace:*",
+        "@opsydyn/foldkit-zloz-elk": "catalog:published",
+        "@opsydyn/foldkit-zloz-force": "catalog:published",
+        "@opsydyn/foldkit-zloz-mermaid": "catalog:published",
         "astro": "catalog:",
         "effect": "catalog:",
       },
@@ -202,10 +203,10 @@
       "dependencies": {
         "@effect/ui": "catalog:",
         "@fontsource-variable/inter": "catalog:",
-        "@opsydyn/astro-effect-ui": "workspace:*",
+        "@opsydyn/astro-effect-ui": "catalog:published",
         "@opsydyn/dataset-explorer": "workspace:*",
-        "@opsydyn/foldkit-zloz": "workspace:*",
-        "@opsydyn/foldkit-zloz-mermaid": "workspace:*",
+        "@opsydyn/foldkit-zloz": "catalog:published",
+        "@opsydyn/foldkit-zloz-mermaid": "catalog:published",
         "astro": "catalog:",
         "effect": "catalog:",
         "hast-util-to-html": "catalog:",
@@ -225,7 +226,7 @@
         "@alchemy.run/cloudflare": "catalog:infra",
         "@alchemy.run/domain": "catalog:infra",
         "@alchemy.run/sql": "catalog:infra",
-        "@opsydyn/foldkit-zloz": "workspace:*",
+        "@opsydyn/foldkit-zloz": "catalog:published",
         "@opsydyn/foldkit-zloz-alchemy": "workspace:*",
         "alchemy": "catalog:infra",
         "better-auth": "1.7.7",
@@ -243,13 +244,13 @@
       "name": "@opsydyn/zloz-team",
       "dependencies": {
         "@effect/ui": "catalog:",
-        "@opsydyn/astro-effect-ui": "workspace:*",
+        "@opsydyn/astro-effect-ui": "catalog:published",
         "@opsydyn/foldkit-phosphor": "workspace:*",
-        "@opsydyn/foldkit-viz": "workspace:*",
-        "@opsydyn/foldkit-zloz": "workspace:*",
+        "@opsydyn/foldkit-viz": "catalog:published",
+        "@opsydyn/foldkit-zloz": "catalog:published",
         "@opsydyn/foldkit-zloz-alchemy": "workspace:*",
-        "@opsydyn/foldkit-zloz-elk": "workspace:*",
-        "@opsydyn/foldkit-zloz-mermaid": "workspace:*",
+        "@opsydyn/foldkit-zloz-elk": "catalog:published",
+        "@opsydyn/foldkit-zloz-mermaid": "catalog:published",
         "@vanilla-extract/css": "catalog:",
         "astro": "catalog:",
         "effect": "catalog:",
@@ -338,7 +339,7 @@
       "name": "@opsydyn/dataset-explorer",
       "dependencies": {
         "@effect/ui": "catalog:",
-        "@opsydyn/foldkit-viz": "workspace:*",
+        "@opsydyn/foldkit-viz": "catalog:published",
         "@wooorm/starry-night": "^3.11.0",
         "effect": "catalog:",
         "vscode-oniguruma": "catalog:",
@@ -441,11 +442,11 @@
       "dependencies": {
         "@dimforge/rapier3d-deterministic-compat": "catalog:",
         "@effect/ui": "catalog:",
-        "@opsydyn/effect-three": "workspace:*",
-        "@opsydyn/effect-three-foldkit": "workspace:*",
-        "@opsydyn/effect-three-rapier": "workspace:*",
-        "@opsydyn/effect-three-troika": "workspace:*",
-        "@opsydyn/foldkit-viz": "workspace:*",
+        "@opsydyn/effect-three": "catalog:published",
+        "@opsydyn/effect-three-foldkit": "catalog:published",
+        "@opsydyn/effect-three-rapier": "catalog:published",
+        "@opsydyn/effect-three-troika": "catalog:published",
+        "@opsydyn/foldkit-viz": "catalog:published",
         "effect": "catalog:",
         "three": "catalog:",
       },
@@ -492,7 +493,7 @@
         "@effect/platform-bun": "catalog:",
         "@effect/ui": "catalog:",
         "@modelcontextprotocol/sdk": "catalog:",
-        "@opsydyn/foldkit-viz": "workspace:*",
+        "@opsydyn/foldkit-viz": "catalog:published",
         "effect": "catalog:",
         "parse5": "8.0.1",
       },
@@ -597,7 +598,7 @@
       "version": "0.0.0",
       "devDependencies": {
         "@alchemy.run/domain": "catalog:infra",
-        "@opsydyn/foldkit-zloz": "workspace:*",
+        "@opsydyn/foldkit-zloz": "catalog:published",
         "@types/node": "catalog:",
         "alchemy": "catalog:infra",
         "bun-types": "catalog:",
@@ -608,7 +609,7 @@
       },
       "peerDependencies": {
         "@alchemy.run/domain": "2.0.0-beta.85",
-        "@opsydyn/foldkit-zloz": "workspace:*",
+        "@opsydyn/foldkit-zloz": "1.0.0-next.0",
         "alchemy": "2.0.0-beta.85",
         "effect": "^4.1.0",
       },
@@ -779,6 +780,18 @@
       "@alchemy.run/frontend-frameworks": "2.0.0-beta.85",
       "@alchemy.run/sql": "2.0.0-beta.85",
       "alchemy": "2.0.0-beta.85",
+    },
+    "published": {
+      "@opsydyn/astro-effect-ui": "https://registry.npmjs.org/@opsydyn/astro-effect-ui/-/astro-effect-ui-1.0.0-next.0.tgz",
+      "@opsydyn/effect-three": "https://registry.npmjs.org/@opsydyn/effect-three/-/effect-three-1.0.0-next.0.tgz",
+      "@opsydyn/effect-three-foldkit": "https://registry.npmjs.org/@opsydyn/effect-three-foldkit/-/effect-three-foldkit-1.0.0-next.0.tgz",
+      "@opsydyn/effect-three-rapier": "https://registry.npmjs.org/@opsydyn/effect-three-rapier/-/effect-three-rapier-1.0.0-next.0.tgz",
+      "@opsydyn/effect-three-troika": "https://registry.npmjs.org/@opsydyn/effect-three-troika/-/effect-three-troika-1.0.0-next.0.tgz",
+      "@opsydyn/foldkit-viz": "https://registry.npmjs.org/@opsydyn/foldkit-viz/-/foldkit-viz-1.0.0-next.0.tgz",
+      "@opsydyn/foldkit-zloz": "https://registry.npmjs.org/@opsydyn/foldkit-zloz/-/foldkit-zloz-1.0.0-next.0.tgz",
+      "@opsydyn/foldkit-zloz-elk": "https://registry.npmjs.org/@opsydyn/foldkit-zloz-elk/-/foldkit-zloz-elk-1.0.0-next.0.tgz",
+      "@opsydyn/foldkit-zloz-force": "https://registry.npmjs.org/@opsydyn/foldkit-zloz-force/-/foldkit-zloz-force-1.0.0-next.0.tgz",
+      "@opsydyn/foldkit-zloz-mermaid": "https://registry.npmjs.org/@opsydyn/foldkit-zloz-mermaid/-/foldkit-zloz-mermaid-1.0.0-next.0.tgz",
     },
     "strict": {
       "oxlint": "1.88.0",
@@ -1294,7 +1307,7 @@
 
     "@opsydyn/docs": ["@opsydyn/docs@workspace:apps/docs"],
 
-    "@opsydyn/effect-three": ["@opsydyn/effect-three@workspace:packages/effect-three"],
+    "@opsydyn/effect-three": ["@opsydyn/effect-three@https://registry.npmjs.org/@opsydyn/effect-three/-/effect-three-1.0.0-next.0.tgz", { "peerDependencies": { "effect": "^4.0.0", "three": ">=0.186.0 <0.187.0" } }, "sha512-vG4P2fMN14NPdezXMEbfzJrPso5xIATBUNPwoGP6gJ1MnFH3z5St0o4/bADgk52mEY9v/CUtTdEMYKhYeCwLqQ=="],
 
     "@opsydyn/effect-three-foldkit": ["@opsydyn/effect-three-foldkit@workspace:packages/effect-three-foldkit"],
 
@@ -3248,6 +3261,10 @@
 
     "zwitch": ["zwitch@2.0.4", "", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
 
+    "./@opsydyn/effect-three/oxlint": ["oxlint@1.88.0", "", { "optionalDependencies": { "@oxlint/binding-android-arm-eabi": "1.88.0", "@oxlint/binding-android-arm64": "1.88.0", "@oxlint/binding-darwin-arm64": "1.88.0", "@oxlint/binding-darwin-x64": "1.88.0", "@oxlint/binding-freebsd-x64": "1.88.0", "@oxlint/binding-linux-arm-gnueabihf": "1.88.0", "@oxlint/binding-linux-arm-musleabihf": "1.88.0", "@oxlint/binding-linux-arm64-gnu": "1.88.0", "@oxlint/binding-linux-arm64-musl": "1.88.0", "@oxlint/binding-linux-ppc64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-musl": "1.88.0", "@oxlint/binding-linux-s390x-gnu": "1.88.0", "@oxlint/binding-linux-x64-gnu": "1.88.0", "@oxlint/binding-linux-x64-musl": "1.88.0", "@oxlint/binding-openharmony-arm64": "1.88.0", "@oxlint/binding-win32-arm64-msvc": "1.88.0", "@oxlint/binding-win32-ia32-msvc": "1.88.0", "@oxlint/binding-win32-x64-msvc": "1.88.0" }, "peerDependencies": { "oxlint-tsgolint": ">=7.0.2003", "vite-plus": "*" }, "optionalPeers": ["oxlint-tsgolint", "vite-plus"], "bin": { "oxlint": "bin/oxlint" } }, "sha512-uIcFgw8BmqvFRGzH5+r7d2zJMEexwNSrEmM6WQNnGh3VkO0XYTEFoyxyNE6tjKMUib9Cue4XJA2DoWruO5D6aw=="],
+
+    "./@opsydyn/effect-three/typescript": ["typescript@7.0.2", "", { "optionalDependencies": { "@typescript/typescript-aix-ppc64": "7.0.2", "@typescript/typescript-darwin-arm64": "7.0.2", "@typescript/typescript-darwin-x64": "7.0.2", "@typescript/typescript-freebsd-arm64": "7.0.2", "@typescript/typescript-freebsd-x64": "7.0.2", "@typescript/typescript-linux-arm": "7.0.2", "@typescript/typescript-linux-arm64": "7.0.2", "@typescript/typescript-linux-loong64": "7.0.2", "@typescript/typescript-linux-mips64el": "7.0.2", "@typescript/typescript-linux-ppc64": "7.0.2", "@typescript/typescript-linux-riscv64": "7.0.2", "@typescript/typescript-linux-s390x": "7.0.2", "@typescript/typescript-linux-x64": "7.0.2", "@typescript/typescript-netbsd-arm64": "7.0.2", "@typescript/typescript-netbsd-x64": "7.0.2", "@typescript/typescript-openbsd-arm64": "7.0.2", "@typescript/typescript-openbsd-x64": "7.0.2", "@typescript/typescript-sunos-x64": "7.0.2", "@typescript/typescript-win32-arm64": "7.0.2", "@typescript/typescript-win32-x64": "7.0.2" }, "bin": { "tsc": "bin/tsc" } }, "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA=="],
+
     "@ag-ui/client/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
     "@ag-ui/proto/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
@@ -3376,23 +3393,99 @@
 
     "@microsoft/tsdoc-config/ajv": ["ajv@8.18.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-PlXPeEWMXMZ7sPYOHqmDyCJzcfNrUr3fGNKtezX14ykXOEIvyK81d+qydx89KY5O71FKMPaQ2vBfBFI5NHR63A=="],
 
-    "@opsydyn/effect-three/oxlint": ["oxlint@1.88.0", "", { "optionalDependencies": { "@oxlint/binding-android-arm-eabi": "1.88.0", "@oxlint/binding-android-arm64": "1.88.0", "@oxlint/binding-darwin-arm64": "1.88.0", "@oxlint/binding-darwin-x64": "1.88.0", "@oxlint/binding-freebsd-x64": "1.88.0", "@oxlint/binding-linux-arm-gnueabihf": "1.88.0", "@oxlint/binding-linux-arm-musleabihf": "1.88.0", "@oxlint/binding-linux-arm64-gnu": "1.88.0", "@oxlint/binding-linux-arm64-musl": "1.88.0", "@oxlint/binding-linux-ppc64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-musl": "1.88.0", "@oxlint/binding-linux-s390x-gnu": "1.88.0", "@oxlint/binding-linux-x64-gnu": "1.88.0", "@oxlint/binding-linux-x64-musl": "1.88.0", "@oxlint/binding-openharmony-arm64": "1.88.0", "@oxlint/binding-win32-arm64-msvc": "1.88.0", "@oxlint/binding-win32-ia32-msvc": "1.88.0", "@oxlint/binding-win32-x64-msvc": "1.88.0" }, "peerDependencies": { "oxlint-tsgolint": ">=7.0.2003", "vite-plus": "*" }, "optionalPeers": ["oxlint-tsgolint", "vite-plus"], "bin": { "oxlint": "bin/oxlint" } }, "sha512-uIcFgw8BmqvFRGzH5+r7d2zJMEexwNSrEmM6WQNnGh3VkO0XYTEFoyxyNE6tjKMUib9Cue4XJA2DoWruO5D6aw=="],
+    "@opsydyn/dataset-explorer/@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@https://registry.npmjs.org/@opsydyn/foldkit-viz/-/foldkit-viz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "@opsydyn/effect-three": "1.0.0-next.0", "effect": ">=4.0.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "@opsydyn/effect-three", "effect"] }, "sha512-9kbjBdq+Vh1khXsYwAoQg+w6oO2uKlQVWBY1VbSXM85osEzM5UBBJmX2pWay7kw0HHX99BZcZDx13vHshMLJwg=="],
 
-    "@opsydyn/effect-three/typescript": ["typescript@7.0.2", "", { "optionalDependencies": { "@typescript/typescript-aix-ppc64": "7.0.2", "@typescript/typescript-darwin-arm64": "7.0.2", "@typescript/typescript-darwin-x64": "7.0.2", "@typescript/typescript-freebsd-arm64": "7.0.2", "@typescript/typescript-freebsd-x64": "7.0.2", "@typescript/typescript-linux-arm": "7.0.2", "@typescript/typescript-linux-arm64": "7.0.2", "@typescript/typescript-linux-loong64": "7.0.2", "@typescript/typescript-linux-mips64el": "7.0.2", "@typescript/typescript-linux-ppc64": "7.0.2", "@typescript/typescript-linux-riscv64": "7.0.2", "@typescript/typescript-linux-s390x": "7.0.2", "@typescript/typescript-linux-x64": "7.0.2", "@typescript/typescript-netbsd-arm64": "7.0.2", "@typescript/typescript-netbsd-x64": "7.0.2", "@typescript/typescript-openbsd-arm64": "7.0.2", "@typescript/typescript-openbsd-x64": "7.0.2", "@typescript/typescript-sunos-x64": "7.0.2", "@typescript/typescript-win32-arm64": "7.0.2", "@typescript/typescript-win32-x64": "7.0.2" }, "bin": { "tsc": "bin/tsc" } }, "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA=="],
+    "@opsydyn/effect-three-foldkit/@opsydyn/effect-three": ["@opsydyn/effect-three@workspace:packages/effect-three"],
 
     "@opsydyn/effect-three-foldkit/oxlint": ["oxlint@1.88.0", "", { "optionalDependencies": { "@oxlint/binding-android-arm-eabi": "1.88.0", "@oxlint/binding-android-arm64": "1.88.0", "@oxlint/binding-darwin-arm64": "1.88.0", "@oxlint/binding-darwin-x64": "1.88.0", "@oxlint/binding-freebsd-x64": "1.88.0", "@oxlint/binding-linux-arm-gnueabihf": "1.88.0", "@oxlint/binding-linux-arm-musleabihf": "1.88.0", "@oxlint/binding-linux-arm64-gnu": "1.88.0", "@oxlint/binding-linux-arm64-musl": "1.88.0", "@oxlint/binding-linux-ppc64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-musl": "1.88.0", "@oxlint/binding-linux-s390x-gnu": "1.88.0", "@oxlint/binding-linux-x64-gnu": "1.88.0", "@oxlint/binding-linux-x64-musl": "1.88.0", "@oxlint/binding-openharmony-arm64": "1.88.0", "@oxlint/binding-win32-arm64-msvc": "1.88.0", "@oxlint/binding-win32-ia32-msvc": "1.88.0", "@oxlint/binding-win32-x64-msvc": "1.88.0" }, "peerDependencies": { "oxlint-tsgolint": ">=7.0.2003", "vite-plus": "*" }, "optionalPeers": ["oxlint-tsgolint", "vite-plus"], "bin": { "oxlint": "bin/oxlint" } }, "sha512-uIcFgw8BmqvFRGzH5+r7d2zJMEexwNSrEmM6WQNnGh3VkO0XYTEFoyxyNE6tjKMUib9Cue4XJA2DoWruO5D6aw=="],
 
     "@opsydyn/effect-three-foldkit/typescript": ["typescript@7.0.2", "", { "optionalDependencies": { "@typescript/typescript-aix-ppc64": "7.0.2", "@typescript/typescript-darwin-arm64": "7.0.2", "@typescript/typescript-darwin-x64": "7.0.2", "@typescript/typescript-freebsd-arm64": "7.0.2", "@typescript/typescript-freebsd-x64": "7.0.2", "@typescript/typescript-linux-arm": "7.0.2", "@typescript/typescript-linux-arm64": "7.0.2", "@typescript/typescript-linux-loong64": "7.0.2", "@typescript/typescript-linux-mips64el": "7.0.2", "@typescript/typescript-linux-ppc64": "7.0.2", "@typescript/typescript-linux-riscv64": "7.0.2", "@typescript/typescript-linux-s390x": "7.0.2", "@typescript/typescript-linux-x64": "7.0.2", "@typescript/typescript-netbsd-arm64": "7.0.2", "@typescript/typescript-netbsd-x64": "7.0.2", "@typescript/typescript-openbsd-arm64": "7.0.2", "@typescript/typescript-openbsd-x64": "7.0.2", "@typescript/typescript-sunos-x64": "7.0.2", "@typescript/typescript-win32-arm64": "7.0.2", "@typescript/typescript-win32-x64": "7.0.2" }, "bin": { "tsc": "bin/tsc" } }, "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA=="],
 
+    "@opsydyn/effect-three-rapier/@opsydyn/effect-three": ["@opsydyn/effect-three@workspace:packages/effect-three"],
+
     "@opsydyn/effect-three-rapier/oxlint": ["oxlint@1.88.0", "", { "optionalDependencies": { "@oxlint/binding-android-arm-eabi": "1.88.0", "@oxlint/binding-android-arm64": "1.88.0", "@oxlint/binding-darwin-arm64": "1.88.0", "@oxlint/binding-darwin-x64": "1.88.0", "@oxlint/binding-freebsd-x64": "1.88.0", "@oxlint/binding-linux-arm-gnueabihf": "1.88.0", "@oxlint/binding-linux-arm-musleabihf": "1.88.0", "@oxlint/binding-linux-arm64-gnu": "1.88.0", "@oxlint/binding-linux-arm64-musl": "1.88.0", "@oxlint/binding-linux-ppc64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-musl": "1.88.0", "@oxlint/binding-linux-s390x-gnu": "1.88.0", "@oxlint/binding-linux-x64-gnu": "1.88.0", "@oxlint/binding-linux-x64-musl": "1.88.0", "@oxlint/binding-openharmony-arm64": "1.88.0", "@oxlint/binding-win32-arm64-msvc": "1.88.0", "@oxlint/binding-win32-ia32-msvc": "1.88.0", "@oxlint/binding-win32-x64-msvc": "1.88.0" }, "peerDependencies": { "oxlint-tsgolint": ">=7.0.2003", "vite-plus": "*" }, "optionalPeers": ["oxlint-tsgolint", "vite-plus"], "bin": { "oxlint": "bin/oxlint" } }, "sha512-uIcFgw8BmqvFRGzH5+r7d2zJMEexwNSrEmM6WQNnGh3VkO0XYTEFoyxyNE6tjKMUib9Cue4XJA2DoWruO5D6aw=="],
 
     "@opsydyn/effect-three-rapier/typescript": ["typescript@7.0.2", "", { "optionalDependencies": { "@typescript/typescript-aix-ppc64": "7.0.2", "@typescript/typescript-darwin-arm64": "7.0.2", "@typescript/typescript-darwin-x64": "7.0.2", "@typescript/typescript-freebsd-arm64": "7.0.2", "@typescript/typescript-freebsd-x64": "7.0.2", "@typescript/typescript-linux-arm": "7.0.2", "@typescript/typescript-linux-arm64": "7.0.2", "@typescript/typescript-linux-loong64": "7.0.2", "@typescript/typescript-linux-mips64el": "7.0.2", "@typescript/typescript-linux-ppc64": "7.0.2", "@typescript/typescript-linux-riscv64": "7.0.2", "@typescript/typescript-linux-s390x": "7.0.2", "@typescript/typescript-linux-x64": "7.0.2", "@typescript/typescript-netbsd-arm64": "7.0.2", "@typescript/typescript-netbsd-x64": "7.0.2", "@typescript/typescript-openbsd-arm64": "7.0.2", "@typescript/typescript-openbsd-x64": "7.0.2", "@typescript/typescript-sunos-x64": "7.0.2", "@typescript/typescript-win32-arm64": "7.0.2", "@typescript/typescript-win32-x64": "7.0.2" }, "bin": { "tsc": "bin/tsc" } }, "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA=="],
+
+    "@opsydyn/effect-three-samples/@opsydyn/effect-three-foldkit": ["@opsydyn/effect-three-foldkit@https://registry.npmjs.org/@opsydyn/effect-three-foldkit/-/effect-three-foldkit-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "@opsydyn/effect-three": "1.0.0-next.0", "effect": "^4.0.0", "three": ">=0.186.0 <0.187.0" } }, "sha512-5COJ/w84TUsYbyaSQS6pic3TnzVAx3ryv5tBVAZPpXdZo5EvLUpMDG7HcuZzBOaniwcU2HrUbnxVWf/+4nk+nA=="],
+
+    "@opsydyn/effect-three-samples/@opsydyn/effect-three-rapier": ["@opsydyn/effect-three-rapier@https://registry.npmjs.org/@opsydyn/effect-three-rapier/-/effect-three-rapier-1.0.0-next.0.tgz", { "dependencies": { "@dimforge/rapier3d-compat": "0.21.0" }, "peerDependencies": { "@dimforge/rapier3d-deterministic-compat": "0.21.0", "@opsydyn/effect-three": "1.0.0-next.0", "three": ">=0.186.0 <0.187.0" }, "optionalPeers": ["@dimforge/rapier3d-deterministic-compat"] }, "sha512-8qOR35XmA7jrYMNPgDEFEkkKYTlITq3p41QZzuTDVzHuWP69KNwEXazEDEjuC2QxlTShlp7BNyL5UVvgXHjk5w=="],
+
+    "@opsydyn/effect-three-samples/@opsydyn/effect-three-troika": ["@opsydyn/effect-three-troika@https://registry.npmjs.org/@opsydyn/effect-three-troika/-/effect-three-troika-1.0.0-next.0.tgz", { "dependencies": { "troika-three-text": "0.52.5" }, "peerDependencies": { "@opsydyn/effect-three": "1.0.0-next.0", "three": ">=0.186.0 <0.187.0" } }, "sha512-niEdx0O8vhT9eU4wGSdqezX2EM1Viqzmwse/jp3nsCORj4uPrzHGnBjw1K48TTTbAf4VyHwvlwDG1rwNBOe14A=="],
+
+    "@opsydyn/effect-three-samples/@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@https://registry.npmjs.org/@opsydyn/foldkit-viz/-/foldkit-viz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "@opsydyn/effect-three": "1.0.0-next.0", "effect": ">=4.0.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "@opsydyn/effect-three", "effect"] }, "sha512-9kbjBdq+Vh1khXsYwAoQg+w6oO2uKlQVWBY1VbSXM85osEzM5UBBJmX2pWay7kw0HHX99BZcZDx13vHshMLJwg=="],
+
+    "@opsydyn/effect-three-troika/@opsydyn/effect-three": ["@opsydyn/effect-three@workspace:packages/effect-three"],
 
     "@opsydyn/effect-three-troika/oxlint": ["oxlint@1.88.0", "", { "optionalDependencies": { "@oxlint/binding-android-arm-eabi": "1.88.0", "@oxlint/binding-android-arm64": "1.88.0", "@oxlint/binding-darwin-arm64": "1.88.0", "@oxlint/binding-darwin-x64": "1.88.0", "@oxlint/binding-freebsd-x64": "1.88.0", "@oxlint/binding-linux-arm-gnueabihf": "1.88.0", "@oxlint/binding-linux-arm-musleabihf": "1.88.0", "@oxlint/binding-linux-arm64-gnu": "1.88.0", "@oxlint/binding-linux-arm64-musl": "1.88.0", "@oxlint/binding-linux-ppc64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-musl": "1.88.0", "@oxlint/binding-linux-s390x-gnu": "1.88.0", "@oxlint/binding-linux-x64-gnu": "1.88.0", "@oxlint/binding-linux-x64-musl": "1.88.0", "@oxlint/binding-openharmony-arm64": "1.88.0", "@oxlint/binding-win32-arm64-msvc": "1.88.0", "@oxlint/binding-win32-ia32-msvc": "1.88.0", "@oxlint/binding-win32-x64-msvc": "1.88.0" }, "peerDependencies": { "oxlint-tsgolint": ">=7.0.2003", "vite-plus": "*" }, "optionalPeers": ["oxlint-tsgolint", "vite-plus"], "bin": { "oxlint": "bin/oxlint" } }, "sha512-uIcFgw8BmqvFRGzH5+r7d2zJMEexwNSrEmM6WQNnGh3VkO0XYTEFoyxyNE6tjKMUib9Cue4XJA2DoWruO5D6aw=="],
 
     "@opsydyn/effect-three-troika/typescript": ["typescript@7.0.2", "", { "optionalDependencies": { "@typescript/typescript-aix-ppc64": "7.0.2", "@typescript/typescript-darwin-arm64": "7.0.2", "@typescript/typescript-darwin-x64": "7.0.2", "@typescript/typescript-freebsd-arm64": "7.0.2", "@typescript/typescript-freebsd-x64": "7.0.2", "@typescript/typescript-linux-arm": "7.0.2", "@typescript/typescript-linux-arm64": "7.0.2", "@typescript/typescript-linux-loong64": "7.0.2", "@typescript/typescript-linux-mips64el": "7.0.2", "@typescript/typescript-linux-ppc64": "7.0.2", "@typescript/typescript-linux-riscv64": "7.0.2", "@typescript/typescript-linux-s390x": "7.0.2", "@typescript/typescript-linux-x64": "7.0.2", "@typescript/typescript-netbsd-arm64": "7.0.2", "@typescript/typescript-netbsd-x64": "7.0.2", "@typescript/typescript-openbsd-arm64": "7.0.2", "@typescript/typescript-openbsd-x64": "7.0.2", "@typescript/typescript-sunos-x64": "7.0.2", "@typescript/typescript-win32-arm64": "7.0.2", "@typescript/typescript-win32-x64": "7.0.2" }, "bin": { "tsc": "bin/tsc" } }, "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA=="],
 
+    "@opsydyn/foldkit-dash/@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@https://registry.npmjs.org/@opsydyn/foldkit-viz/-/foldkit-viz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "@opsydyn/effect-three": "1.0.0-next.0", "effect": ">=4.0.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "@opsydyn/effect-three", "effect"] }, "sha512-9kbjBdq+Vh1khXsYwAoQg+w6oO2uKlQVWBY1VbSXM85osEzM5UBBJmX2pWay7kw0HHX99BZcZDx13vHshMLJwg=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three": ["@opsydyn/effect-three@workspace:packages/effect-three"],
+
+    "@opsydyn/foldkit-zloz-alchemy/@opsydyn/foldkit-zloz": ["@opsydyn/foldkit-zloz@https://registry.npmjs.org/@opsydyn/foldkit-zloz/-/foldkit-zloz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "effect": ">=4.1.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "effect"] }, "sha512-gXHYZuADv/ORnj1aSDw9nQLMld+u0IW4Vl1dBePQ4O7y9VATtqkh7iMQxn/D9VEHCMgB82/+pEHO+QRNAeRdmA=="],
+
     "@opsydyn/oxlint-effect/@oxlint/plugins": ["@oxlint/plugins@1.83.0", "", {}, "sha512-qD64wr6SS1DL7YbJQ8WWjyUfFfrJsvAy9Vo0sG/PYUQy30w0uemN2h6j4xuvj4noyETDpzcGC20sv+FH7GrN5A=="],
+
+    "@opsydyn/polars-summary/@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@https://registry.npmjs.org/@opsydyn/foldkit-viz/-/foldkit-viz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "@opsydyn/effect-three": "1.0.0-next.0", "effect": ">=4.0.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "@opsydyn/effect-three", "effect"] }, "sha512-9kbjBdq+Vh1khXsYwAoQg+w6oO2uKlQVWBY1VbSXM85osEzM5UBBJmX2pWay7kw0HHX99BZcZDx13vHshMLJwg=="],
+
+    "@opsydyn/promo/@opsydyn/astro-effect-ui": ["@opsydyn/astro-effect-ui@https://registry.npmjs.org/@opsydyn/astro-effect-ui/-/astro-effect-ui-1.0.0-next.0.tgz", { "dependencies": { "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92" }, "peerDependencies": { "astro": ">=5.0.0 <8", "effect": "~4.1.0" } }, "sha512-H0b6+OMU3CzLUcdrc1+TlwlvB7jPCU/VzGfKkyi5Soe3QgAMOc5ZBDWXc95C+eK6BykO8MCOR4bUVGZf6BaVzQ=="],
+
+    "@opsydyn/promo/@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@https://registry.npmjs.org/@opsydyn/foldkit-viz/-/foldkit-viz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "@opsydyn/effect-three": "1.0.0-next.0", "effect": ">=4.0.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "@opsydyn/effect-three", "effect"] }, "sha512-9kbjBdq+Vh1khXsYwAoQg+w6oO2uKlQVWBY1VbSXM85osEzM5UBBJmX2pWay7kw0HHX99BZcZDx13vHshMLJwg=="],
+
+    "@opsydyn/tech-radar/@opsydyn/astro-effect-ui": ["@opsydyn/astro-effect-ui@https://registry.npmjs.org/@opsydyn/astro-effect-ui/-/astro-effect-ui-1.0.0-next.0.tgz", { "dependencies": { "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92" }, "peerDependencies": { "astro": ">=5.0.0 <8", "effect": "~4.1.0" } }, "sha512-H0b6+OMU3CzLUcdrc1+TlwlvB7jPCU/VzGfKkyi5Soe3QgAMOc5ZBDWXc95C+eK6BykO8MCOR4bUVGZf6BaVzQ=="],
+
+    "@opsydyn/tech-radar/@opsydyn/effect-three-troika": ["@opsydyn/effect-three-troika@https://registry.npmjs.org/@opsydyn/effect-three-troika/-/effect-three-troika-1.0.0-next.0.tgz", { "dependencies": { "troika-three-text": "0.52.5" }, "peerDependencies": { "@opsydyn/effect-three": "1.0.0-next.0", "three": ">=0.186.0 <0.187.0" } }, "sha512-niEdx0O8vhT9eU4wGSdqezX2EM1Viqzmwse/jp3nsCORj4uPrzHGnBjw1K48TTTbAf4VyHwvlwDG1rwNBOe14A=="],
+
+    "@opsydyn/tech-radar/@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@https://registry.npmjs.org/@opsydyn/foldkit-viz/-/foldkit-viz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "@opsydyn/effect-three": "1.0.0-next.0", "effect": ">=4.0.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "@opsydyn/effect-three", "effect"] }, "sha512-9kbjBdq+Vh1khXsYwAoQg+w6oO2uKlQVWBY1VbSXM85osEzM5UBBJmX2pWay7kw0HHX99BZcZDx13vHshMLJwg=="],
+
+    "@opsydyn/three-promo/@opsydyn/astro-effect-ui": ["@opsydyn/astro-effect-ui@https://registry.npmjs.org/@opsydyn/astro-effect-ui/-/astro-effect-ui-1.0.0-next.0.tgz", { "dependencies": { "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92" }, "peerDependencies": { "astro": ">=5.0.0 <8", "effect": "~4.1.0" } }, "sha512-H0b6+OMU3CzLUcdrc1+TlwlvB7jPCU/VzGfKkyi5Soe3QgAMOc5ZBDWXc95C+eK6BykO8MCOR4bUVGZf6BaVzQ=="],
+
+    "@opsydyn/three-promo/@opsydyn/effect-three-rapier": ["@opsydyn/effect-three-rapier@https://registry.npmjs.org/@opsydyn/effect-three-rapier/-/effect-three-rapier-1.0.0-next.0.tgz", { "dependencies": { "@dimforge/rapier3d-compat": "0.21.0" }, "peerDependencies": { "@dimforge/rapier3d-deterministic-compat": "0.21.0", "@opsydyn/effect-three": "1.0.0-next.0", "three": ">=0.186.0 <0.187.0" }, "optionalPeers": ["@dimforge/rapier3d-deterministic-compat"] }, "sha512-8qOR35XmA7jrYMNPgDEFEkkKYTlITq3p41QZzuTDVzHuWP69KNwEXazEDEjuC2QxlTShlp7BNyL5UVvgXHjk5w=="],
+
+    "@opsydyn/three-promo/@opsydyn/effect-three-troika": ["@opsydyn/effect-three-troika@https://registry.npmjs.org/@opsydyn/effect-three-troika/-/effect-three-troika-1.0.0-next.0.tgz", { "dependencies": { "troika-three-text": "0.52.5" }, "peerDependencies": { "@opsydyn/effect-three": "1.0.0-next.0", "three": ">=0.186.0 <0.187.0" } }, "sha512-niEdx0O8vhT9eU4wGSdqezX2EM1Viqzmwse/jp3nsCORj4uPrzHGnBjw1K48TTTbAf4VyHwvlwDG1rwNBOe14A=="],
+
+    "@opsydyn/web/@opsydyn/astro-effect-ui": ["@opsydyn/astro-effect-ui@https://registry.npmjs.org/@opsydyn/astro-effect-ui/-/astro-effect-ui-1.0.0-next.0.tgz", { "dependencies": { "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92" }, "peerDependencies": { "astro": ">=5.0.0 <8", "effect": "~4.1.0" } }, "sha512-H0b6+OMU3CzLUcdrc1+TlwlvB7jPCU/VzGfKkyi5Soe3QgAMOc5ZBDWXc95C+eK6BykO8MCOR4bUVGZf6BaVzQ=="],
+
+    "@opsydyn/web/@opsydyn/effect-three-rapier": ["@opsydyn/effect-three-rapier@https://registry.npmjs.org/@opsydyn/effect-three-rapier/-/effect-three-rapier-1.0.0-next.0.tgz", { "dependencies": { "@dimforge/rapier3d-compat": "0.21.0" }, "peerDependencies": { "@dimforge/rapier3d-deterministic-compat": "0.21.0", "@opsydyn/effect-three": "1.0.0-next.0", "three": ">=0.186.0 <0.187.0" }, "optionalPeers": ["@dimforge/rapier3d-deterministic-compat"] }, "sha512-8qOR35XmA7jrYMNPgDEFEkkKYTlITq3p41QZzuTDVzHuWP69KNwEXazEDEjuC2QxlTShlp7BNyL5UVvgXHjk5w=="],
+
+    "@opsydyn/web/@opsydyn/effect-three-troika": ["@opsydyn/effect-three-troika@https://registry.npmjs.org/@opsydyn/effect-three-troika/-/effect-three-troika-1.0.0-next.0.tgz", { "dependencies": { "troika-three-text": "0.52.5" }, "peerDependencies": { "@opsydyn/effect-three": "1.0.0-next.0", "three": ">=0.186.0 <0.187.0" } }, "sha512-niEdx0O8vhT9eU4wGSdqezX2EM1Viqzmwse/jp3nsCORj4uPrzHGnBjw1K48TTTbAf4VyHwvlwDG1rwNBOe14A=="],
+
+    "@opsydyn/web/@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@https://registry.npmjs.org/@opsydyn/foldkit-viz/-/foldkit-viz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "@opsydyn/effect-three": "1.0.0-next.0", "effect": ">=4.0.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "@opsydyn/effect-three", "effect"] }, "sha512-9kbjBdq+Vh1khXsYwAoQg+w6oO2uKlQVWBY1VbSXM85osEzM5UBBJmX2pWay7kw0HHX99BZcZDx13vHshMLJwg=="],
+
+    "@opsydyn/web/@opsydyn/foldkit-zloz": ["@opsydyn/foldkit-zloz@https://registry.npmjs.org/@opsydyn/foldkit-zloz/-/foldkit-zloz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "effect": ">=4.1.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "effect"] }, "sha512-gXHYZuADv/ORnj1aSDw9nQLMld+u0IW4Vl1dBePQ4O7y9VATtqkh7iMQxn/D9VEHCMgB82/+pEHO+QRNAeRdmA=="],
+
+    "@opsydyn/web/@opsydyn/foldkit-zloz-elk": ["@opsydyn/foldkit-zloz-elk@https://registry.npmjs.org/@opsydyn/foldkit-zloz-elk/-/foldkit-zloz-elk-1.0.0-next.0.tgz", { "dependencies": { "elkjs": "0.12.1" }, "peerDependencies": { "@opsydyn/foldkit-zloz": "1.0.0-next.0" } }, "sha512-b5yZ6wuk47dXUUazcmDp6cs44GgPriwnvYoP55roHjB7kFuZrhuZ99FazAYTUj7Z5Smn9b10nNUY/v3STlpxwQ=="],
+
+    "@opsydyn/zloz-demo/@opsydyn/astro-effect-ui": ["@opsydyn/astro-effect-ui@https://registry.npmjs.org/@opsydyn/astro-effect-ui/-/astro-effect-ui-1.0.0-next.0.tgz", { "dependencies": { "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92" }, "peerDependencies": { "astro": ">=5.0.0 <8", "effect": "~4.1.0" } }, "sha512-H0b6+OMU3CzLUcdrc1+TlwlvB7jPCU/VzGfKkyi5Soe3QgAMOc5ZBDWXc95C+eK6BykO8MCOR4bUVGZf6BaVzQ=="],
+
+    "@opsydyn/zloz-demo/@opsydyn/foldkit-zloz": ["@opsydyn/foldkit-zloz@https://registry.npmjs.org/@opsydyn/foldkit-zloz/-/foldkit-zloz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "effect": ">=4.1.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "effect"] }, "sha512-gXHYZuADv/ORnj1aSDw9nQLMld+u0IW4Vl1dBePQ4O7y9VATtqkh7iMQxn/D9VEHCMgB82/+pEHO+QRNAeRdmA=="],
+
+    "@opsydyn/zloz-demo/@opsydyn/foldkit-zloz-elk": ["@opsydyn/foldkit-zloz-elk@https://registry.npmjs.org/@opsydyn/foldkit-zloz-elk/-/foldkit-zloz-elk-1.0.0-next.0.tgz", { "dependencies": { "elkjs": "0.12.1" }, "peerDependencies": { "@opsydyn/foldkit-zloz": "1.0.0-next.0" } }, "sha512-b5yZ6wuk47dXUUazcmDp6cs44GgPriwnvYoP55roHjB7kFuZrhuZ99FazAYTUj7Z5Smn9b10nNUY/v3STlpxwQ=="],
+
+    "@opsydyn/zloz-demo/@opsydyn/foldkit-zloz-force": ["@opsydyn/foldkit-zloz-force@https://registry.npmjs.org/@opsydyn/foldkit-zloz-force/-/foldkit-zloz-force-1.0.0-next.0.tgz", { "dependencies": { "@opsydyn/foldkit-viz": "1.0.0-next.0" }, "peerDependencies": { "@opsydyn/foldkit-zloz": "1.0.0-next.0" } }, "sha512-ytDsVFC0iUQeeDGMcPdXdfiGF9ARE4lPaYtX/1A5kBVsXnCbmrRVEvBZyoM1m6W1pm1d5wODBMT5j8i/nBdRRQ=="],
+
+    "@opsydyn/zloz-demo/@opsydyn/foldkit-zloz-mermaid": ["@opsydyn/foldkit-zloz-mermaid@https://registry.npmjs.org/@opsydyn/foldkit-zloz-mermaid/-/foldkit-zloz-mermaid-1.0.0-next.0.tgz", { "peerDependencies": { "@opsydyn/foldkit-zloz": "1.0.0-next.0" } }, "sha512-3hnuKwgMUm2bhr6lA2EKQb4I+nlzvB7WVV24t4N3NhGwTAA8lRIs6Fe4vrJ+NUghNEcy4XnmDMlGox8VvCG28g=="],
+
+    "@opsydyn/zloz-promo/@opsydyn/astro-effect-ui": ["@opsydyn/astro-effect-ui@https://registry.npmjs.org/@opsydyn/astro-effect-ui/-/astro-effect-ui-1.0.0-next.0.tgz", { "dependencies": { "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92" }, "peerDependencies": { "astro": ">=5.0.0 <8", "effect": "~4.1.0" } }, "sha512-H0b6+OMU3CzLUcdrc1+TlwlvB7jPCU/VzGfKkyi5Soe3QgAMOc5ZBDWXc95C+eK6BykO8MCOR4bUVGZf6BaVzQ=="],
+
+    "@opsydyn/zloz-promo/@opsydyn/foldkit-zloz": ["@opsydyn/foldkit-zloz@https://registry.npmjs.org/@opsydyn/foldkit-zloz/-/foldkit-zloz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "effect": ">=4.1.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "effect"] }, "sha512-gXHYZuADv/ORnj1aSDw9nQLMld+u0IW4Vl1dBePQ4O7y9VATtqkh7iMQxn/D9VEHCMgB82/+pEHO+QRNAeRdmA=="],
+
+    "@opsydyn/zloz-promo/@opsydyn/foldkit-zloz-mermaid": ["@opsydyn/foldkit-zloz-mermaid@https://registry.npmjs.org/@opsydyn/foldkit-zloz-mermaid/-/foldkit-zloz-mermaid-1.0.0-next.0.tgz", { "peerDependencies": { "@opsydyn/foldkit-zloz": "1.0.0-next.0" } }, "sha512-3hnuKwgMUm2bhr6lA2EKQb4I+nlzvB7WVV24t4N3NhGwTAA8lRIs6Fe4vrJ+NUghNEcy4XnmDMlGox8VvCG28g=="],
+
+    "@opsydyn/zloz-server/@opsydyn/foldkit-zloz": ["@opsydyn/foldkit-zloz@https://registry.npmjs.org/@opsydyn/foldkit-zloz/-/foldkit-zloz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "effect": ">=4.1.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "effect"] }, "sha512-gXHYZuADv/ORnj1aSDw9nQLMld+u0IW4Vl1dBePQ4O7y9VATtqkh7iMQxn/D9VEHCMgB82/+pEHO+QRNAeRdmA=="],
+
+    "@opsydyn/zloz-team/@opsydyn/astro-effect-ui": ["@opsydyn/astro-effect-ui@https://registry.npmjs.org/@opsydyn/astro-effect-ui/-/astro-effect-ui-1.0.0-next.0.tgz", { "dependencies": { "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92" }, "peerDependencies": { "astro": ">=5.0.0 <8", "effect": "~4.1.0" } }, "sha512-H0b6+OMU3CzLUcdrc1+TlwlvB7jPCU/VzGfKkyi5Soe3QgAMOc5ZBDWXc95C+eK6BykO8MCOR4bUVGZf6BaVzQ=="],
+
+    "@opsydyn/zloz-team/@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@https://registry.npmjs.org/@opsydyn/foldkit-viz/-/foldkit-viz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "@opsydyn/effect-three": "1.0.0-next.0", "effect": ">=4.0.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "@opsydyn/effect-three", "effect"] }, "sha512-9kbjBdq+Vh1khXsYwAoQg+w6oO2uKlQVWBY1VbSXM85osEzM5UBBJmX2pWay7kw0HHX99BZcZDx13vHshMLJwg=="],
+
+    "@opsydyn/zloz-team/@opsydyn/foldkit-zloz": ["@opsydyn/foldkit-zloz@https://registry.npmjs.org/@opsydyn/foldkit-zloz/-/foldkit-zloz-1.0.0-next.0.tgz", { "peerDependencies": { "@effect/ui": "0.0.0", "effect": ">=4.1.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "effect"] }, "sha512-gXHYZuADv/ORnj1aSDw9nQLMld+u0IW4Vl1dBePQ4O7y9VATtqkh7iMQxn/D9VEHCMgB82/+pEHO+QRNAeRdmA=="],
+
+    "@opsydyn/zloz-team/@opsydyn/foldkit-zloz-elk": ["@opsydyn/foldkit-zloz-elk@https://registry.npmjs.org/@opsydyn/foldkit-zloz-elk/-/foldkit-zloz-elk-1.0.0-next.0.tgz", { "dependencies": { "elkjs": "0.12.1" }, "peerDependencies": { "@opsydyn/foldkit-zloz": "1.0.0-next.0" } }, "sha512-b5yZ6wuk47dXUUazcmDp6cs44GgPriwnvYoP55roHjB7kFuZrhuZ99FazAYTUj7Z5Smn9b10nNUY/v3STlpxwQ=="],
+
+    "@opsydyn/zloz-team/@opsydyn/foldkit-zloz-mermaid": ["@opsydyn/foldkit-zloz-mermaid@https://registry.npmjs.org/@opsydyn/foldkit-zloz-mermaid/-/foldkit-zloz-mermaid-1.0.0-next.0.tgz", { "peerDependencies": { "@opsydyn/foldkit-zloz": "1.0.0-next.0" } }, "sha512-3hnuKwgMUm2bhr6lA2EKQb4I+nlzvB7WVV24t4N3NhGwTAA8lRIs6Fe4vrJ+NUghNEcy4XnmDMlGox8VvCG28g=="],
 
     "@oxc-parser/binding-wasm32-wasi/@emnapi/core": ["@emnapi/core@1.9.2", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.1", "tslib": "^2.4.0" } }, "sha512-UC+ZhH3XtczQYfOlu3lNEkdW/p4dsJ1r/bP7H8+rhao3TTTMO1ATq/4DdIi23XuGoFY+Cz0JmCbdVl0hz9jZcA=="],
 
@@ -3707,6 +3800,44 @@
     "yaml-language-server/yaml": ["yaml@2.7.1", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-10ULxpnOCQXxJvBgxsn9ptjq6uviG/htZKk9veJGhlqn3w/DxQ631zFF+nlQXLwmImeS5amR2dl2U8sg6U9jsQ=="],
 
     "youch/cookie": ["cookie@1.1.1", "", {}, "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-android-arm-eabi": ["@oxlint/binding-android-arm-eabi@1.88.0", "", { "os": "android", "cpu": "arm" }, "sha512-k6Fgkf86ubfeH4GvqYsRolfuVAp0pfYVZvifSlXNHPdMaWUOfxUrmLEeDD7hF6U2oJuhsVxhSWq86/xCJ+9MmA=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-android-arm64": ["@oxlint/binding-android-arm64@1.88.0", "", { "os": "android", "cpu": "arm64" }, "sha512-AsIyhl9o1ejwtac7NMbhKpMdSml6NWR0ljKjZERxC8OHYDAW8o/Om9n1QHVLi4VCEUo42Zte2/Op9kyoGpJZMg=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-darwin-arm64": ["@oxlint/binding-darwin-arm64@1.88.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-qgBjB7eEKcCB4RqjXGuoSZq74g0wD09fWFJ+HWcCJcKaga8TeUHtb+BY0SsxdleSLBgx4RZ7qmgo0EzqEq7JoQ=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-darwin-x64": ["@oxlint/binding-darwin-x64@1.88.0", "", { "os": "darwin", "cpu": "x64" }, "sha512-sCz3X5Mw/xdzEzn4fsCt1Iq8NKJnGNfhR+b9B5k+4DysYAHsmIhYoocnBPiQ9kvY3+pUun2A0Z8Vtun/Nv6YoQ=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-freebsd-x64": ["@oxlint/binding-freebsd-x64@1.88.0", "", { "os": "freebsd", "cpu": "x64" }, "sha512-xTOdYOIqCufgIj0knvxu86FBfovP6QBiD7ngNva01gb8xPQCD5gXkE5APGczH35zStim1O3zqvFbLQmY85xXRg=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm-gnueabihf": ["@oxlint/binding-linux-arm-gnueabihf@1.88.0", "", { "os": "linux", "cpu": "arm" }, "sha512-BLadtw88NdYJBrAtC1dYzrPfSP2d5zgx6iuZycdD0YmZBJ2Nqbit9Z4PSaIb6gxK25dweArGMPbOmq/0ugwUPg=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm-musleabihf": ["@oxlint/binding-linux-arm-musleabihf@1.88.0", "", { "os": "linux", "cpu": "arm" }, "sha512-wILSczl/DaZsCcf7j7tvNbssp8hxEHIJxrv4j7+JjI3TAL1U/JTWbeUtoJJC/vo8+2hkTmHLYoKJjmiNbijdXw=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm64-gnu": ["@oxlint/binding-linux-arm64-gnu@1.88.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-jutT2Hy8JCuZuMwIFHo2HtyxfOfBJHyQxlBHBK1SL9W2f8n/WhjAP0FnDMz9d/mjhv9+QA0mx5AdQ9fDjsrFFg=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm64-musl": ["@oxlint/binding-linux-arm64-musl@1.88.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-8N8iGV9hh4Lkeuq7QsEkjoXNRRflqR1G2qyoGYXcA0k5qllrdqmfylKEXyHIVERxqNDyMO4StqDQ0uLxXcBQAg=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-linux-ppc64-gnu": ["@oxlint/binding-linux-ppc64-gnu@1.88.0", "", { "os": "linux", "cpu": "ppc64" }, "sha512-5ydcQt3znNQ/rGEWYRvpS2cK9+T18P2VYgnyJ+eloEAwi9YUmsXy5VGrRqNWIK6qzWwHGnEE3ojVqqQNo+f0hA=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-linux-riscv64-gnu": ["@oxlint/binding-linux-riscv64-gnu@1.88.0", "", { "os": "linux", "cpu": "none" }, "sha512-iGx0uvFT54b/5DPJdEBCxYIrVB3v0uTy+JhRh3CyEp8/22BXDkG8rffkFwREdLsdj9mOrPbJYVOZw8ipcBuzjw=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-linux-riscv64-musl": ["@oxlint/binding-linux-riscv64-musl@1.88.0", "", { "os": "linux", "cpu": "none" }, "sha512-Wt47mKMWelVjRjuR7BCFxXkB0m79K1sTEbqMHRWciKUgo5iv7sWsF4RXSOyFYHD9zerNrkRZblnN273rhwOA1Q=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-linux-s390x-gnu": ["@oxlint/binding-linux-s390x-gnu@1.88.0", "", { "os": "linux", "cpu": "s390x" }, "sha512-g3L12KCS4+1gtUt3RbJ4F+Yxx4LNmmZLEPfhd8rAHEJjJk2lAgNfnjGoP/phJyhG5WS6VbNYbJtadJelNfvTMA=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-linux-x64-gnu": ["@oxlint/binding-linux-x64-gnu@1.88.0", "", { "os": "linux", "cpu": "x64" }, "sha512-og/XHVDOD9ZJgRiZkT9DgzQd4sr+JZW7e4l17Q/jVMZiIbeEd4uIu9iAoUbTF1gIvVZoRc4QDOxyVUvQGp4WHg=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-linux-x64-musl": ["@oxlint/binding-linux-x64-musl@1.88.0", "", { "os": "linux", "cpu": "x64" }, "sha512-EmhBsp+xuKb6YbZNEMLBo80Xw71AZOIm18do8ni/GLX/Lw1XzNhVYpbxO1KasYtoAvrGtCOdCPULRlIE0bPbTQ=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-openharmony-arm64": ["@oxlint/binding-openharmony-arm64@1.88.0", "", { "os": "none", "cpu": "arm64" }, "sha512-DBUcx/KwYdg1DAz+G01P/GFv512J04EsZadbHptx2FTpWT/MWRg21ZToNHt9pnsfQRBQ3et/g+vqzbvrdAVbuA=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-win32-arm64-msvc": ["@oxlint/binding-win32-arm64-msvc@1.88.0", "", { "os": "win32", "cpu": "arm64" }, "sha512-xeVd0n4XG5HvynxfYvXi6uB+JvZbVZataowPS8cYpMbYg9mwE4sSyElFQd4LVJFifq8bRLDSR18XgEildmcXAg=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-win32-ia32-msvc": ["@oxlint/binding-win32-ia32-msvc@1.88.0", "", { "os": "win32", "cpu": "ia32" }, "sha512-MA6iOw//amleaz2mVMsZrA7NHlEexjTrhIxSMFCXQi6IUuQO+3Od00GZhr2iCYw6RFzMW36jkKK/WHBXMsoQAw=="],
+
+    "./@opsydyn/effect-three/oxlint/@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.88.0", "", { "os": "win32", "cpu": "x64" }, "sha512-3Sz6rVWe8Dy+ufsXurFN1GX2dX43F/lQMSLelK9gFjiba7nHvLlqlhR5cHlWVnCpSqUY1hN9pyCX9XToe6ve6g=="],
 
     "@alchemy.run/cloudflare-runtime/magic-string/@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
@@ -4108,43 +4239,11 @@
 
     "@opsydyn/effect-three-troika/oxlint/@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.88.0", "", { "os": "win32", "cpu": "x64" }, "sha512-3Sz6rVWe8Dy+ufsXurFN1GX2dX43F/lQMSLelK9gFjiba7nHvLlqlhR5cHlWVnCpSqUY1hN9pyCX9XToe6ve6g=="],
 
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-android-arm-eabi": ["@oxlint/binding-android-arm-eabi@1.88.0", "", { "os": "android", "cpu": "arm" }, "sha512-k6Fgkf86ubfeH4GvqYsRolfuVAp0pfYVZvifSlXNHPdMaWUOfxUrmLEeDD7hF6U2oJuhsVxhSWq86/xCJ+9MmA=="],
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint": ["oxlint@1.88.0", "", { "optionalDependencies": { "@oxlint/binding-android-arm-eabi": "1.88.0", "@oxlint/binding-android-arm64": "1.88.0", "@oxlint/binding-darwin-arm64": "1.88.0", "@oxlint/binding-darwin-x64": "1.88.0", "@oxlint/binding-freebsd-x64": "1.88.0", "@oxlint/binding-linux-arm-gnueabihf": "1.88.0", "@oxlint/binding-linux-arm-musleabihf": "1.88.0", "@oxlint/binding-linux-arm64-gnu": "1.88.0", "@oxlint/binding-linux-arm64-musl": "1.88.0", "@oxlint/binding-linux-ppc64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-gnu": "1.88.0", "@oxlint/binding-linux-riscv64-musl": "1.88.0", "@oxlint/binding-linux-s390x-gnu": "1.88.0", "@oxlint/binding-linux-x64-gnu": "1.88.0", "@oxlint/binding-linux-x64-musl": "1.88.0", "@oxlint/binding-openharmony-arm64": "1.88.0", "@oxlint/binding-win32-arm64-msvc": "1.88.0", "@oxlint/binding-win32-ia32-msvc": "1.88.0", "@oxlint/binding-win32-x64-msvc": "1.88.0" }, "peerDependencies": { "oxlint-tsgolint": ">=7.0.2003", "vite-plus": "*" }, "optionalPeers": ["oxlint-tsgolint", "vite-plus"], "bin": { "oxlint": "bin/oxlint" } }, "sha512-uIcFgw8BmqvFRGzH5+r7d2zJMEexwNSrEmM6WQNnGh3VkO0XYTEFoyxyNE6tjKMUib9Cue4XJA2DoWruO5D6aw=="],
 
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-android-arm64": ["@oxlint/binding-android-arm64@1.88.0", "", { "os": "android", "cpu": "arm64" }, "sha512-AsIyhl9o1ejwtac7NMbhKpMdSml6NWR0ljKjZERxC8OHYDAW8o/Om9n1QHVLi4VCEUo42Zte2/Op9kyoGpJZMg=="],
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/typescript": ["typescript@7.0.2", "", { "optionalDependencies": { "@typescript/typescript-aix-ppc64": "7.0.2", "@typescript/typescript-darwin-arm64": "7.0.2", "@typescript/typescript-darwin-x64": "7.0.2", "@typescript/typescript-freebsd-arm64": "7.0.2", "@typescript/typescript-freebsd-x64": "7.0.2", "@typescript/typescript-linux-arm": "7.0.2", "@typescript/typescript-linux-arm64": "7.0.2", "@typescript/typescript-linux-loong64": "7.0.2", "@typescript/typescript-linux-mips64el": "7.0.2", "@typescript/typescript-linux-ppc64": "7.0.2", "@typescript/typescript-linux-riscv64": "7.0.2", "@typescript/typescript-linux-s390x": "7.0.2", "@typescript/typescript-linux-x64": "7.0.2", "@typescript/typescript-netbsd-arm64": "7.0.2", "@typescript/typescript-netbsd-x64": "7.0.2", "@typescript/typescript-openbsd-arm64": "7.0.2", "@typescript/typescript-openbsd-x64": "7.0.2", "@typescript/typescript-sunos-x64": "7.0.2", "@typescript/typescript-win32-arm64": "7.0.2", "@typescript/typescript-win32-x64": "7.0.2" }, "bin": { "tsc": "bin/tsc" } }, "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA=="],
 
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-darwin-arm64": ["@oxlint/binding-darwin-arm64@1.88.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-qgBjB7eEKcCB4RqjXGuoSZq74g0wD09fWFJ+HWcCJcKaga8TeUHtb+BY0SsxdleSLBgx4RZ7qmgo0EzqEq7JoQ=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-darwin-x64": ["@oxlint/binding-darwin-x64@1.88.0", "", { "os": "darwin", "cpu": "x64" }, "sha512-sCz3X5Mw/xdzEzn4fsCt1Iq8NKJnGNfhR+b9B5k+4DysYAHsmIhYoocnBPiQ9kvY3+pUun2A0Z8Vtun/Nv6YoQ=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-freebsd-x64": ["@oxlint/binding-freebsd-x64@1.88.0", "", { "os": "freebsd", "cpu": "x64" }, "sha512-xTOdYOIqCufgIj0knvxu86FBfovP6QBiD7ngNva01gb8xPQCD5gXkE5APGczH35zStim1O3zqvFbLQmY85xXRg=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm-gnueabihf": ["@oxlint/binding-linux-arm-gnueabihf@1.88.0", "", { "os": "linux", "cpu": "arm" }, "sha512-BLadtw88NdYJBrAtC1dYzrPfSP2d5zgx6iuZycdD0YmZBJ2Nqbit9Z4PSaIb6gxK25dweArGMPbOmq/0ugwUPg=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm-musleabihf": ["@oxlint/binding-linux-arm-musleabihf@1.88.0", "", { "os": "linux", "cpu": "arm" }, "sha512-wILSczl/DaZsCcf7j7tvNbssp8hxEHIJxrv4j7+JjI3TAL1U/JTWbeUtoJJC/vo8+2hkTmHLYoKJjmiNbijdXw=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm64-gnu": ["@oxlint/binding-linux-arm64-gnu@1.88.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-jutT2Hy8JCuZuMwIFHo2HtyxfOfBJHyQxlBHBK1SL9W2f8n/WhjAP0FnDMz9d/mjhv9+QA0mx5AdQ9fDjsrFFg=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm64-musl": ["@oxlint/binding-linux-arm64-musl@1.88.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-8N8iGV9hh4Lkeuq7QsEkjoXNRRflqR1G2qyoGYXcA0k5qllrdqmfylKEXyHIVERxqNDyMO4StqDQ0uLxXcBQAg=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-linux-ppc64-gnu": ["@oxlint/binding-linux-ppc64-gnu@1.88.0", "", { "os": "linux", "cpu": "ppc64" }, "sha512-5ydcQt3znNQ/rGEWYRvpS2cK9+T18P2VYgnyJ+eloEAwi9YUmsXy5VGrRqNWIK6qzWwHGnEE3ojVqqQNo+f0hA=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-linux-riscv64-gnu": ["@oxlint/binding-linux-riscv64-gnu@1.88.0", "", { "os": "linux", "cpu": "none" }, "sha512-iGx0uvFT54b/5DPJdEBCxYIrVB3v0uTy+JhRh3CyEp8/22BXDkG8rffkFwREdLsdj9mOrPbJYVOZw8ipcBuzjw=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-linux-riscv64-musl": ["@oxlint/binding-linux-riscv64-musl@1.88.0", "", { "os": "linux", "cpu": "none" }, "sha512-Wt47mKMWelVjRjuR7BCFxXkB0m79K1sTEbqMHRWciKUgo5iv7sWsF4RXSOyFYHD9zerNrkRZblnN273rhwOA1Q=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-linux-s390x-gnu": ["@oxlint/binding-linux-s390x-gnu@1.88.0", "", { "os": "linux", "cpu": "s390x" }, "sha512-g3L12KCS4+1gtUt3RbJ4F+Yxx4LNmmZLEPfhd8rAHEJjJk2lAgNfnjGoP/phJyhG5WS6VbNYbJtadJelNfvTMA=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-linux-x64-gnu": ["@oxlint/binding-linux-x64-gnu@1.88.0", "", { "os": "linux", "cpu": "x64" }, "sha512-og/XHVDOD9ZJgRiZkT9DgzQd4sr+JZW7e4l17Q/jVMZiIbeEd4uIu9iAoUbTF1gIvVZoRc4QDOxyVUvQGp4WHg=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-linux-x64-musl": ["@oxlint/binding-linux-x64-musl@1.88.0", "", { "os": "linux", "cpu": "x64" }, "sha512-EmhBsp+xuKb6YbZNEMLBo80Xw71AZOIm18do8ni/GLX/Lw1XzNhVYpbxO1KasYtoAvrGtCOdCPULRlIE0bPbTQ=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-openharmony-arm64": ["@oxlint/binding-openharmony-arm64@1.88.0", "", { "os": "none", "cpu": "arm64" }, "sha512-DBUcx/KwYdg1DAz+G01P/GFv512J04EsZadbHptx2FTpWT/MWRg21ZToNHt9pnsfQRBQ3et/g+vqzbvrdAVbuA=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-win32-arm64-msvc": ["@oxlint/binding-win32-arm64-msvc@1.88.0", "", { "os": "win32", "cpu": "arm64" }, "sha512-xeVd0n4XG5HvynxfYvXi6uB+JvZbVZataowPS8cYpMbYg9mwE4sSyElFQd4LVJFifq8bRLDSR18XgEildmcXAg=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-win32-ia32-msvc": ["@oxlint/binding-win32-ia32-msvc@1.88.0", "", { "os": "win32", "cpu": "ia32" }, "sha512-MA6iOw//amleaz2mVMsZrA7NHlEexjTrhIxSMFCXQi6IUuQO+3Od00GZhr2iCYw6RFzMW36jkKK/WHBXMsoQAw=="],
-
-    "@opsydyn/effect-three/oxlint/@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.88.0", "", { "os": "win32", "cpu": "x64" }, "sha512-3Sz6rVWe8Dy+ufsXurFN1GX2dX43F/lQMSLelK9gFjiba7nHvLlqlhR5cHlWVnCpSqUY1hN9pyCX9XToe6ve6g=="],
+    "@opsydyn/zloz-demo/@opsydyn/foldkit-zloz-force/@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@1.0.0-next.0", "", { "peerDependencies": { "@effect/ui": "0.0.0", "@opsydyn/effect-three": "1.0.0-next.0", "effect": ">=4.0.0 <5.0.0" }, "optionalPeers": ["@effect/ui", "@opsydyn/effect-three", "effect"] }, "sha512-9kbjBdq+Vh1khXsYwAoQg+w6oO2uKlQVWBY1VbSXM85osEzM5UBBJmX2pWay7kw0HHX99BZcZDx13vHshMLJwg=="],
 
     "@oxc-resolver/binding-wasm32-wasi/@emnapi/core/@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.2", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA=="],
 
@@ -4505,6 +4604,44 @@
     "@astrojs/vite-plugin-astro/rolldown/@rolldown/binding-wasm32-wasi/@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.2.6", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1 || 2.0.0-beta.2", "@emnapi/runtime": "^1.7.1 || 2.0.0-beta.2" } }, "sha512-mRyDmEw9/fCDXCGfL1sbgIw/GUK0PVxRW4YwgPN61F3LQ+fSyoBFarJVzgGyhF6kRzEQZ0FejDqm4WLXSeqQmw=="],
 
     "@expressive-code/plugin-shiki/shiki/@shikijs/core/@shikijs/primitive": ["@shikijs/primitive@4.5.0", "", { "dependencies": { "@shikijs/types": "4.5.0", "@shikijs/vscode-textmate": "^10.0.2", "@types/hast": "^3.0.5" } }, "sha512-UM7ShlA8oz0OWxLLO8BmO9Ip6fVqdkt8yF0EH7nOCqHfrx1eEAzF0ZUVK7L+I8NEgeu1PEWSRlxaiPPeCb4iDg=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-android-arm-eabi": ["@oxlint/binding-android-arm-eabi@1.88.0", "", { "os": "android", "cpu": "arm" }, "sha512-k6Fgkf86ubfeH4GvqYsRolfuVAp0pfYVZvifSlXNHPdMaWUOfxUrmLEeDD7hF6U2oJuhsVxhSWq86/xCJ+9MmA=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-android-arm64": ["@oxlint/binding-android-arm64@1.88.0", "", { "os": "android", "cpu": "arm64" }, "sha512-AsIyhl9o1ejwtac7NMbhKpMdSml6NWR0ljKjZERxC8OHYDAW8o/Om9n1QHVLi4VCEUo42Zte2/Op9kyoGpJZMg=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-darwin-arm64": ["@oxlint/binding-darwin-arm64@1.88.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-qgBjB7eEKcCB4RqjXGuoSZq74g0wD09fWFJ+HWcCJcKaga8TeUHtb+BY0SsxdleSLBgx4RZ7qmgo0EzqEq7JoQ=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-darwin-x64": ["@oxlint/binding-darwin-x64@1.88.0", "", { "os": "darwin", "cpu": "x64" }, "sha512-sCz3X5Mw/xdzEzn4fsCt1Iq8NKJnGNfhR+b9B5k+4DysYAHsmIhYoocnBPiQ9kvY3+pUun2A0Z8Vtun/Nv6YoQ=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-freebsd-x64": ["@oxlint/binding-freebsd-x64@1.88.0", "", { "os": "freebsd", "cpu": "x64" }, "sha512-xTOdYOIqCufgIj0knvxu86FBfovP6QBiD7ngNva01gb8xPQCD5gXkE5APGczH35zStim1O3zqvFbLQmY85xXRg=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm-gnueabihf": ["@oxlint/binding-linux-arm-gnueabihf@1.88.0", "", { "os": "linux", "cpu": "arm" }, "sha512-BLadtw88NdYJBrAtC1dYzrPfSP2d5zgx6iuZycdD0YmZBJ2Nqbit9Z4PSaIb6gxK25dweArGMPbOmq/0ugwUPg=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm-musleabihf": ["@oxlint/binding-linux-arm-musleabihf@1.88.0", "", { "os": "linux", "cpu": "arm" }, "sha512-wILSczl/DaZsCcf7j7tvNbssp8hxEHIJxrv4j7+JjI3TAL1U/JTWbeUtoJJC/vo8+2hkTmHLYoKJjmiNbijdXw=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm64-gnu": ["@oxlint/binding-linux-arm64-gnu@1.88.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-jutT2Hy8JCuZuMwIFHo2HtyxfOfBJHyQxlBHBK1SL9W2f8n/WhjAP0FnDMz9d/mjhv9+QA0mx5AdQ9fDjsrFFg=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-linux-arm64-musl": ["@oxlint/binding-linux-arm64-musl@1.88.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-8N8iGV9hh4Lkeuq7QsEkjoXNRRflqR1G2qyoGYXcA0k5qllrdqmfylKEXyHIVERxqNDyMO4StqDQ0uLxXcBQAg=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-linux-ppc64-gnu": ["@oxlint/binding-linux-ppc64-gnu@1.88.0", "", { "os": "linux", "cpu": "ppc64" }, "sha512-5ydcQt3znNQ/rGEWYRvpS2cK9+T18P2VYgnyJ+eloEAwi9YUmsXy5VGrRqNWIK6qzWwHGnEE3ojVqqQNo+f0hA=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-linux-riscv64-gnu": ["@oxlint/binding-linux-riscv64-gnu@1.88.0", "", { "os": "linux", "cpu": "none" }, "sha512-iGx0uvFT54b/5DPJdEBCxYIrVB3v0uTy+JhRh3CyEp8/22BXDkG8rffkFwREdLsdj9mOrPbJYVOZw8ipcBuzjw=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-linux-riscv64-musl": ["@oxlint/binding-linux-riscv64-musl@1.88.0", "", { "os": "linux", "cpu": "none" }, "sha512-Wt47mKMWelVjRjuR7BCFxXkB0m79K1sTEbqMHRWciKUgo5iv7sWsF4RXSOyFYHD9zerNrkRZblnN273rhwOA1Q=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-linux-s390x-gnu": ["@oxlint/binding-linux-s390x-gnu@1.88.0", "", { "os": "linux", "cpu": "s390x" }, "sha512-g3L12KCS4+1gtUt3RbJ4F+Yxx4LNmmZLEPfhd8rAHEJjJk2lAgNfnjGoP/phJyhG5WS6VbNYbJtadJelNfvTMA=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-linux-x64-gnu": ["@oxlint/binding-linux-x64-gnu@1.88.0", "", { "os": "linux", "cpu": "x64" }, "sha512-og/XHVDOD9ZJgRiZkT9DgzQd4sr+JZW7e4l17Q/jVMZiIbeEd4uIu9iAoUbTF1gIvVZoRc4QDOxyVUvQGp4WHg=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-linux-x64-musl": ["@oxlint/binding-linux-x64-musl@1.88.0", "", { "os": "linux", "cpu": "x64" }, "sha512-EmhBsp+xuKb6YbZNEMLBo80Xw71AZOIm18do8ni/GLX/Lw1XzNhVYpbxO1KasYtoAvrGtCOdCPULRlIE0bPbTQ=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-openharmony-arm64": ["@oxlint/binding-openharmony-arm64@1.88.0", "", { "os": "none", "cpu": "arm64" }, "sha512-DBUcx/KwYdg1DAz+G01P/GFv512J04EsZadbHptx2FTpWT/MWRg21ZToNHt9pnsfQRBQ3et/g+vqzbvrdAVbuA=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-win32-arm64-msvc": ["@oxlint/binding-win32-arm64-msvc@1.88.0", "", { "os": "win32", "cpu": "arm64" }, "sha512-xeVd0n4XG5HvynxfYvXi6uB+JvZbVZataowPS8cYpMbYg9mwE4sSyElFQd4LVJFifq8bRLDSR18XgEildmcXAg=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-win32-ia32-msvc": ["@oxlint/binding-win32-ia32-msvc@1.88.0", "", { "os": "win32", "cpu": "ia32" }, "sha512-MA6iOw//amleaz2mVMsZrA7NHlEexjTrhIxSMFCXQi6IUuQO+3Od00GZhr2iCYw6RFzMW36jkKK/WHBXMsoQAw=="],
+
+    "@opsydyn/foldkit-viz/@opsydyn/effect-three/oxlint/@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.88.0", "", { "os": "win32", "cpu": "x64" }, "sha512-3Sz6rVWe8Dy+ufsXurFN1GX2dX43F/lQMSLelK9gFjiba7nHvLlqlhR5cHlWVnCpSqUY1hN9pyCX9XToe6ve6g=="],
 
     "@vanilla-extract/compiler/vite/lightningcss/lightningcss-android-arm64": ["lightningcss-android-arm64@1.32.0", "", { "os": "android", "cpu": "arm64" }, "sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg=="],
 

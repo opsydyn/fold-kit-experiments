@@ -54,8 +54,8 @@
     }
   },
   "scripts": {
-    "build": "bun run --filter @opsydyn/foldkit-zloz build && tsdown",
-    "typecheck": "bun run --filter @opsydyn/foldkit-zloz build && tsc --noEmit && tsc --noEmit -p tsconfig.collaboration.json",
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.collaboration.json",
     "test": "bun run test:unit && bun run test:package",
     "test:unit": "bun run build && bun test ./test --path-ignore-patterns='**/*package.test.ts'",
     "test:package": "bun test ./test/package.test.ts ./test/collaboration-package.test.ts",
@@ -63,7 +63,7 @@
   },
   "devDependencies": {
     "@alchemy.run/domain": "catalog:infra",
-    "@opsydyn/foldkit-zloz": "workspace:*",
+    "@opsydyn/foldkit-zloz": "catalog:published",
     "@types/node": "catalog:",
     "alchemy": "catalog:infra",
     "bun-types": "catalog:",
@@ -74,7 +74,7 @@
   },
   "peerDependencies": {
     "@alchemy.run/domain": "2.0.0-beta.85",
-    "@opsydyn/foldkit-zloz": "workspace:*",
+    "@opsydyn/foldkit-zloz": "1.0.0-next.0",
     "alchemy": "2.0.0-beta.85",
     "effect": "^4.1.0"
   },

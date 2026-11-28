@@ -56,6 +56,11 @@ const declarations = workspaces.flatMap(({ path, manifest }) =>
   ),
 );
 
+// Published app pins are archive URLs to avoid Bun substituting same-version workspaces.
+const versionCatalogs = Object.entries(catalogs)
+  .filter(([name]) => name !== 'published')
+  .map(([, catalog]) => catalog);
+
 const usedBy = new Map<string, Set<string>>();
 for (const { name, path } of declarations) {
   usedBy.set(name, (usedBy.get(name) ?? new Set()).add(path));
@@ -76,7 +81,7 @@ for (const { path, manifest, section, name, version } of declarations) {
     } else {
       // A literal version must equal one catalog's: the default's, or a named one's (the
       // effect-three packages build with the `strict` catalog's TypeScript and oxlint).
-      const defined = Object.values(catalogs).flatMap((catalog) =>
+      const defined = versionCatalogs.flatMap((catalog) =>
         catalog?.[name] === undefined ? [] : [catalog[name]],
       );
       if (defined.length > 0 && !defined.includes(version)) {

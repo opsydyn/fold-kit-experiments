@@ -73,6 +73,18 @@
       "sax": "1.6.1"
     },
     "catalogs": {
+      "published": {
+        "@opsydyn/astro-effect-ui": "https://registry.npmjs.org/@opsydyn/astro-effect-ui/-/astro-effect-ui-1.0.0-next.0.tgz",
+        "@opsydyn/effect-three": "https://registry.npmjs.org/@opsydyn/effect-three/-/effect-three-1.0.0-next.0.tgz",
+        "@opsydyn/effect-three-foldkit": "https://registry.npmjs.org/@opsydyn/effect-three-foldkit/-/effect-three-foldkit-1.0.0-next.0.tgz",
+        "@opsydyn/effect-three-rapier": "https://registry.npmjs.org/@opsydyn/effect-three-rapier/-/effect-three-rapier-1.0.0-next.0.tgz",
+        "@opsydyn/effect-three-troika": "https://registry.npmjs.org/@opsydyn/effect-three-troika/-/effect-three-troika-1.0.0-next.0.tgz",
+        "@opsydyn/foldkit-viz": "https://registry.npmjs.org/@opsydyn/foldkit-viz/-/foldkit-viz-1.0.0-next.0.tgz",
+        "@opsydyn/foldkit-zloz": "https://registry.npmjs.org/@opsydyn/foldkit-zloz/-/foldkit-zloz-1.0.0-next.0.tgz",
+        "@opsydyn/foldkit-zloz-elk": "https://registry.npmjs.org/@opsydyn/foldkit-zloz-elk/-/foldkit-zloz-elk-1.0.0-next.0.tgz",
+        "@opsydyn/foldkit-zloz-force": "https://registry.npmjs.org/@opsydyn/foldkit-zloz-force/-/foldkit-zloz-force-1.0.0-next.0.tgz",
+        "@opsydyn/foldkit-zloz-mermaid": "https://registry.npmjs.org/@opsydyn/foldkit-zloz-mermaid/-/foldkit-zloz-mermaid-1.0.0-next.0.tgz"
+      },
       "strict": {
         "oxlint": "1.88.0",
         "typescript": "7.0.2"
@@ -95,7 +107,7 @@
     "test": "moon run :test && moon run :integration",
     "test:p0": "bun run ci:p0",
     "test:vitest": "moon run '#foldkit-vitest:prepare-vitest' && vitest",
-    "typecheck": "bun run --sequential --filter '*' typecheck",
+    "typecheck": "moon run :typecheck",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && bun run --filter '@opsydyn/effect-three*' check && oxfmt --check . && bun tools/check-catalog.ts && bun tools/check-skills.ts",
     "storybook": "bun run --filter @opsydyn/web storybook",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix . && bun run --filter '@opsydyn/effect-three*' check",
@@ -125,6 +137,7 @@
     "@effect/ui-devtools": "catalog:",
     "@effect/ui-kit": "catalog:",
     "@moonrepo/cli": "2.5.4",
+    "@opsydyn/effect-three": "catalog:published",
     "@opsydyn/oxlint-effect": "catalog:",
     "@oxlint/plugins": "1.79.0",
     "@typescript-eslint/utils": "^8.63.0",

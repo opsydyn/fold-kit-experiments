@@ -8,6 +8,7 @@ on:
         required: true
         type: choice
         options:
+          - effect-ui-next
           - astro-foldkit
           - foldkit-viz
           # effect-three's four are released together: publish effect-three first, then
@@ -27,6 +28,7 @@ permissions:
 
 jobs:
   publish:
+    if: inputs.package != 'effect-ui-next'
     runs-on: ubuntu-latest
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -88,3 +90,66 @@ jobs:
         run: |
           echo "::error::NPM_TOKEN secret is not configured. Add it as a repository secret to enable publishing."
           exit 1
+
+  effect-ui-next:
+    if: inputs.package == 'effect-ui-next'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: effect-ui-next-npm
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      PRODUCT_SHA: ${{ inputs.ref }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+      - name: Verify the product revision and main CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [[ "$PRODUCT_SHA" =~ ^[a-f0-9]{40}$ ]]
+          git merge-base --is-ancestor "$PRODUCT_SHA" origin/main
+          git merge-base --is-ancestor "$PRODUCT_SHA" "$GITHUB_SHA"
+          while IFS= read -r path; do
+            case "$path" in
+              .github/workflows/publish.yml|.github/scripts/effect-ui-next.mjs|.github/scripts/zloz-release-train.mjs|docs/assessments/2026-11-26-effect-ui-1.0-migration.md) ;;
+              *) echo "::error::Controller has modified product inputs: $path"; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$PRODUCT_SHA" "$GITHUB_SHA")
+          node --input-type=module -e 'import { waitForCI } from "./.github/scripts/zloz-release-train.mjs"; await waitForCI(process.env.PRODUCT_SHA);'
+      - name: Recover the original qualified archives
+        if: env.PRODUCT_SHA == 'a82a94d6bb445d866470125ee5f306ec8fc9f63f'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 46079781017 --repo "$GITHUB_REPOSITORY" \
+            --name effect-ui-next-archives --dir "$RUNNER_TEMP/effect-ui-next/archives"
+      - name: Build and install the packed prerelease train
+        if: env.PRODUCT_SHA != 'a82a94d6bb445d866470125ee5f306ec8fc9f63f'
+        run: node .github/scripts/effect-ui-next.mjs prepare "$PRODUCT_SHA" "$RUNNER_TEMP/effect-ui-next"
+      - name: Publish and verify the next train in dependency order
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          test -n "$NODE_AUTH_TOKEN"
+          node .github/scripts/effect-ui-next.mjs publish "$PRODUCT_SHA" "$RUNNER_TEMP/effect-ui-next"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: effect-ui-next-archives
+          path: ${{ runner.temp }}/effect-ui-next/archives/
+          if-no-files-found: ignore

@@ -31,9 +31,11 @@ moves their assigned tokens, previews sample art, reveals the room, applies
 Pip's sprite and publishes the recap. It also checks that outsiders, removed
 members and other player seats cannot read or write beyond their permissions.
 The room WebSocket test checks that all four browsers stop reading room and
-Ledger state while idle. It cuts one player’s socket before reveal and verifies
-that the player catches up on reconnect. The test also inspects player frames
-for private draft and Ledger activity.
+Ledger state while idle. It cuts Wicket’s socket before a reveal and verifies
+catch-up on reconnect. It also suppresses Mira’s reveal notice while her socket
+stays open and verifies catch-up when her tab regains focus, with the same
+document still loaded. The test inspects player frames for private draft and
+Ledger activity.
 See the [Moonwell WebSocket playtest](evidence/questmancer-websockets/README.md)
 for the localhost results and screenshots.
 Use `ZLOZ_QUESTMANCER_EVIDENCE` with a local directory to save dashboard and

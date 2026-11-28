@@ -86,23 +86,12 @@ budget have no outcome.
 
 ## Field guide history
 
-After a successful web advisory, the field guide archive workflow imports its report from
-the completed run. It executes the importer from the default branch. The compact records
-live in `archive.json` on the `field-guide-data` branch. Each record carries the source
-commit, run ID, attempt, start time and SHA-256 of the original report. Reprocessing the
-same artifact is idempotent. A later attempt adds another observation for the same mutant.
+Open a specimen and read its trail of sightings. **Caught** means a test failed when the replacement ran. **Survived** means the selected tests stayed green. **Untested** means the runner found no related tests and the fallback suite passed. A survivor is an invitation to ask which observable behaviour changed. A mutant skipped for budget has no verdict. [Visit the workspace shelves](https://opsydyn-web.opsydyn.workers.dev/mutant-field-guide#inventory-title).
 
-The web guide reads the public archive on request. Updates become visible after GitHub's
-raw-content cache refreshes. When that archive is unavailable, the guide labels its bundled
-Explore and first portrait records. The archive workflow activates when it reaches the
-default branch. A failed archive job can be retried from its Actions run.
+For a small specimen with a real appetite, try the Dataset Explorer mutant that eats half the cache key. Ask for the same station once from the API and once from a fixture. A station-only key makes the two snapshots share an address. The specimen’s note identifies this as a custom replay, and its history takes you to the CI run with the failing isolation test. [Inspect the station-only mutant](https://opsydyn-web.opsydyn.workers.dev/mutant-field-guide/packages/dataset-explorer/29dc314177fee29da61c1157).
 
-The field guide inventories the workspace manifests declared by the root Bun workspace.
-The overview shows the latest archived attempt for each workspace and the outcomes recorded
-in that attempt. Specimen counts include historical observations. Reports written before
-workspace identity was introduced belong to `apps/web` and keep their original specimen URLs.
+In the workspace inventory, **Outcomes in last run** counts verdicts from one attempt. **Specimens** counts distinct IDs across the workspace’s history. **Never run** means the archive has no advisory for that workspace yet. On the shelf, open the same portrait after a replay to see whether its verdict changed.
 
-The Zloz history advisory runs up to two mutants in `apps/zloz-demo/src/editor/history.ts`
-on history-related PRs. Its separate report is archived under `apps/zloz-demo`; its specimen
-links include the workspace path and mutant ID. The archive workflow backfills both qualifying
-advisories when the installing PR reaches main.
+The archive workflow on the default branch imports completed advisory reports into `archive.json` on the `field-guide-data` branch. Each record carries the workspace, source commit, run ID, attempt, start time and SHA-256 of the report. Importing the same artifact twice records one sighting. A later attempt adds another. Older web specimens keep their original URLs.
+
+The guide reads the public archive on request. A new sighting appears after GitHub’s raw-content cache refreshes. If the archive is unavailable, the guide labels its bundled fallback records. Retry a failed archive job from its Actions run. [Archive workflow](../../.github/workflows/field-guide-archive.yml).

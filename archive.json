@@ -1523,5 +1523,17 @@
     "startedAt": "2026-11-28T09:56:06Z",
     "reportSha256": "f17ce39f12eb385b9cb08e86047c8bfbc00e441797d7b91ec71648e13f814993",
     "entries": []
+  },
+  {
+    "workspace": "apps/web",
+    "selected": 0,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 46134889834,
+    "attempt": 1,
+    "commit": "be9ce89a1e6c0ac017a52600c1c62ef1aee42c3c",
+    "startedAt": "2026-11-28T10:22:34Z",
+    "reportSha256": "f17ce39f12eb385b9cb08e86047c8bfbc00e441797d7b91ec71648e13f814993",
+    "entries": []
   }
 ]

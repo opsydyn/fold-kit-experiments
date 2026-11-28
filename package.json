@@ -126,6 +126,8 @@
     "ci:foldkit-zloz": "moon run web:e2e-zloz web:e2e-zloz-native",
     "ci:astro-compat": "moon run astro-foldkit:compat",
     "ci:clean": "bun tools/ci-local.ts --fresh",
+    "dev:questmancer-inspector": "bun tools/questmancer-inspector.ts",
+    "test:questmancer-inspector": "bun tools/questmancer-inspector.ts --verify",
     "dev:effect-ui-tools": "effect-ui-devtools",
     "dev:zloz-team": "bun run --filter @opsydyn/zloz-team dev"
   },

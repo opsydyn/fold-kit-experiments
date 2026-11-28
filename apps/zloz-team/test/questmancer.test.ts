@@ -9,7 +9,7 @@ import { join } from 'node:path';
 
 import { Actor, Fixture } from '@opsydyn/zloz-server/test/fixture-contract';
 import { Schema } from 'effect';
-import { chromium, type Locator, type WebSocketRoute } from 'playwright';
+import { chromium, type Browser, type Locator, type WebSocketRoute } from 'playwright';
 import { expect as browserExpect } from 'playwright/test';
 
 import type { RoomView } from '../src/questmancer/contracts';
@@ -24,8 +24,12 @@ const port = () => {
 
 const localOutbox = new URL('../.alchemy/local/email/text/', import.meta.url).pathname;
 const localMessages = () => readdir(localOutbox).catch(() => []);
+const inspectorEnabled = process.env.PUBLIC_QUESTMANCER_DEVTOOLS === '1';
+const interactive = inspectorEnabled && process.env.ZLOZ_QUESTMANCER_INSPECTOR_INTERACTIVE === '1';
+const inspectorFrame = 'iframe[title="Effect UI inspector"]';
+const fixtureTimeout = interactive ? 2_147_483_647 : 150_000;
 
-test('Questmancer opens one private table for a DM and three distinct player seats', async () => {
+async function runQuestmancer() {
   const appPort = port();
   const fixturePort = port();
   const origin = `http://localhost:${appPort}`;
@@ -57,9 +61,24 @@ test('Questmancer opens one private table for a DM and three distinct player sea
     },
   });
   closeSync(fd);
+  let stopped = false;
+  let openBrowser: Browser | undefined;
+  const interrupt = () => {
+    stopped = true;
+    void openBrowser?.close().catch(() => undefined);
+  };
+  const receive: NodeJS.MessageListener = (message) => {
+    if (message === 'questmancer-stop') interrupt();
+  };
+  const launchedByInspector = inspectorEnabled && process.connected === true;
+  if (launchedByInspector) {
+    process.on('message', receive);
+    process.send?.('questmancer-ready');
+  }
   try {
     const deadline = Date.now() + 60_000;
     while (true) {
+      if (stopped) return;
       if (child.exitCode !== null || Date.now() > deadline)
         throw new Error('Questmancer local stack failed. See ' + log);
       const [check, fixture] = await Promise.all([
@@ -123,8 +142,11 @@ test('Questmancer opens one private table for a DM and three distinct player sea
     const anonymous = await fetch(origin + lobby, { redirect: 'manual' });
     expect(anonymous.headers.get('location')).toBe('/login?returnTo=' + encodeURIComponent(lobby));
 
-    const browser = await chromium.launch();
+    if (stopped) return;
+    const browser = await chromium.launch({ headless: !interactive });
+    openBrowser = browser;
     try {
+      if (stopped) return;
       const open = async (cookie: string) => {
         const context = await browser.newContext({ viewport: { width: 1360, height: 900 } });
         context.setDefaultTimeout(12_000);
@@ -179,6 +201,7 @@ test('Questmancer opens one private table for a DM and three distinct player sea
         dm.getByRole('heading', { name: 'The Moonwell Observatory', exact: true }),
       ).toBeVisible();
       await browserExpect(dm.getByText('Read-only preview', { exact: true })).toBeVisible();
+      await browserExpect(dm.locator(inspectorFrame)).toHaveCount(0);
       await browserExpect(
         dm.getByRole('region', { name: 'The Moonwell Observatory tabletop' }),
       ).toHaveAccessibleDescription(
@@ -362,6 +385,24 @@ test('Questmancer opens one private table for a DM and three distinct player sea
           return page;
         }),
       );
+      if (interactive) {
+        await Promise.all(
+          [dm, ...pages].map((page) =>
+            browserExpect(
+              page
+                .frameLocator(inspectorFrame)
+                .getByRole('button', { name: 'Pick an element on the page' }),
+            ).toBeVisible(),
+          ),
+        );
+        const closed = dm.waitForEvent('close', { timeout: 0 });
+        await dm.bringToFront();
+        console.log('Questmancer inspector ready. The DM and three players are signed in locally.');
+        console.log('Reveal a room in the DM window, then use Pick on a player’s room heading.');
+        console.log('Close the DM window or press Ctrl+C to stop the fixture.');
+        await closed;
+        return;
+      }
       await browserExpect.poll(() => [...connected].filter((id) => id !== '3').length).toBe(3);
       await browserExpect.poll(() => wicketConnections).toBe(1);
       const readsBySeat = () => [0, 1, 2, 3].map((index) => roomReads.get(String(index)));
@@ -403,7 +444,9 @@ test('Questmancer opens one private table for a DM and three distinct player sea
       await dm.getByLabel('Room name').fill('The Moonwell Observatory');
       await dm.getByLabel('Describe the backdrop').fill('A moonlit telescope');
       await dm.getByRole('button', { name: 'Prepare sample backdrop', exact: true }).click();
-      const preview = dm.getByRole('img', { name: 'Draft backdrop for The Moonwell Observatory' });
+      const preview = dm.getByRole('img', {
+        name: 'Draft backdrop for The Moonwell Observatory',
+      });
       await browserExpect(preview).toBeVisible({ timeout: 25_000 });
       const draftPath = await preview.getAttribute('src');
       expect(draftPath).toContain('/preview/');
@@ -442,6 +485,36 @@ test('Questmancer opens one private table for a DM and three distinct player sea
       await browserExpect(
         pages[1]!.getByRole('heading', { name: 'The Moonwell Observatory', exact: true }),
       ).toBeVisible();
+      const brasswickPage = pages[1]!;
+      const inspector = brasswickPage.frameLocator(inspectorFrame);
+      if (inspectorEnabled) {
+        await inspector.getByRole('button', { name: 'Pick an element on the page' }).click();
+        await brasswickPage
+          .getByRole('heading', { name: 'The Moonwell Observatory', exact: true })
+          .click();
+        await browserExpect(
+          inspector
+            .getByRole('navigation', { name: 'Path of the instance' })
+            .getByRole('button', { name: 'QuestmancerTable', pressed: true }),
+        ).toBeVisible();
+        await inspector
+          .getByRole('button', { name: /ObservedRoom/ })
+          .first()
+          .click();
+        await inspector.getByRole('tab', { name: 'Message', exact: true }).click();
+        await browserExpect(inspector.getByText(/From Subscription QuestmancerRoom/)).toBeVisible();
+        await inspector.getByRole('tab', { name: /^Model/ }).click();
+        const model = inspector.getByRole('tabpanel', { name: /^Model/ });
+        await browserExpect(model.locator('del')).toContainText('The Aurora Gate');
+        await browserExpect(model.locator('ins')).toContainText('The Moonwell Observatory');
+        await inspector.getByRole('tab', { name: /^Commands/ }).click();
+        const commands = inspector.getByRole('tabpanel', { name: /^Commands/ });
+        await browserExpect(commands).toContainText('QuestmancerReflectRoomTitle');
+        await browserExpect(commands).toContainText('The Moonwell Observatory');
+        await capture(brasswickPage.locator(inspectorFrame), 'devtools-reveal');
+      } else {
+        await browserExpect(brasswickPage.locator(inspectorFrame)).toHaveCount(0);
+      }
       await browserExpect.poll(() => missedMiraReveal).toBe(true);
       await browserExpect(
         miraPage.getByRole('heading', { name: 'The Aurora Gate', exact: true }),
@@ -588,7 +661,16 @@ test('Questmancer opens one private table for a DM and three distinct player sea
     } finally {
       await browser.close();
     }
+  } catch (error) {
+    if (!stopped) throw error;
   } finally {
+    if (launchedByInspector) process.off('message', receive);
     await stopLocalStack(child);
   }
-}, 150_000);
+}
+
+test(
+  'Questmancer opens one private table for a DM and three distinct player seats',
+  runQuestmancer,
+  fixtureTimeout,
+);

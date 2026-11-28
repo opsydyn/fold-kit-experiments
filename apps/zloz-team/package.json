@@ -33,6 +33,7 @@
     "@astrojs/check": "catalog:",
     "@cloudflare/workers-types": "catalog:",
     "@effect/platform-bun": "catalog:",
+    "@effect/ui-devtools": "catalog:",
     "@opsydyn/zloz-server": "workspace:*",
     "@phosphor-icons/core": "catalog:",
     "@vanilla-extract/vite-plugin": "catalog:",

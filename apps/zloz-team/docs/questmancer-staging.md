@@ -42,6 +42,32 @@ Use `ZLOZ_QUESTMANCER_EVIDENCE` with a local directory to save dashboard and
 published Ledger captures. The fixture app and browser test submit no provider
 inference.
 
+## Local Effect UI inspector
+
+From the repository root, run:
+
+```sh
+bun run dev:questmancer-inspector
+```
+
+The command starts the local Teams fixture and opens four signed-in Chromium
+windows for a DM and three sample players. In the DM window, prepare and
+reveal a room. In a player window, choose **Pick** in the Effect UI inspector
+and click the room heading. Close the DM window or press Ctrl+C to end the
+fixture.
+
+Use `bun run test:questmancer-inspector` for the automated version. It picks
+Brasswick’s room heading and verifies the owning `QuestmancerTable` instance,
+the `ObservedRoom` update, the backdrop before and after, and the title
+command. Set `ZLOZ_QUESTMANCER_EVIDENCE` to save an inspector screenshot.
+
+Each launch copies the tracked working files into a temporary directory and
+installs matching Effect UI, UI Kit and DevTools snapshots there. Rerun the
+command to pick up edits from the worktree. The launcher removes the temporary
+copy at exit. Normal builds use the published runtime pins. The overlay
+runs on the loopback development table with WebMCP disabled. Questmancer’s
+current model codec shows the diff as one serialized value.
+
 ## Reviewed staging plan
 
 Follow the existing [Teams staging runbook](staging-runbook.md) for the

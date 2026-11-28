@@ -27,6 +27,14 @@ search and navigation.
   under way. They record intent at the time, so later decisions may have overtaken them.
 - **The [roadmap](roadmap.md).**
 
+## Mutant field guide
+
+A mutation test changes a small piece of code and runs the tests to see whether they catch it.
+[Browse the live field guide by workspace](https://opsydyn-web.opsydyn.workers.dev/mutant-field-guide#inventory-title),
+then open a specimen to follow its verdict across runs. **Caught** means a test detected the change.
+**Survived** means the tests still passed. Each archived observation links to its GitHub Actions run.
+The [archive notes](spikes/mutant-cafe.md#field-guide-history) explain how results reach the guide.
+
 ## Adding to it
 
 Write markdown in the folder that fits, starting with a `#` heading: the site takes the

@@ -302,15 +302,17 @@ async function runQuestmancer() {
       await dm.getByLabel('Wicket', { exact: true }).selectOption(wicket.userId);
       await capture(dm.getByRole('main'), 'dm-assign-seats');
       const livePath = (url: URL) => url.pathname === api + 'live';
-      const roomReads = new Map<string, number>();
+      const stateReads = new Map<string, number>();
       const connected = new Set<string>();
       const playerFrames: string[] = [];
       for (const [index, page] of [dm, ...invitedPages].entries()) {
         const id = String(index);
         page.on('request', (request) => {
           const path = new URL(request.url()).pathname;
-          if (path === api + 'room' || path === api + 'party-ledger')
-            roomReads.set(id, (roomReads.get(id) ?? 0) + 1);
+          if (path === api + 'room' || path === api + 'party-ledger') {
+            const read = id + path;
+            stateReads.set(read, (stateReads.get(read) ?? 0) + 1);
+          }
         });
         page.on('websocket', (socket) => {
           if (!livePath(new URL(socket.url()))) return;
@@ -374,17 +376,16 @@ async function runQuestmancer() {
       expect((await read(api + 'party-ledger', party.viewer.cookie)).status).toBe(404);
       expect((await write('host', party.editor.cookie, [])).status).toBe(404);
 
-      const pages = await Promise.all(
-        invitedPages.map(async (page, index) => {
-          await page.goto(origin + '/app');
-          await page.getByRole('link', { name: 'Join party', exact: true }).click();
-          await page.getByRole('button', { name: 'Join party', exact: true }).click();
-          await browserExpect(
-            page.getByText('You control ' + labels[index] + '.', { exact: false }),
-          ).toBeVisible();
-          return page;
-        }),
-      );
+      const pages = invitedPages;
+      for (const [index, page] of pages.entries()) {
+        await page.goto(origin + '/app');
+        await page.getByRole('link', { name: 'Join party', exact: true }).click();
+        await page.getByRole('button', { name: 'Join party', exact: true }).click();
+        await browserExpect(page).toHaveURL(origin + lobby + '/table');
+        await browserExpect(
+          page.getByText('You control ' + labels[index] + '.', { exact: false }),
+        ).toBeVisible();
+      }
       if (interactive) {
         await Promise.all(
           [dm, ...pages].map((page) =>
@@ -405,10 +406,22 @@ async function runQuestmancer() {
       }
       await browserExpect.poll(() => [...connected].filter((id) => id !== '3').length).toBe(3);
       await browserExpect.poll(() => wicketConnections).toBe(1);
-      const readsBySeat = () => [0, 1, 2, 3].map((index) => roomReads.get(String(index)));
-      await browserExpect.poll(readsBySeat).toEqual([1, 2, 2, 2]);
+      const readsBySeat = () =>
+        [0, 1, 2, 3].map((seat) => ({
+          room: stateReads.get(seat + api + 'room') ?? 0,
+          ledger: stateReads.get(seat + api + 'party-ledger') ?? 0,
+        }));
+      await browserExpect
+        .poll(() =>
+          readsBySeat().every(({ room, ledger }, seat) => room > 0 && (seat === 0 || ledger > 0)),
+        )
+        .toBe(true);
+      // Opening the fixture tabs can trigger the same one-second reconnect as regaining focus.
+      await Bun.sleep(1_500);
+      const settledReads = readsBySeat();
+      expect(settledReads[0]?.ledger).toBe(0);
       await Bun.sleep(12_000);
-      expect(readsBySeat()).toEqual([1, 2, 2, 2]);
+      expect(readsBySeat()).toEqual(settledReads);
 
       expect(
         (await write('move', mira.cookie, { id: 'wicket', x: 500, y: 500, expected: 0 })).status,

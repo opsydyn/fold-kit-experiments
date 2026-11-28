@@ -1619,6 +1619,46 @@
     ]
   },
   {
+    "workspace": "packages/dataset-explorer",
+    "selected": 3,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 46142418507,
+    "attempt": 1,
+    "commit": "ce8631dbd7dab73d91d7edc26c986e1eb6c23ae7",
+    "startedAt": "2026-11-28T11:59:14Z",
+    "reportSha256": "ed9a569eebf4e8ee83713021e0b1581fc57fd963b9dcb876051f9e92127030f5",
+    "entries": [
+      {
+        "id": "6698fec9e622251cab98e20b",
+        "file": "src/query.ts",
+        "fn": "datasetKey",
+        "genre": "FnValue",
+        "line": 58,
+        "outcome": "caught",
+        "description": "replace datasetKey -> string with \"xyzzy\""
+      },
+      {
+        "id": "80e8c62ae302486a476327cc",
+        "file": "src/query.ts",
+        "fn": "datasetKey",
+        "genre": "FnValue",
+        "line": 58,
+        "outcome": "caught",
+        "description": "replace datasetKey -> string with \"\""
+      },
+      {
+        "id": "29dc314177fee29da61c1157",
+        "file": "src/query.ts",
+        "fn": "datasetKey",
+        "genre": "CustomStationOnly",
+        "line": 58,
+        "outcome": "caught",
+        "description": "Custom replay: use the station alone as the cache key, sharing API and fixture snapshots."
+      }
+    ]
+  },
+  {
     "workspace": "packages/foldkit-viz",
     "selected": 3,
     "budgetSkipped": 0,

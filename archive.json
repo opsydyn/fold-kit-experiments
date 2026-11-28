@@ -2452,6 +2452,35 @@
     ]
   },
   {
+    "workspace": "apps/zloz-demo",
+    "selected": 9,
+    "budgetSkipped": 7,
+    "failed": false,
+    "run": 46161873392,
+    "attempt": 1,
+    "commit": "b501c2afea2197649aa6a2c5b5254cfa798857a7",
+    "startedAt": "2026-11-28T15:49:20Z",
+    "reportSha256": "7f8e1216957bb5a9c9e4c4c3c716229a7f9a25af256330da4f3080e1237bb0ad",
+    "entries": [
+      {
+        "id": "540cc4f702e0c758be088d29",
+        "file": "src/editor/history.ts",
+        "fn": "historyAllowsMessage",
+        "genre": "BooleanFlip",
+        "line": 15,
+        "outcome": "caught"
+      },
+      {
+        "id": "d5223e92e3ce78e8f0b2e676",
+        "file": "src/editor/history.ts",
+        "fn": "historyAllowsMessage",
+        "genre": "BooleanFlip",
+        "line": 15,
+        "outcome": "caught"
+      }
+    ]
+  },
+  {
     "workspace": "packages/foldkit-viz",
     "selected": 3,
     "budgetSkipped": 0,

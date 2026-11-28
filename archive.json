@@ -1978,5 +1978,81 @@
         "description": "replace typed -> Value with \"xyzzy\""
       }
     ]
+  },
+  {
+    "workspace": "packages/foldkit-dash",
+    "selected": 7,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 46156311548,
+    "attempt": 1,
+    "commit": "ad02fbf121f0d2f0a21dd537d7010ee24d470929",
+    "startedAt": "2026-11-28T14:45:42Z",
+    "reportSha256": "9080f535defb6cfde27833f36ae38eb0483dff01c15a733ba84b2e696071e6c6",
+    "entries": [
+      {
+        "id": "0b3fd077727c4abd44376700",
+        "file": "src/csv.ts",
+        "fn": "typed",
+        "genre": "FnValue",
+        "line": 13,
+        "outcome": "caught",
+        "description": "replace typed -> Value with 1"
+      },
+      {
+        "id": "58be5b45479f11c961ad6401",
+        "file": "src/csv.ts",
+        "fn": "typed",
+        "genre": "FnValue",
+        "line": 13,
+        "outcome": "caught",
+        "description": "replace typed -> Value with 0"
+      },
+      {
+        "id": "71394b5bd8f8930e2344aec3",
+        "file": "src/csv.ts",
+        "fn": "typed",
+        "genre": "FnValue",
+        "line": 13,
+        "outcome": "caught",
+        "description": "replace typed -> Value with false"
+      },
+      {
+        "id": "a51ef1599c896b66b6f898ab",
+        "file": "src/csv.ts",
+        "fn": "typed",
+        "genre": "FnValue",
+        "line": 13,
+        "outcome": "caught",
+        "description": "replace typed -> Value with \"\""
+      },
+      {
+        "id": "b4be9dffdff22c336a69bf3c",
+        "file": "src/csv.ts",
+        "fn": "typed",
+        "genre": "FnValue",
+        "line": 13,
+        "outcome": "caught",
+        "description": "replace typed -> Value with text"
+      },
+      {
+        "id": "cd03b1bdffed42ee2ea9ace2",
+        "file": "src/csv.ts",
+        "fn": "typed",
+        "genre": "FnValue",
+        "line": 13,
+        "outcome": "caught",
+        "description": "replace typed -> Value with null"
+      },
+      {
+        "id": "d8bf5dd29bbb8d3ad404ba52",
+        "file": "src/csv.ts",
+        "fn": "typed",
+        "genre": "FnValue",
+        "line": 13,
+        "outcome": "caught",
+        "description": "replace typed -> Value with \"xyzzy\""
+      }
+    ]
   }
 ]

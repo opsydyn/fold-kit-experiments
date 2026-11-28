@@ -14,7 +14,8 @@ def import_run(archive, raw, run_id, attempt, commit, started_at, workspace="app
     datetime.strptime(started_at, "%Y-%m-%dT%H:%M:%SZ")
     if workspace not in (
         "apps/web", "apps/zloz-demo", "packages/foldkit-viz",
-        "packages/foldkit-zloz-force", "packages/foldkit-dash", "packages/astro-foldkit", "packages/astro-effect-ui", "packages/dataset-explorer",
+        "packages/foldkit-zloz-mermaid", "packages/foldkit-zloz-force",
+        "packages/foldkit-dash", "packages/astro-foldkit", "packages/astro-effect-ui", "packages/dataset-explorer",
     ):
         raise ValueError("Unknown advisory workspace")
     if run_id < 1 or attempt < 1:
@@ -42,7 +43,7 @@ def import_run(archive, raw, run_id, attempt, commit, started_at, workspace="app
             raise ValueError("Invalid mutation metadata")
         entries.append(dict(id=mutant_id, file=str(path), fn=fields[0], genre=fields[1],
                             line=line, outcome=fields[2]))
-        if workspace in ("packages/dataset-explorer", "packages/foldkit-dash", "packages/foldkit-zloz-force"):
+        if workspace in ("packages/dataset-explorer", "packages/foldkit-dash", "packages/foldkit-zloz-force", "packages/foldkit-zloz-mermaid"):
             description = mutant.get("description")
             if not isinstance(description, str) or not 0 < len(description) <= 512 or not description.isprintable():
                 raise ValueError("Invalid replay description")

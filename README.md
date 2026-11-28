@@ -299,6 +299,13 @@ bun run --filter @opsydyn/foldkit-viz docs   # build TypeDoc API reference
 bun run --filter @opsydyn/web dev
 ```
 
+## Mutant field guide
+
+[![Cthulhu, the winged mutant with curling tentacles](docs/assets/cthulhu-mutant.svg)](https://opsydyn-web.opsydyn.workers.dev/mutant-field-guide/088431c5ccfa86175c2fdbce)
+
+Cthulhu replaced a scatter plot’s paint effect with `Effect.never`. The test suite let him get away with it once.
+[Explore the live mutant field guide](https://opsydyn-web.opsydyn.workers.dev/mutant-field-guide) to see what caught him.
+
 ## Published docs
 
 - **[Viz examples](https://opsydyn.github.io/fold-kit-experiments/viz/)** — chart examples, maintained source and standalone downloads

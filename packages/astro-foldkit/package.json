@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/astro-foldkit",
-  "version": "1.0.0-next.0",
+  "version": "1.0.0",
   "description": "Compatibility entry point for the standalone Astro Effect UI renderer.",
   "keywords": [
     "astro",

@@ -2,6 +2,23 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## [1.0.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.19.1...foldkit-viz-v1.0.0) (2026-11-28)
+
+### ⚠ BREAKING CHANGES
+
+- **viz:** replace legacy rendering adapters with Effect UI
+- **viz:** move chart keyboard handlers to Effect UI
+
+### Features
+
+- **foldkit-viz:** add Effect UI Cartesian rendering ([d02c010](https://github.com/opsydyn/fold-kit-experiments/commit/d02c010de6e3e9f554a443fa4e279120451eae39))
+- **foldkit-viz:** render canvas plots in Effect UI ([2a4c708](https://github.com/opsydyn/fold-kit-experiments/commit/2a4c708d23693c59ed797dd47f7e87a517aed3b0))
+- **foldkit-viz:** render compiled plots in Effect UI ([3ad83bc](https://github.com/opsydyn/fold-kit-experiments/commit/3ad83bc4a40fdaef8bed4e627afe79dc06aa6848))
+- **viz:** add Effect UI Cartesian series renderers ([09ba0d2](https://github.com/opsydyn/fold-kit-experiments/commit/09ba0d235fa527bd7f731cf4e24184495fc9e98b))
+- **viz:** add Effect UI orbit and SVG paint renderers ([598f474](https://github.com/opsydyn/fold-kit-experiments/commit/598f474116a2a3ca6b75ef97f175ad6176f38b7b))
+- **viz:** move chart keyboard handlers to Effect UI ([5c4c90d](https://github.com/opsydyn/fold-kit-experiments/commit/5c4c90dbb7dcf80cf5fe9743d81820cebd819263))
+- **viz:** replace legacy rendering adapters with Effect UI ([1488a62](https://github.com/opsydyn/fold-kit-experiments/commit/1488a621e6ec0ea109ec7d70a839172eeb81b270))
+
 ## [0.19.1](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.19.0...foldkit-viz-v0.19.1) (2026-11-23)
 
 ### Bug Fixes

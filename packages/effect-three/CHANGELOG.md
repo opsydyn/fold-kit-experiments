@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-v0.6.4...effect-three-v0.7.0) (2026-11-28)
+
+### ⚠ BREAKING CHANGES
+
+- **effect-three-foldkit:** mount scenes with Effect UI
+
+### Features
+
+- **effect-three-foldkit:** mount scenes with Effect UI ([75fa8b6](https://github.com/opsydyn/fold-kit-experiments/commit/75fa8b62991e96b779327e941682989259d0116c))
+- **effect-three:** expose the browser host without FoldKit ([550282a](https://github.com/opsydyn/fold-kit-experiments/commit/550282ab39ec94ac8c181c6d12a4e19a9aca7798))
+
 ## [0.6.4](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-v0.6.3...effect-three-v0.6.4) (2026-10-30)
 
 ### Bug Fixes

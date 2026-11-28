@@ -51,3 +51,11 @@ class ImportRunTests(unittest.TestCase):
         self.assertEqual(import_run(renderer, *args, "packages/astro-effect-ui"), renderer)
         with self.assertRaises(ValueError):
             import_run([], *args, "../anywhere")
+
+    def test_custom_dataset_replay_keeps_its_description(self):
+        mutant = self.result["mutant"]
+        mutant.update(genre="CustomStationOnly", description="Custom replay: key by station alone.")
+        args = (self.report(), 42, 1, self.commit, "2026-11-25T18:30:39Z", "packages/dataset-explorer")
+        archive = import_run([], *args)
+        self.assertEqual(archive[0]["entries"][0]["description"], mutant["description"])
+        self.assertEqual(import_run(archive, *args), archive)

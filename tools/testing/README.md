@@ -26,6 +26,8 @@ The [Dash CSV advisory](../../.github/workflows/dash-csv-advisory.yml) tests sev
 
 The [force eligibility advisory](../../.github/workflows/force-eligibility-advisory.yml) replays two generated constant booleans and one custom change that rejects exactly 100 flat nodes. It runs the package’s Bun layout suite and archives the verdicts under `packages/foldkit-zloz-force`. With the pinned tool installed, run `bun moon run foldkit-zloz:build foldkit-viz:build`, then `python3 tools/mutant-cafe/force_eligibility.py "$(mktemp -d)"` for the control, three JUnit reports and outcome summary.
 
+The [Mermaid label advisory](../../.github/workflows/mermaid-labels-advisory.yml) runs the public exporter suite with three label replacements: empty text, unchanged input and the literal `xyzzy`. With the pinned tool installed, run `bun moon run foldkit-zloz:build` followed by `python3 -B tools/mutant-cafe/mermaid_labels.py "$(mktemp -d)"` to collect the verdicts and per-mutant JUnit reports.
+
 ## P0 tests
 
 Use the shared Vitest tag `{ tags: ['p0'] }` on a test when its failure would justify holding a release. Name the user impact in the test. The first two [Zloz history tests tagged P0](../../apps/zloz-demo/test/history.test.ts) protect the working document and undo history when someone reviews an older edition and returns to the present.

@@ -20,6 +20,8 @@ Run these commands from the repository root. On a fresh checkout, use the Bun ve
 
 Moon reuses cached results on later runs. Use `bun run ci:clean -- test` to exercise the committed entry point in a fresh checkout with an empty task cache. Browser and mutation commands above have their own setup in the [CI workflow](../../.github/workflows/ci.yml) and [mutation workflow](../../.github/workflows/web-mutation-advisory.yml).
 
+The [Dataset Explorer cache advisory](../../.github/workflows/dataset-cache-advisory.yml) runs the web cache tests against two generated constant keys and one custom station-only key. The artifact includes the control and per-specimen Vitest reports. The [field guide](https://opsydyn-web.opsydyn.workers.dev/mutant-field-guide#inventory-title) archives the verdicts under the package that owns the cache.
+
 ## P0 tests
 
 Use the shared Vitest tag `{ tags: ['p0'] }` on a test when its failure would justify holding a release. Name the user impact in the test. The first two [Zloz history tests tagged P0](../../apps/zloz-demo/test/history.test.ts) protect the working document and undo history when someone reviews an older edition and returns to the present.

@@ -53,3 +53,17 @@ it('keeps a legacy web specimen and the same Zloz ID independently addressable',
   expect(latestRuns.get('apps/web')?.run).toBe(web!.run);
   expect(latestRuns.has('packages/foldkit-viz')).toBe(false);
 });
+
+it('shows the archived custom replay description on the Dataset Explorer specimen', async () => {
+  const [run] = seed;
+  const entry = {
+    ...run!.entries[0]!,
+    genre: 'CustomStationOnly',
+    description: 'Custom replay: key by station alone.',
+  };
+  const workspace = 'packages/dataset-explorer';
+  const { records } = await loadGuide(async () =>
+    Response.json([{ ...run, workspace, entries: [entry] }]),
+  );
+  expect(records.get(workspace + '/' + entry.id)?.note).toBe(entry.description);
+});

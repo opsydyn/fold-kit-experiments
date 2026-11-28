@@ -9,6 +9,7 @@ const Entry = Schema.Struct({
   file: Schema.String,
   fn: Schema.String,
   genre: Schema.String,
+  description: Schema.optionalKey(Schema.String),
   line: Schema.Number,
   outcome: Schema.String,
 });
@@ -78,7 +79,7 @@ export function fieldGuide(imported: readonly Run[]) {
         kind,
         name: entry.fn + ' · ' + suffix,
         short: suffix,
-        note: 'Recorded in the ' + workspace + ' mutation advisory.',
+        note: entry.description ?? 'Recorded in the ' + workspace + ' mutation advisory.',
         key:
           kind === 'value'
             ? 'One eye marks a value replacement.'
